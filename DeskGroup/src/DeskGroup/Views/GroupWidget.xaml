@@ -1,0 +1,118 @@
+﻿<Window x:Class="DeskGroup.Views.GroupWidget"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:views="clr-namespace:DeskGroup.Views"
+        xmlns:models="clr-namespace:DeskGroup.Models"
+        xmlns:converters="clr-namespace:DeskGroup.Converters"
+        mc:Ignorable="d"
+        Title="{Binding Name}"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ShowInTaskbar="False"
+        ResizeMode="NoResize"
+        SizeToContent="WidthAndHeight"
+        Topmost="False"
+        Left="{Binding PositionX, Mode=TwoWay}"
+        Top="{Binding PositionY, Mode=TwoWay}"
+        AllowDrop="True"
+        d:DesignWidth="320" d:DesignHeight="400">
+
+    <Window.Resources>
+        <converters:ViewModeToVisibilityConverter x:Key="MinimizedVisibility" TargetMode="Minimized"/>
+        <converters:ViewModeToVisibilityConverter x:Key="HoverVisibility" TargetMode="Hover"/>
+        <converters:ViewModeToVisibilityConverter x:Key="NormalVisibility" TargetMode="Normal"/>
+        <converters:ViewModeToVisibilityConverter x:Key="FullscreenVisibility" TargetMode="Fullscreen"/>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVis"/>
+    </Window.Resources>
+
+    <Window.Visibility>
+        <Binding Path="IsVisible" Converter="{StaticResource BoolToVis}"/>
+    </Window.Visibility>
+
+    <Grid x:Name="RootContainer">
+
+        <!-- MINIMIZED VIEW -->
+        <views:GroupWidgetMinimized
+            DataContext="{Binding}"
+            Visibility="{Binding ViewMode, Converter={StaticResource MinimizedVisibility}}"
+            MouseEnter="Minimized_MouseEnter"
+            MouseLeave="Minimized_MouseLeave"/>
+
+        <!-- HOVER VIEW -->
+        <views:GroupWidgetHover
+            DataContext="{Binding}"
+            Visibility="{Binding ViewMode, Converter={StaticResource HoverVisibility}}"
+            MouseLeave="Hover_MouseLeave"/>
+
+        <!-- NORMAL VIEW -->
+        <views:GroupWidgetNormal
+            x:Name="NormalView"
+            DataContext="{Binding}"
+            Visibility="{Binding ViewMode, Converter={StaticResource NormalVisibility}}"/>
+
+        <!-- FULLSCREEN VIEW -->
+        <views:GroupWidgetFullscreen
+            DataContext="{Binding}"
+            Visibility="{Binding ViewMode, Converter={StaticResource FullscreenVisibility}}"/>
+
+    </Grid>
+
+    <!-- Context menu (right-click anywhere on the widget) -->
+    <Window.ContextMenu>
+        <ContextMenu>
+            <!-- View modes -->
+            <MenuItem Header="View">
+                <MenuItem Header="Minimized" Command="{Binding SetMinimizedCommand}"/>
+                <MenuItem Header="Normal" Command="{Binding SetNormalCommand}"/>
+                <MenuItem Header="Fullscreen (F11)" Command="{Binding ToggleFullscreenCommand}"/>
+            </MenuItem>
+
+            <Separator/>
+
+            <!-- Add shortcut -->
+            <MenuItem Header="Add shortcut..." x:Name="MenuAddShortcut"
+                      Click="MenuAddShortcut_Click"/>
+
+            <!-- Group settings -->
+            <MenuItem Header="Rename..." x:Name="MenuRename"
+                      Click="MenuRename_Click"/>
+            <MenuItem Header="Change icon..." x:Name="MenuChangeIcon"
+                      Click="MenuChangeIcon_Click"/>
+
+            <Separator/>
+
+            <!-- Position -->
+            <MenuItem Header="Position">
+                <MenuItem Header="{Binding IsPinned, StringFormat='Pin position ({0})'}"
+                          Command="{Binding TogglePinCommand}"
+                          IsCheckable="True"
+                          IsChecked="{Binding IsPinned, Mode=OneWay}"/>
+                <MenuItem Header="Snap to grid"
+                          Command="{Binding ToggleSnapToGridCommand}"
+                          IsCheckable="True"
+                          IsChecked="{Binding SnapToGrid, Mode=OneWay}"/>
+                <Separator/>
+                <MenuItem Header="Sticky (desktop layer)"
+                          Command="{Binding ToggleDockModeCommand}">
+                    <MenuItem.Icon>
+                        <TextBlock Text="ðŸ“Œ" FontSize="12"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+            </MenuItem>
+
+            <Separator/>
+
+            <!-- Delete group -->
+            <MenuItem Header="Delete group" x:Name="MenuDeleteGroup"
+                      Click="MenuDeleteGroup_Click">
+                <MenuItem.Icon>
+                    <TextBlock Text="ðŸ—‘ï¸" FontSize="12"/>
+                </MenuItem.Icon>
+            </MenuItem>
+        </ContextMenu>
+    </Window.ContextMenu>
+
+</Window>

@@ -1,0 +1,174 @@
+﻿<UserControl x:Class="DeskGroup.Controls.ColorPickerButton"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignWidth="32" d:DesignHeight="32"
+             Width="32" Height="32">
+
+    <UserControl.Resources>
+        <!-- Preset color palette (Windows 11 accent colors) -->
+        <x:Array x:Key="PresetColors" Type="sys:String"
+                 xmlns:sys="clr-namespace:System;assembly=mscorlib">
+            <sys:String>#0078D4</sys:String>
+            <sys:String>#0099BC</sys:String>
+            <sys:String>#7A7574</sys:String>
+            <sys:String>#767676</sys:String>
+            <sys:String>#FF8C00</sys:String>
+            <sys:String>#E81123</sys:String>
+            <sys:String>#D13438</sys:String>
+            <sys:String>#C30052</sys:String>
+            <sys:String>#BF0077</sys:String>
+            <sys:String>#9B0062</sys:String>
+            <sys:String>#881798</sys:String>
+            <sys:String>#744DA9</sys:String>
+            <sys:String>#8764B8</sys:String>
+            <sys:String>#0063B1</sys:String>
+            <sys:String>#2D7D9A</sys:String>
+            <sys:String>#00B7C3</sys:String>
+            <sys:String>#038387</sys:String>
+            <sys:String>#00B294</sys:String>
+            <sys:String>#018574</sys:String>
+            <sys:String>#00CC6A</sys:String>
+            <sys:String>#10893E</sys:String>
+            <sys:String>#107C10</sys:String>
+            <sys:String>#498205</sys:String>
+            <sys:String>#847545</sys:String>
+        </x:Array>
+
+        <Style x:Key="ColorSwatchButton" TargetType="Button">
+            <Setter Property="Width" Value="28"/>
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="Margin" Value="2"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid>
+                            <Border x:Name="SwatchBorder"
+                                    CornerRadius="4"
+                                    Background="{TemplateBinding Background}"
+                                    BorderThickness="2"
+                                    BorderBrush="Transparent"/>
+                            <!-- Selection ring -->
+                            <Border x:Name="SelectionRing"
+                                    CornerRadius="4"
+                                    BorderThickness="2"
+                                    BorderBrush="Transparent"
+                                    Margin="-2"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="SelectionRing" Property="BorderBrush"
+                                        Value="{DynamicResource ForegroundPrimary}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="SwatchBorder" Property="Opacity" Value="0.7"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <!-- The main color button -->
+        <Button x:Name="MainButton"
+                Click="MainButton_Click"
+                Cursor="Hand"
+                ToolTip="Click to change color">
+            <Button.Template>
+                <ControlTemplate TargetType="Button">
+                    <Grid>
+                        <Border x:Name="ColorBorder"
+                                CornerRadius="6"
+                                Background="{Binding SelectedBrush, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                BorderThickness="1"
+                                BorderBrush="{DynamicResource BorderPrimary}"/>
+                        <!-- Hover overlay -->
+                        <Border x:Name="HoverOverlay"
+                                CornerRadius="6"
+                                Background="White"
+                                Opacity="0"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="HoverOverlay" Property="Opacity" Value="0.15"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Button.Template>
+        </Button>
+
+        <!-- Dropdown popup with color grid -->
+        <Popup x:Name="ColorPopup"
+               Placement="Bottom"
+               StaysOpen="False"
+               AllowsTransparency="True"
+               PopupAnimation="Fade">
+            <Border Background="{DynamicResource BackgroundPrimary}"
+                    BorderBrush="{DynamicResource BorderPrimary}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="8"
+                    Margin="4">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="12" ShadowDepth="4" Opacity="0.25"/>
+                </Border.Effect>
+
+                <StackPanel>
+                    <TextBlock Text="Group Color"
+                               Foreground="{DynamicResource ForegroundPrimary}"
+                               FontFamily="{DynamicResource DefaultFont}"
+                               FontSize="{DynamicResource FontSizeNormal}"
+                               FontWeight="SemiBold"
+                               Margin="4,0,0,8"/>
+
+                    <!-- Color grid -->
+                    <ItemsControl ItemsSource="{StaticResource PresetColors}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel MaxWidth="200"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Style="{StaticResource ColorSwatchButton}"
+                                        Click="ColorSwatch_Click"
+                                        Tag="{Binding}">
+                                    <Button.Background>
+                                        <SolidColorBrush Color="{Binding}"/>
+                                    </Button.Background>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- Custom color input -->
+                    <DockPanel Margin="4,8,4,0">
+                        <TextBlock Text="#"
+                                   Foreground="{DynamicResource ForegroundSecondary}"
+                                   FontFamily="{DynamicResource DefaultFont}"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,4,0"/>
+                        <Button Content="Apply"
+                                DockPanel.Dock="Right"
+                                Click="CustomColorApply_Click"
+                                Style="{DynamicResource AccentButton}"
+                                Padding="8,4"
+                                Margin="4,0,0,0"
+                                FontSize="11"/>
+                        <TextBox x:Name="CustomColorInput"
+                                 MaxLength="6"
+                                 FontFamily="Consolas"
+                                 FontSize="12"
+                                 VerticalContentAlignment="Center"
+                                 Padding="4,2"/>
+                    </DockPanel>
+                </StackPanel>
+            </Border>
+        </Popup>
+    </Grid>
+</UserControl>

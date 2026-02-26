@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net6.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>false</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>DeskGroup</AssemblyName>
+    <RootNamespace>DeskGroup</RootNamespace>
+    <Version>1.0.0</Version>
+    <Authors>DeskGroup</Authors>
+    <Description>Desktop Icon Organizer - Group your desktop shortcuts into clean, widget-like containers.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="1.1.0" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\tray-icon.ico" Condition="Exists('Assets\tray-icon.ico')" />
+    <Resource Include="Assets\default-group-icon.ico" Condition="Exists('Assets\default-group-icon.ico')" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,175 @@
+﻿<UserControl x:Class="DeskGroup.Views.GroupWidgetHover"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="clr-namespace:DeskGroup.Controls"
+             mc:Ignorable="d"
+             d:DesignWidth="320" d:DesignHeight="280">
+
+    <!--
+    Hover view: Expanded popup showing the top 10 most-used shortcuts.
+    Appears when hovering over the minimized pill.
+    Click on any icon to launch. Click the "Expand" button to go to Normal view.
+    -->
+
+    <UserControl.Resources>
+        <Storyboard x:Key="FadeIn">
+            <DoubleAnimation Storyboard.TargetName="RootBorder"
+                             Storyboard.TargetProperty="Opacity"
+                             From="0" To="1" Duration="0:0:0.2"/>
+            <DoubleAnimation Storyboard.TargetName="RootBorder"
+                             Storyboard.TargetProperty="(Border.RenderTransform).(ScaleTransform.ScaleX)"
+                             From="0.95" To="1" Duration="0:0:0.15"/>
+            <DoubleAnimation Storyboard.TargetName="RootBorder"
+                             Storyboard.TargetProperty="(Border.RenderTransform).(ScaleTransform.ScaleY)"
+                             From="0.95" To="1" Duration="0:0:0.15"/>
+        </Storyboard>
+    </UserControl.Resources>
+
+    <Border x:Name="RootBorder"
+            CornerRadius="{DynamicResource WidgetCornerRadius}"
+            Background="{DynamicResource BackgroundWidget}"
+            BorderBrush="{Binding AccentBrush}"
+            BorderThickness="1.5"
+            Padding="{DynamicResource WidgetPadding}"
+            MinWidth="240"
+            MaxWidth="360"
+            RenderTransformOrigin="0.5,0">
+
+        <Border.RenderTransform>
+            <ScaleTransform ScaleX="1" ScaleY="1"/>
+        </Border.RenderTransform>
+
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="16" ShadowDepth="4" Opacity="0.25"
+                              Color="Black" Direction="270"/>
+        </Border.Effect>
+
+        <Border.Triggers>
+            <EventTrigger RoutedEvent="Loaded">
+                <BeginStoryboard Storyboard="{StaticResource FadeIn}"/>
+            </EventTrigger>
+        </Border.Triggers>
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>   <!-- Header -->
+                <RowDefinition Height="Auto"/>   <!-- Separator -->
+                <RowDefinition Height="*"/>      <!-- Icon grid -->
+                <RowDefinition Height="Auto"/>   <!-- Footer -->
+            </Grid.RowDefinitions>
+
+            <!-- Header: Group name + count -->
+            <DockPanel Grid.Row="0" Margin="0,0,0,6">
+                <!-- Expand button -->
+                <Button DockPanel.Dock="Right"
+                        Content="â¬œ"
+                        ToolTip="Open full view"
+                        FontSize="12"
+                        Cursor="Hand"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Foreground="{DynamicResource ForegroundSecondary}"
+                        Padding="6,2"
+                        Command="{Binding SetNormalCommand}"
+                        VerticalAlignment="Center"/>
+
+                <!-- Group icon -->
+                <Image Source="{Binding GroupIcon}"
+                       Width="18" Height="18"
+                       Margin="0,0,6,0"
+                       Stretch="Uniform"
+                       VerticalAlignment="Center"
+                       RenderOptions.BitmapScalingMode="HighQuality">
+                    <Image.Style>
+                        <Style TargetType="Image">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding GroupIcon}" Value="{x:Null}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Image.Style>
+                </Image>
+
+                <!-- Group name -->
+                <TextBlock Text="{Binding Name}"
+                           Foreground="{DynamicResource ForegroundPrimary}"
+                           FontFamily="{DynamicResource DefaultFont}"
+                           FontSize="{DynamicResource FontSizeLarge}"
+                           FontWeight="SemiBold"
+                           VerticalAlignment="Center"
+                           TextTrimming="CharacterEllipsis"/>
+            </DockPanel>
+
+            <!-- Separator -->
+            <Border Grid.Row="1"
+                    Height="1"
+                    Background="{DynamicResource BorderSubtle}"
+                    Margin="0,0,0,8"/>
+
+            <!-- Top 10 most-used icons -->
+            <ItemsControl Grid.Row="2"
+                          ItemsSource="{Binding TopUsedShortcuts}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <controls:IconTile
+                            Icon="{Binding Icon}"
+                            DisplayName="{Binding DisplayName}"
+                            LaunchCommand="{Binding LaunchCommand}"
+                            IconSize="40"
+                            Margin="2"/>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <!-- Empty state -->
+            <TextBlock Grid.Row="2"
+                       Text="No shortcuts yet. Right-click to add some!"
+                       Foreground="{DynamicResource ForegroundDisabled}"
+                       FontFamily="{DynamicResource DefaultFont}"
+                       FontSize="{DynamicResource FontSizeSmall}"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       TextWrapping="Wrap"
+                       Margin="8">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding TopUsedShortcuts.Count}" Value="0">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+
+            <!-- Footer: "Most used" label + total count -->
+            <DockPanel Grid.Row="3" Margin="0,8,0,0">
+                <TextBlock Text="â˜… Most used"
+                           Foreground="{DynamicResource ForegroundSecondary}"
+                           FontFamily="{DynamicResource DefaultFont}"
+                           FontSize="{DynamicResource FontSizeSmall}"
+                           VerticalAlignment="Center"/>
+
+                <TextBlock DockPanel.Dock="Right"
+                           HorizontalAlignment="Right"
+                           VerticalAlignment="Center"
+                           Foreground="{DynamicResource ForegroundSecondary}"
+                           FontFamily="{DynamicResource DefaultFont}"
+                           FontSize="{DynamicResource FontSizeSmall}">
+                    <Run Text="{Binding AllShortcuts.Count, Mode=OneWay}"/>
+                    <Run Text=" total"/>
+                </TextBlock>
+            </DockPanel>
+
+        </Grid>
+    </Border>
+</UserControl>
