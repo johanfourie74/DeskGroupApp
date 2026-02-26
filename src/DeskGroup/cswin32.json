@@ -1,0 +1,25 @@
+{
+  "namespace": "Windows.Win32",
+  "className": "PInvoke",
+  "accessModifier": "public",
+  "functions": [
+    "FindWindowW",
+    "FindWindowExW",
+    "GetDesktopWindow",
+    "GetShellWindow",
+    "SetParent",
+    "SetWindowPos",
+    "GetWindowLongW",
+    "SetWindowLongW",
+    "ShowWindow",
+    "SendMessageW",
+    "SendMessageTimeoutW",
+    "DestroyIcon",
+    "ExtractIconW",
+    "ExtractIconExW",
+    "SHGetFileInfoW"
+  ],
+  "structs": [
+    "SHFILEINFO"
+  ]
+}

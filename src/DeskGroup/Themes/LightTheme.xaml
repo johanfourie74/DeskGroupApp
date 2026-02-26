@@ -1,0 +1,38 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Background -->
+    <SolidColorBrush x:Key="BackgroundPrimary" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="BackgroundSecondary" Color="#F3F3F3"/>
+    <SolidColorBrush x:Key="BackgroundTertiary" Color="#E5E5E5"/>
+    <SolidColorBrush x:Key="BackgroundWidget" Color="#F9F9F9"/>
+
+    <!-- Foreground -->
+    <SolidColorBrush x:Key="ForegroundPrimary" Color="#1A1A1A"/>
+    <SolidColorBrush x:Key="ForegroundSecondary" Color="#616161"/>
+    <SolidColorBrush x:Key="ForegroundDisabled" Color="#A0A0A0"/>
+
+    <!-- Accent -->
+    <SolidColorBrush x:Key="AccentPrimary" Color="#0078D4"/>
+    <SolidColorBrush x:Key="AccentHover" Color="#106EBE"/>
+    <SolidColorBrush x:Key="AccentPressed" Color="#005A9E"/>
+
+    <!-- Border -->
+    <SolidColorBrush x:Key="BorderPrimary" Color="#D6D6D6"/>
+    <SolidColorBrush x:Key="BorderSubtle" Color="#E8E8E8"/>
+
+    <!-- Widget -->
+    <SolidColorBrush x:Key="WidgetShadow" Color="#20000000"/>
+    <CornerRadius x:Key="WidgetCornerRadius">8</CornerRadius>
+    <CornerRadius x:Key="PillCornerRadius">16</CornerRadius>
+    <Thickness x:Key="WidgetPadding">12</Thickness>
+    <Thickness x:Key="WidgetBorder">1</Thickness>
+
+    <!-- Text -->
+    <FontFamily x:Key="DefaultFont">Segoe UI Variable, Segoe UI, sans-serif</FontFamily>
+    <sys:Double x:Key="FontSizeSmall" xmlns:sys="clr-namespace:System;assembly=mscorlib">11</sys:Double>
+    <sys:Double x:Key="FontSizeNormal" xmlns:sys="clr-namespace:System;assembly=mscorlib">13</sys:Double>
+    <sys:Double x:Key="FontSizeLarge" xmlns:sys="clr-namespace:System;assembly=mscorlib">16</sys:Double>
+    <sys:Double x:Key="FontSizeTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">20</sys:Double>
+
+</ResourceDictionary>

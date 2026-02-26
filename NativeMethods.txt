@@ -1,0 +1,11 @@
+GetWindowLong
+SetWindowLong
+SetParent
+FindWindow
+FindWindowEx
+SetWindowPos
+ShowWindow
+SendMessage
+GetDesktopWindow
+GetShellWindow
+SendMessageTimeout
