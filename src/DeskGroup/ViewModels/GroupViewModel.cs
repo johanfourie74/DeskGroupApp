@@ -34,6 +34,25 @@ public partial class GroupViewModel : ObservableObject
     [ObservableProperty] private SolidColorBrush _accentBrush = new(Colors.DodgerBlue);
     [ObservableProperty] private string _accentColorHex = "#0078D4";
     [ObservableProperty] private ImageSource? _groupIcon;
+
+    partial void OnAccentColorHexChanged(string value)
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine($"OnAccentColorHexChanged: {value} for group '{Name}'");
+            ApplyAccentColor(value);
+            _model.AccentColor = value;
+
+            // Notify that a property changed to trigger auto-save
+            OnPropertyChanged(nameof(AccentColorHex));
+            System.Diagnostics.Debug.WriteLine($"  Color set in model and property changed notified");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"ERROR in OnAccentColorHexChanged: {ex}");
+        }
+    }
+
     [ObservableProperty] private bool _isDragging;
     [ObservableProperty] private bool _isRenaming;
 
@@ -70,14 +89,19 @@ public partial class GroupViewModel : ObservableObject
     {
         try
         {
+            System.Diagnostics.Debug.WriteLine($"ApplyAccentColor: {hex}");
             var color = (Color)ColorConverter.ConvertFromString(hex);
-            AccentBrush = new SolidColorBrush(color);
-            AccentBrush.Freeze();
+            var newBrush = new SolidColorBrush(color);
+            newBrush.Freeze();
+            AccentBrush = newBrush;
+            System.Diagnostics.Debug.WriteLine($"  Successfully created brush for color: {color}");
         }
-        catch
+        catch (Exception ex)
         {
-            AccentBrush = new SolidColorBrush(Colors.DodgerBlue);
-            AccentBrush.Freeze();
+            System.Diagnostics.Debug.WriteLine($"  ERROR: {ex.Message}");
+            var fallbackBrush = new SolidColorBrush(Colors.DodgerBlue);
+            fallbackBrush.Freeze();
+            AccentBrush = fallbackBrush;
         }
     }
 
@@ -176,17 +200,35 @@ public partial class GroupViewModel : ObservableObject
     [RelayCommand]
     private void AddShortcut(string filePath)
     {
-        var resolver = new ShortcutResolverService(_iconExtractor);
-        var shortcutItem = resolver.Resolve(filePath);
-        shortcutItem.SortOrder = _model.Shortcuts.Count;
-        _model.Shortcuts.Add(shortcutItem);
+        try
+        {
+            System.Diagnostics.Debug.WriteLine($"AddShortcut: {filePath} to {Name}");
 
-        var vm = new ShortcutItemViewModel(shortcutItem, _usageTracker, _iconExtractor);
-        AllShortcuts.Add(vm);
+            var resolver = new ShortcutResolverService(_iconExtractor);
+            var shortcutItem = resolver.Resolve(filePath);
+            shortcutItem.SortOrder = _model.Shortcuts.Count;
+            _model.Shortcuts.Add(shortcutItem);
 
-        var originalState = _desktopIconService.HideDesktopIcon(shortcutItem);
-        if (originalState != null) _model.OriginalIconStates.Add(originalState);
-        RefreshTopUsed();
+            System.Diagnostics.Debug.WriteLine($"  Creating ViewModel for shortcut: {shortcutItem.DisplayName}");
+
+            var vm = new ShortcutItemViewModel(shortcutItem, _usageTracker, _iconExtractor);
+            AllShortcuts.Add(vm);
+
+            System.Diagnostics.Debug.WriteLine($"  Hiding desktop icon");
+
+            var originalState = _desktopIconService.HideDesktopIcon(shortcutItem);
+            if (originalState != null) _model.OriginalIconStates.Add(originalState);
+
+            RefreshTopUsed();
+
+            System.Diagnostics.Debug.WriteLine($"  AddShortcut completed successfully");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"ERROR in AddShortcut: {ex}");
+            MessageBox.Show($"Failed to add shortcut:\n\n{ex.Message}\n\nFile: {filePath}", 
+                "Add Shortcut Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     [RelayCommand]
@@ -220,14 +262,6 @@ public partial class GroupViewModel : ObservableObject
     [RelayCommand] private void ToggleSnapToGrid() => SnapToGrid = !SnapToGrid;
 
     [RelayCommand]
-    private void SetAccentColor(string hexColor)
-    {
-        AccentColorHex = hexColor;
-        ApplyAccentColor(hexColor);
-        _model.AccentColor = hexColor;
-    }
-
-    [RelayCommand]
     private void SetGroupIcon(string iconPath)
     {
         _model.CustomIconPath = iconPath;
@@ -255,4 +289,8 @@ public partial class GroupViewModel : ObservableObject
         // and exit renaming mode
         IsRenaming = false;
     }
+
+    [RelayCommand]
+    private void SetFullscreen() => ViewMode = GroupViewMode.Fullscreen;
 }
+

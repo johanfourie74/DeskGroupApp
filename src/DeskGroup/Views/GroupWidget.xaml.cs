@@ -2,6 +2,7 @@
 using System.ComponentModel;
 using System.Linq;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using DeskGroup.Controls;
@@ -18,6 +19,15 @@ public partial class GroupWidget : Window
     private IntPtr _windowHandle;
     private bool _isAttachedToDesktop;
     private System.Windows.Threading.DispatcherTimer? _hoverLeaveTimer;
+    private bool _isApplyingChanges; // Guard against re-entry
+    private bool _isInitializing = true; // Skip handlers during init
+    private bool _isUpdatingViewMode = false; // Guard for view mode updates
+
+    // Save position before fullscreen
+    private double _preFullscreenLeft;
+    private double _preFullscreenTop;
+    private double _preFullscreenWidth;
+    private double _preFullscreenHeight;
 
     /// <summary>
     /// Fired when the user requests to delete this group.
@@ -32,12 +42,35 @@ public partial class GroupWidget : Window
 
     public GroupWidget()
     {
+        System.Diagnostics.Debug.WriteLine("GroupWidget.Constructor: START");
+
         InitializeComponent();
+
+        System.Diagnostics.Debug.WriteLine("GroupWidget.Constructor: InitializeComponent done");
+
+        // Reduce flickering during drag/resize
+        System.Windows.Interop.HwndSource.DefaultAcquireHwndFocusInMenuMode = false;
+
+        // Additional performance optimization - use layered window composition
+        SourceInitialized += (s, e) =>
+        {
+            System.Diagnostics.Debug.WriteLine("GroupWidget.SourceInitialized: START");
+            var source = PresentationSource.FromVisual(this) as HwndSource;
+            if (source != null)
+            {
+                source.CompositionTarget.RenderMode = RenderMode.Default;
+            }
+            System.Diagnostics.Debug.WriteLine("GroupWidget.SourceInitialized: COMPLETE");
+        };
+
         Loaded += OnLoaded;
         Closing += OnClosing;
         DataContextChanged += OnDataContextChanged;
         Drop += OnDrop;
         DragEnter += OnDragEnter;
+        KeyDown += OnKeyDown; // Keyboard shortcuts
+
+        System.Diagnostics.Debug.WriteLine("GroupWidget.Constructor: Wiring routed events");
 
         // Subscribe to routed events from child controls
         AddHandler(IconTile.RemoveShortcutEvent, new RoutedEventHandler(OnRemoveShortcutRequested));
@@ -45,29 +78,57 @@ public partial class GroupWidget : Window
         AddHandler(DragThumb.ToggleSnapRequestedEvent, new RoutedEventHandler(OnToggleSnapRequested));
         AddHandler(DragThumb.SetStickyRequestedEvent, new RoutedEventHandler(OnSetStickyRequested));
         AddHandler(DragThumb.SetFloatRequestedEvent, new RoutedEventHandler(OnSetFloatRequested));
+
+        System.Diagnostics.Debug.WriteLine("GroupWidget.Constructor: COMPLETE");
     }
 
     public GroupWidget(GroupViewModel viewModel) : this()
     {
+        System.Diagnostics.Debug.WriteLine($"GroupWidget.Constructor(VM): Setting DataContext to '{viewModel?.Name}'");
         DataContext = viewModel;
+        System.Diagnostics.Debug.WriteLine("GroupWidget.Constructor(VM): COMPLETE");
     }
 
     // Lifecycle
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
-        _windowHandle = new WindowInteropHelper(this).Handle;
+        System.Diagnostics.Debug.WriteLine("GroupWidget.OnLoaded: START");
 
-        // Hide from Alt+Tab and taskbar
+        _windowHandle = new WindowInteropHelper(this).Handle;
         Win32Interop.SetToolWindow(_windowHandle);
 
         if (_viewModel != null)
         {
-            ApplyDockMode(_viewModel.DockMode);
-            ApplyViewMode(_viewModel.ViewMode);
+            System.Diagnostics.Debug.WriteLine($"GroupWidget.OnLoaded: Setting position to ({_viewModel.PositionX}, {_viewModel.PositionY})");
 
-            // Listen for property changes
-            _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+            // Set position from ViewModel
+            Left = _viewModel.PositionX;
+            Top = _viewModel.PositionY;
+
+            // Apply view mode to set initial size
+            _isInitializing = true; // Block property handlers during init
+            UpdateViewMode(_viewModel.ViewMode);
+            _isInitializing = false;
+
+            // Show if visible
+            if (_viewModel.IsVisible)
+            {
+                Show();
+            }
+
+            // Apply dock mode after a delay
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                _isInitializing = true;
+                ApplyDockMode(_viewModel.DockMode);
+                _isInitializing = false;
+
+                // NOW enable property change handlers
+                _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+
+                System.Diagnostics.Debug.WriteLine($"GroupWidget.OnLoaded: COMPLETE for '{_viewModel.Name}'");
+            }), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
         }
     }
 
@@ -107,32 +168,79 @@ public partial class GroupWidget : Window
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        switch (e.PropertyName)
+        // Skip during initialization
+        if (_isInitializing)
         {
-            case nameof(GroupViewModel.DockMode):
-                if (_viewModel != null) ApplyDockMode(_viewModel.DockMode);
-                break;
+            System.Diagnostics.Debug.WriteLine($"OnViewModelPropertyChanged: SKIPPED (initializing) - '{e.PropertyName}'");
+            return;
+        }
 
-            case nameof(GroupViewModel.ViewMode):
-                if (_viewModel != null) ApplyViewMode(_viewModel.ViewMode);
-                break;
+        // Prevent re-entry
+        if (_isApplyingChanges)
+        {
+            System.Diagnostics.Debug.WriteLine($"OnViewModelPropertyChanged: BLOCKED (re-entry) - '{e.PropertyName}'");
+            return;
+        }
 
-            case nameof(GroupViewModel.Width):
-            case nameof(GroupViewModel.Height):
-                if (_viewModel != null && _viewModel.ViewMode == GroupViewMode.Normal)
-                {
-                    SizeToContent = SizeToContent.Manual;
-                    Width = _viewModel.Width;
-                    Height = _viewModel.Height;
-                }
-                break;
+        _isApplyingChanges = true;
 
-            case nameof(GroupViewModel.IsVisible):
-                if (_viewModel != null)
-                {
-                    Visibility = _viewModel.IsVisible ? Visibility.Visible : Visibility.Collapsed;
-                }
-                break;
+        try
+        {
+            System.Diagnostics.Debug.WriteLine($"OnViewModelPropertyChanged: '{e.PropertyName}' for '{_viewModel?.Name}'");
+
+            switch (e.PropertyName)
+            {
+                case nameof(GroupViewModel.DockMode):
+                    if (_viewModel != null) 
+                    {
+                        ApplyDockMode(_viewModel.DockMode);
+                    }
+                    break;
+
+                case nameof(GroupViewModel.ViewMode):
+                    if (_viewModel != null) 
+                    {
+                        System.Diagnostics.Debug.WriteLine($"  ViewMode changing to: {_viewModel.ViewMode}");
+
+                        // CRITICAL: Save position BEFORE switching to fullscreen!
+                        if (_viewModel.ViewMode == GroupViewMode.Fullscreen)
+                        {
+                            // Save current state before fullscreen
+                            _preFullscreenLeft = Left;
+                            _preFullscreenTop = Top;
+                            _preFullscreenWidth = Width;
+                            _preFullscreenHeight = Height;
+                            System.Diagnostics.Debug.WriteLine($"    -> Saved pre-fullscreen: pos=({_preFullscreenLeft},{_preFullscreenTop}), size=({_preFullscreenWidth}x{_preFullscreenHeight})");
+                        }
+
+                        UpdateViewMode(_viewModel.ViewMode);
+                    }
+                    break;
+
+                case nameof(GroupViewModel.Width):
+                case nameof(GroupViewModel.Height):
+                    if (_viewModel != null && _viewModel.ViewMode == GroupViewMode.Normal)
+                    {
+                        SizeToContent = SizeToContent.Manual;
+                        Width = _viewModel.Width;
+                        Height = _viewModel.Height;
+                    }
+                    break;
+
+                case nameof(GroupViewModel.IsVisible):
+                    // DISABLED: Causes infinite loop when hiding/showing
+                    // Visibility is now controlled directly by App.xaml.cs
+                    System.Diagnostics.Debug.WriteLine($"  IsVisible handler: DISABLED to prevent loops");
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"OnViewModelPropertyChanged: ERROR - {ex.Message}");
+        }
+        finally
+        {
+            _isApplyingChanges = false;
         }
     }
 
@@ -141,24 +249,32 @@ public partial class GroupWidget : Window
     private void ApplyDockMode(GroupDockMode mode)
     {
         if (_windowHandle == IntPtr.Zero) return;
+        if (_isApplyingChanges) return; // Prevent re-entry
 
         switch (mode)
         {
             case GroupDockMode.Sticky:
                 if (!_isAttachedToDesktop)
                 {
-                    // Detach topmost first
+                    Topmost = false;
                     Win32Interop.SetTopmost(_windowHandle, false);
 
+                    // Show window first
+                    Visibility = Visibility.Visible;
+                    Show();
+                    UpdateLayout();
+
+                    // Try to attach to desktop
                     bool attached = Win32Interop.AttachToDesktop(_windowHandle);
                     _isAttachedToDesktop = attached;
 
-                    if (!attached)
+                    // Always use SetWindowPos as fallback
+                    if (_viewModel != null)
                     {
-                        // Fallback: just send to bottom
                         Win32Interop.SetWindowPos(_windowHandle, Win32Interop.HWND_BOTTOM,
-                            0, 0, 0, 0,
-                            Win32Interop.SWP_NOMOVE | Win32Interop.SWP_NOSIZE | Win32Interop.SWP_NOACTIVATE);
+                            (int)_viewModel.PositionX, (int)_viewModel.PositionY, 
+                            (int)Width, (int)Height,
+                            Win32Interop.SWP_SHOWWINDOW | Win32Interop.SWP_NOACTIVATE);
                     }
                 }
                 break;
@@ -169,7 +285,10 @@ public partial class GroupWidget : Window
                     Win32Interop.DetachFromDesktop(_windowHandle);
                     _isAttachedToDesktop = false;
                 }
+                Topmost = true;
                 Win32Interop.SetTopmost(_windowHandle, true);
+                Visibility = Visibility.Visible;
+                Show();
                 break;
         }
     }
@@ -181,13 +300,20 @@ public partial class GroupWidget : Window
         switch (mode)
         {
             case GroupViewMode.Minimized:
-                SizeToContent = SizeToContent.WidthAndHeight;
+                // Force manual sizing for minimized mode to avoid SizeToContent issues
+                SizeToContent = SizeToContent.Manual;
                 ResizeMode = ResizeMode.NoResize;
+                Width = 160;
+                Height = 40;
+                MinWidth = 100;
+                MinHeight = 40;
                 break;
 
             case GroupViewMode.Hover:
                 SizeToContent = SizeToContent.WidthAndHeight;
                 ResizeMode = ResizeMode.NoResize;
+                MinWidth = 200;
+                MinHeight = 100;
                 break;
 
             case GroupViewMode.Normal:
@@ -197,7 +323,14 @@ public partial class GroupWidget : Window
                     Width = _viewModel.Width;
                     Height = _viewModel.Height;
                 }
-                ResizeMode = ResizeMode.NoResize; // We handle resize via our own thumb
+                else
+                {
+                    Width = 300;
+                    Height = 250;
+                }
+                MinWidth = 200;
+                MinHeight = 150;
+                ResizeMode = ResizeMode.NoResize;
                 break;
 
             case GroupViewMode.Fullscreen:
@@ -216,8 +349,14 @@ public partial class GroupWidget : Window
                 {
                     Win32Interop.DetachFromDesktop(_windowHandle);
                     _isAttachedToDesktop = false;
-                    Win32Interop.SetTopmost(_windowHandle, true);
                 }
+
+                // Ensure window is topmost and visible
+                Topmost = true;
+                Show();
+                Activate();
+                Win32Interop.SetTopmost(_windowHandle, true);
+                Win32Interop.ShowWindow(_windowHandle, Win32Interop.SW_SHOW);
                 break;
         }
     }
@@ -243,6 +382,8 @@ public partial class GroupWidget : Window
 
     private void StartHoverLeaveTimer()
     {
+        System.Diagnostics.Debug.WriteLine("StartHoverLeaveTimer: Starting 300ms timer");
+
         _hoverLeaveTimer?.Stop();
         _hoverLeaveTimer = new System.Windows.Threading.DispatcherTimer
         {
@@ -252,10 +393,24 @@ public partial class GroupWidget : Window
         {
             _hoverLeaveTimer.Stop();
 
-            // Only revert if mouse is truly outside
-            if (!IsMouseOver)
+            System.Diagnostics.Debug.WriteLine($"  Timer Tick: IsMouseOver={IsMouseOver}, ViewMode={_viewModel?.ViewMode}");
+
+            // Collapse if mouse is outside AND we're in hover mode
+            if (!IsMouseOver && _viewModel != null)
             {
-                _viewModel?.OnMouseLeave();
+                if (_viewModel.ViewMode == GroupViewMode.Hover)
+                {
+                    System.Diagnostics.Debug.WriteLine("  -> Timer: Collapsing to Minimized");
+                    _viewModel.ViewMode = GroupViewMode.Minimized;
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"  -> Timer: No collapse needed, mode is {_viewModel.ViewMode}");
+                }
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("  -> Timer: Mouse still over, not collapsing");
             }
         };
         _hoverLeaveTimer.Start();
@@ -405,6 +560,22 @@ public partial class GroupWidget : Window
         }
     }
 
+    private void MenuChangeColor_Click(object sender, RoutedEventArgs e)
+    {
+        // Simple color picker dialog
+        var colorDialog = new ColorPickerDialog(_viewModel?.AccentColorHex ?? "#0078D4");
+
+        if (colorDialog.ShowDialog() == true)
+        {
+            var newColor = colorDialog.SelectedColor;
+            if (_viewModel != null && !string.IsNullOrEmpty(newColor))
+            {
+                _viewModel.AccentColorHex = newColor;
+                System.Diagnostics.Debug.WriteLine($"Color changed to: {newColor}");
+            }
+        }
+    }
+
     private void MenuDeleteGroup_Click(object sender, RoutedEventArgs e)
     {
         var result = MessageBox.Show(
@@ -419,7 +590,508 @@ public partial class GroupWidget : Window
             DeleteRequested?.Invoke(this, EventArgs.Empty);
         }
     }
+
+    // ============================================================================================
+    // VIEW MODE SWITCHING (Safe, no loops!)
+    // ============================================================================================
+
+    private void UpdateViewMode(GroupViewMode mode)
+    {
+        // CRITICAL: Prevent re-entry!
+        if (_isUpdatingViewMode)
+        {
+            System.Diagnostics.Debug.WriteLine($"UpdateViewMode: BLOCKED re-entry for mode {mode}");
+            return;
+        }
+
+        _isUpdatingViewMode = true;
+
+        try
+        {
+            System.Diagnostics.Debug.WriteLine($"UpdateViewMode: Switching to {mode} (current visible: Min={MinimizedView.Visibility}, Hover={HoverView.Visibility}, Normal={NormalView.Visibility})");
+
+            // IMPORTANT: Set sizing mode FIRST before changing visibility
+            switch (mode)
+            {
+                case GroupViewMode.Minimized:
+                    // 1. Check if coming from fullscreen
+                    bool wasFullscreen = (FullscreenView.Visibility == Visibility.Visible);
+
+                    // 2. Restore position FIRST (before any size/visibility changes!)
+                    if (wasFullscreen && _preFullscreenLeft > 0)
+                    {
+                        Left = _preFullscreenLeft;
+                        Top = _preFullscreenTop;
+                        System.Diagnostics.Debug.WriteLine($"  Restoring position from fullscreen: ({Left}, {Top})");
+                    }
+                    else if (_viewModel != null)
+                    {
+                        Left = _viewModel.PositionX;
+                        Top = _viewModel.PositionY;
+                    }
+
+                    // 3. Restore window style if coming from fullscreen
+                    if (wasFullscreen)
+                    {
+                        WindowStyle = WindowStyle.None; // Keep borderless
+                        Topmost = false; // Not topmost in normal modes
+                    }
+
+                    // 4. Set sizing mode
+                    SizeToContent = SizeToContent.Manual;
+                    // 5. RESET minimum sizes (critical!)
+                    MinWidth = 60;
+                    MinHeight = 40;
+                    // 6. Set size
+                    Width = 160;
+                    Height = 40;
+                    // 7. Force layout with new size
+                    UpdateLayout();
+
+                    // 8. Change visibility
+                    MinimizedView.Visibility = Visibility.Visible;
+                    HoverView.Visibility = Visibility.Collapsed;
+                    NormalView.Visibility = Visibility.Collapsed;
+                    FullscreenView.Visibility = Visibility.Collapsed;
+
+                    // 9. Final layout update
+                    InvalidateMeasure();
+                    InvalidateArrange();
+                    UpdateLayout();
+
+                    // 10. If coming from fullscreen, stop any pending hover timer
+                    if (wasFullscreen)
+                    {
+                        _hoverLeaveTimer?.Stop();
+                    }
+
+                    System.Diagnostics.Debug.WriteLine($"  -> Minimized view active at ({Left}, {Top}), size (160x40) - layout forced");
+                    break;
+
+                case GroupViewMode.Hover:
+                    // 1. Check if coming from fullscreen
+                    bool wasFullscreenHover = (FullscreenView.Visibility == Visibility.Visible);
+
+                    // 2. Restore position if coming from fullscreen
+                    if (wasFullscreenHover && _preFullscreenLeft > 0)
+                    {
+                        Left = _preFullscreenLeft;
+                        Top = _preFullscreenTop;
+                        System.Diagnostics.Debug.WriteLine($"  Restoring position from fullscreen to hover: ({Left}, {Top})");
+                    }
+
+                    // 3. Switch to MANUAL sizing to prevent progressive resize
+                    SizeToContent = SizeToContent.Manual;
+
+                    // 4. Hide all views
+                    MinimizedView.Visibility = Visibility.Collapsed;
+                    NormalView.Visibility = Visibility.Collapsed;
+                    FullscreenView.Visibility = Visibility.Collapsed;
+
+                    // 5. Show HoverView but measure it off-screen
+                    HoverView.Visibility = Visibility.Visible;
+                    HoverView.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+
+                    // 6. Get the desired size
+                    var desiredWidth = Math.Max(HoverView.DesiredSize.Width + 20, 200); // +20 for borders/padding
+                    var desiredHeight = Math.Max(HoverView.DesiredSize.Height + 20, 60);
+
+                    System.Diagnostics.Debug.WriteLine($"  HoverView measured: {desiredWidth}x{desiredHeight}");
+
+                    // 7. Set window to exact size immediately
+                    Width = desiredWidth;
+                    Height = desiredHeight;
+                    MinWidth = 200;
+                    MinHeight = 60;
+
+                    // 8. Force layout
+                    InvalidateMeasure();
+                    InvalidateArrange();
+                    UpdateLayout();
+
+                    System.Diagnostics.Debug.WriteLine($"  -> Hover view active (fixed size: {Width}x{Height}) at ({Left},{Top}) - layout forced");
+                    break;
+
+                case GroupViewMode.Normal:
+                    // 1. Check if coming from fullscreen
+                    bool wasFullscreenNormal = (FullscreenView.Visibility == Visibility.Visible);
+
+                    // 2. Restore topmost if coming from fullscreen
+                    if (wasFullscreenNormal)
+                    {
+                        Topmost = false;
+                    }
+
+                    // 3. Set sizing mode FIRST
+                    SizeToContent = SizeToContent.Manual;
+                    // 4. RESET minimum sizes
+                    MinWidth = 200;
+                    MinHeight = 150;
+
+                    // 5. Restore position/size (AFTER setting sizing mode!)
+                    if (wasFullscreenNormal && _preFullscreenLeft > 0)
+                    {
+                        Left = _preFullscreenLeft;
+                        Top = _preFullscreenTop;
+                        Width = _preFullscreenWidth;
+                        Height = _preFullscreenHeight;
+                        System.Diagnostics.Debug.WriteLine($"  Restoring position/size from fullscreen: ({Left}, {Top}, {Width}x{Height})");
+                    }
+                    else if (_viewModel != null)
+                    {
+                        Left = _viewModel.PositionX;
+                        Top = _viewModel.PositionY;
+                        Width = _viewModel.Width;
+                        Height = _viewModel.Height;
+                    }
+
+                    // 6. Force layout update
+                    UpdateLayout();
+
+                    // 7. Change visibility
+                    MinimizedView.Visibility = Visibility.Collapsed;
+                    HoverView.Visibility = Visibility.Collapsed;
+                    NormalView.Visibility = Visibility.Visible;
+                    FullscreenView.Visibility = Visibility.Collapsed;
+
+                    // 8. Final layout update
+                    InvalidateMeasure();
+                    InvalidateArrange();
+                    UpdateLayout();
+
+                    System.Diagnostics.Debug.WriteLine($"  -> Normal view active at ({Left}, {Top}), size ({Width}x{Height}) - layout forced");
+                    break;
+
+                case GroupViewMode.Fullscreen:
+                    // Position is already saved in OnViewModelPropertyChanged before we get here!
+                    // 1. Set to fullscreen size
+                    SizeToContent = SizeToContent.Manual;
+                    MinWidth = 800;
+                    MinHeight = 600;
+                    // 2. Get screen dimensions (use WPF SystemParameters)
+                    Width = SystemParameters.PrimaryScreenWidth;
+                    Height = SystemParameters.PrimaryScreenHeight;
+                    Left = 0;
+                    Top = 0;
+                    // 3. Change visibility
+                    MinimizedView.Visibility = Visibility.Collapsed;
+                    HoverView.Visibility = Visibility.Collapsed;
+                    NormalView.Visibility = Visibility.Collapsed;
+                    FullscreenView.Visibility = Visibility.Visible;
+                    // 4. Set window properties for fullscreen
+                    WindowStyle = WindowStyle.None;
+                    Topmost = true;
+                    // 5. Final layout update
+                    InvalidateMeasure();
+                    InvalidateArrange();
+                    UpdateLayout();
+                    System.Diagnostics.Debug.WriteLine($"  -> Fullscreen view active ({Width}x{Height}) at (0,0) - layout forced");
+                    break;
+
+                default:
+                    // Default to minimized
+                    SizeToContent = SizeToContent.Manual;
+                    MinWidth = 60;
+                    MinHeight = 40;
+                    UpdateLayout();
+                    Width = 160;
+                    Height = 40;
+                    MinimizedView.Visibility = Visibility.Visible;
+                    HoverView.Visibility = Visibility.Collapsed;
+                    NormalView.Visibility = Visibility.Collapsed;
+                    FullscreenView.Visibility = Visibility.Collapsed;
+                    InvalidateMeasure();
+                    InvalidateArrange();
+                    UpdateLayout();
+                    System.Diagnostics.Debug.WriteLine($"  -> Default to minimized (MinSize: {MinWidth}x{MinHeight}) - layout forced");
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"UpdateViewMode: ERROR - {ex.Message}");
+        }
+        finally
+        {
+            _isUpdatingViewMode = false;
+        }
+    }
+
+    // Event Handlers for View Mode
+
+    private void MinimizedView_MouseEnter(object sender, MouseEventArgs e)
+    {
+        System.Diagnostics.Debug.WriteLine($"MinimizedView_MouseEnter - Current mode: {_viewModel?.ViewMode}");
+
+        // Don't expand if dragging
+        if (_isDragging || _dragStarted)
+        {
+            System.Diagnostics.Debug.WriteLine("  -> Ignoring hover during drag");
+            return;
+        }
+
+        // Cancel any pending collapse timer
+        _hoverLeaveTimer?.Stop();
+
+        // Switch to hover view to show preview
+        if (_viewModel != null && _viewModel.ViewMode == GroupViewMode.Minimized)
+        {
+            System.Diagnostics.Debug.WriteLine("  -> Switching to Hover");
+            _viewModel.ViewMode = GroupViewMode.Hover;
+        }
+    }
+
+    private void MinimizedView_MouseLeave(object sender, MouseEventArgs e)
+    {
+        System.Diagnostics.Debug.WriteLine("MinimizedView_MouseLeave");
+        // Don't collapse here - let hover view handle it
+    }
+
+    private void HoverView_MouseLeave(object sender, MouseEventArgs e)
+    {
+        System.Diagnostics.Debug.WriteLine($"HoverView_MouseLeave - Current mode: {_viewModel?.ViewMode}");
+
+        // Don't collapse if dragging
+        if (_isDragging || _dragStarted)
+        {
+            System.Diagnostics.Debug.WriteLine("  -> Ignoring leave during drag");
+            return;
+        }
+
+        // Start timer to collapse back to minimized after short delay
+        StartHoverLeaveTimer();
+    }
+
+    private void SetMinimized_Click(object sender, RoutedEventArgs e)
+    {
+        System.Diagnostics.Debug.WriteLine("SetMinimized_Click");
+        _viewModel?.SetMinimizedCommand.Execute(null);
+    }
+
+    private void SetNormal_Click(object sender, RoutedEventArgs e)
+    {
+        System.Diagnostics.Debug.WriteLine("SetNormal_Click");
+        _viewModel?.SetNormalCommand.Execute(null);
+    }
+
+    private void SetFullscreen_Click(object sender, RoutedEventArgs e)
+    {
+        System.Diagnostics.Debug.WriteLine("SetFullscreen_Click");
+        _viewModel?.SetFullscreenCommand.Execute(null);
+    }
+
+    private void OnKeyDown(object sender, KeyEventArgs e)
+    {
+        if (_viewModel == null) return;
+
+        // F11 toggles fullscreen
+        if (e.Key == Key.F11)
+        {
+            System.Diagnostics.Debug.WriteLine("F11 pressed - toggling fullscreen");
+            if (_viewModel.ViewMode == GroupViewMode.Fullscreen)
+            {
+                _viewModel.SetMinimizedCommand.Execute(null);
+            }
+            else
+            {
+                _viewModel.SetFullscreenCommand.Execute(null);
+            }
+            e.Handled = true;
+        }
+
+        // ESC exits fullscreen
+        if (e.Key == Key.Escape && _viewModel.ViewMode == GroupViewMode.Fullscreen)
+        {
+            System.Diagnostics.Debug.WriteLine("ESC pressed - exiting fullscreen");
+            _viewModel.SetMinimizedCommand.Execute(null);
+            e.Handled = true;
+        }
+    }
+
+    // ============================================================================================
+    // SHORTCUT CLICK HANDLER
+    // ============================================================================================
+
+    private void Shortcut_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            // Get the ShortcutItemViewModel from the DataContext
+            var frameworkElement = sender as FrameworkElement;
+            if (frameworkElement?.DataContext is ShortcutItemViewModel shortcut)
+            {
+                System.Diagnostics.Debug.WriteLine($"Shortcut_Click: Launching '{shortcut.DisplayName}'");
+
+                // If in fullscreen, exit to minimized so launched app is visible
+                if (_viewModel?.ViewMode == GroupViewMode.Fullscreen)
+                {
+                    System.Diagnostics.Debug.WriteLine("  Exiting fullscreen before launch");
+                    _viewModel.SetMinimizedCommand.Execute(null);
+                }
+
+                shortcut.LaunchCommand.Execute(null);
+                e.Handled = true; // Mark as handled to prevent bubbling
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"Shortcut_Click: Could not get shortcut from DataContext. Sender type: {sender?.GetType().Name}, DataContext type: {frameworkElement?.DataContext?.GetType().Name}");
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Shortcut_Click: ERROR - {ex.Message}");
+            MessageBox.Show(
+                $"Failed to launch shortcut:\n\n{ex.Message}",
+                "Launch Error",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
+    }
+
+    private void Shortcut_RightClick(object sender, MouseButtonEventArgs e)
+    {
+        try
+        {
+            var frameworkElement = sender as FrameworkElement;
+            if (frameworkElement?.DataContext is ShortcutItemViewModel shortcut)
+            {
+                System.Diagnostics.Debug.WriteLine($"Shortcut_RightClick: Showing menu for '{shortcut.DisplayName}'");
+
+                var menu = new ContextMenu();
+
+                // Remove shortcut
+                var removeItem = new MenuItem { Header = "Remove from group" };
+                removeItem.Click += (s, args) =>
+                {
+                    System.Diagnostics.Debug.WriteLine($"  Removing '{shortcut.DisplayName}' from group");
+                    _viewModel?.RemoveShortcutCommand.Execute(shortcut);
+                };
+                menu.Items.Add(removeItem);
+
+                menu.PlacementTarget = frameworkElement;
+                menu.IsOpen = true;
+                e.Handled = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Shortcut_RightClick: ERROR - {ex.Message}");
+        }
+    }
+
+    // ============================================================================================
+    // DRAG HANDLERS (for moving group by dragging header)
+    // ============================================================================================
+
+    private bool _isDragging = false;
+    private bool _dragStarted = false;
+    private Point _dragStartMouseScreen; // Mouse position on screen
+    private Point _dragStartWindowPosition; // Window position when drag started
+    private double _preDragWidth;
+    private double _preDragHeight;
+    private const double DragThreshold = 5.0; // Pixels before drag starts
+
+    private void Header_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (_viewModel?.IsPinned == true) return;
+
+        _isDragging = false;
+        _dragStarted = true;
+        _dragStartMouseScreen = PointToScreen(e.GetPosition(this));
+        _dragStartWindowPosition = new Point(Left, Top);
+
+        // Save current size
+        _preDragWidth = ActualWidth;
+        _preDragHeight = ActualHeight;
+
+        var element = sender as UIElement;
+        element?.CaptureMouse();
+
+        e.Handled = true;
+    }
+
+    private void Header_MouseMove(object sender, MouseEventArgs e)
+    {
+        if (!_dragStarted || _viewModel?.IsPinned == true) return;
+
+        var currentMouseScreen = PointToScreen(e.GetPosition(this));
+        var deltaX = currentMouseScreen.X - _dragStartMouseScreen.X;
+        var deltaY = currentMouseScreen.Y - _dragStartMouseScreen.Y;
+
+        // Check if movement exceeds threshold
+        var distance = Math.Sqrt(deltaX * deltaX + deltaY * deltaY);
+
+        if (!_isDragging && distance < DragThreshold)
+        {
+            return; // Not enough movement yet
+        }
+
+        if (!_isDragging)
+        {
+            // Just crossed threshold - start actual drag
+            _isDragging = true;
+            System.Diagnostics.Debug.WriteLine($"Drag started (threshold crossed) at screen pos {currentMouseScreen}");
+
+            // Stop hover timer to prevent collapse during drag
+            _hoverLeaveTimer?.Stop();
+
+            // Save current position BEFORE locking size
+            var posBeforeLock = new Point(Left, Top);
+
+            // Lock size to prevent jumping (especially for Hover view)
+            SizeToContent = SizeToContent.Manual;
+            Width = _preDragWidth;
+            Height = _preDragHeight;
+
+            // Force layout
+            UpdateLayout();
+
+            // Restore position (size lock might have shifted it)
+            Left = posBeforeLock.X;
+            Top = posBeforeLock.Y;
+
+            System.Diagnostics.Debug.WriteLine($"Size locked to {Width}x{Height}, position: ({Left}, {Top})");
+        }
+
+        // Calculate position from original baseline + current mouse delta
+        Left = _dragStartWindowPosition.X + deltaX;
+        Top = _dragStartWindowPosition.Y + deltaY;
+    }
+
+    private void Header_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (!_dragStarted) return;
+
+        var element = sender as UIElement;
+        element?.ReleaseMouseCapture();
+
+        if (_isDragging)
+        {
+            // Actual drag occurred - update ViewModel position
+            if (_viewModel != null)
+            {
+                _viewModel.PositionX = Left;
+                _viewModel.PositionY = Top;
+            }
+
+            System.Diagnostics.Debug.WriteLine($"Drag ended at ({Left}, {Top})");
+        }
+        else
+        {
+            // No drag occurred (click or tiny movement) - allow hover-to-expand to trigger
+            System.Diagnostics.Debug.WriteLine("Click detected (no drag)");
+        }
+
+        _isDragging = false;
+        _dragStarted = false;
+        e.Handled = true;
+    }
 }
+
+
+
+
+
 
 /// <summary>
 /// Simple input dialog for renaming groups.

@@ -97,8 +97,9 @@ public partial class ColorPickerButton : UserControl
             brush.Freeze();
             SelectedBrush = brush;
         }
-        catch
+        catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"ERROR in UpdateBrush for color '{SelectedColor}': {ex.Message}");
             var brush = new SolidColorBrush(Color.FromRgb(0x00, 0x78, 0xD4));
             brush.Freeze();
             SelectedBrush = brush;
@@ -123,10 +124,19 @@ public partial class ColorPickerButton : UserControl
 
     private void ColorSwatch_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is Button button && button.Tag is string hexColor)
+        try
         {
-            SelectedColor = hexColor;
-            ColorPopup.IsOpen = false;
+            if (sender is Button button && button.Tag is string hexColor)
+            {
+                System.Diagnostics.Debug.WriteLine($"ColorSwatch_Click: {hexColor}");
+                SelectedColor = hexColor;
+                ColorPopup.IsOpen = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"ERROR in ColorSwatch_Click: {ex}");
+            MessageBox.Show($"Error selecting color: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 

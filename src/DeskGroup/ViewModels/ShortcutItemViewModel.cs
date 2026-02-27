@@ -20,6 +20,14 @@ public partial class ShortcutItemViewModel : ObservableObject
     [ObservableProperty]
     private ImageSource? _icon;
 
+    // Alias for backward compatibility with XAML bindings
+    public ImageSource? IconImage => Icon;
+
+    partial void OnIconChanged(ImageSource? value)
+    {
+        OnPropertyChanged(nameof(IconImage));
+    }
+
     [ObservableProperty]
     private int _launchCount;
 

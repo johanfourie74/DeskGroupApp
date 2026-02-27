@@ -80,7 +80,6 @@
                 <!-- Color picker -->
                 <controls:ColorPickerButton DockPanel.Dock="Right"
                                             SelectedColor="{Binding AccentColorHex, Mode=TwoWay}"
-                                            ColorChangedCommand="{Binding SetAccentColorCommand}"
                                             Width="24" Height="24"
                                             Margin="4,0"
                                             VerticalAlignment="Center"

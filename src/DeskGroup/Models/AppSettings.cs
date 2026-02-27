@@ -6,7 +6,7 @@ namespace DeskGroup.Models;
 public class AppSettings
 {
     public ThemeMode Theme { get; set; } = ThemeMode.System;
-    public GroupDockMode DefaultDockMode { get; set; } = GroupDockMode.Sticky;
+    public GroupDockMode DefaultDockMode { get; set; } = GroupDockMode.Float; // Changed to Float for better visibility
     public bool DefaultSnapToGrid { get; set; } = true;
     public int SnapGridSize { get; set; } = 20;
     public bool HideGroupedIcons { get; set; } = true;

@@ -116,7 +116,19 @@ public partial class DragThumb : UserControl
         var storyboard = (Storyboard)FindResource("DragActiveOut");
         storyboard.Begin(this);
 
-        DragCompleted?.Invoke(this, EventArgs.Empty);
+        // Update ViewModel position now that drag is complete
+        var parentWindow = Window.GetWindow(this);
+        if (parentWindow != null)
+        {
+            // Fire DragCompleted with final position so ViewModel can update
+            var finalDeltaX = parentWindow.Left - _windowStartPosition.X;
+            var finalDeltaY = parentWindow.Top - _windowStartPosition.Y;
+            DragCompleted?.Invoke(this, EventArgs.Empty);
+        }
+        else
+        {
+            DragCompleted?.Invoke(this, EventArgs.Empty);
+        }
 
         e.Handled = true;
     }

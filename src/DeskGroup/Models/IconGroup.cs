@@ -11,8 +11,8 @@ public class IconGroup
     public string AccentColor { get; set; } = "#0078D4";
     public List<ShortcutItem> Shortcuts { get; set; } = new();
     public List<OriginalIconState> OriginalIconStates { get; set; } = new();
-    public GroupViewMode ViewMode { get; set; } = GroupViewMode.Minimized;
-    public GroupDockMode DockMode { get; set; } = GroupDockMode.Sticky;
+    public GroupViewMode ViewMode { get; set; } = GroupViewMode.Normal;
+    public GroupDockMode DockMode { get; set; } = GroupDockMode.Float;
     public bool IsPinned { get; set; } = false;
     public bool SnapToGrid { get; set; } = true;
     public double PositionX { get; set; } = 100;

@@ -28,9 +28,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Icon resources disabled to avoid Win32 resource embedding errors during automated build -->
-    <!-- <Resource Include="Assets\\tray-icon.ico" Condition="Exists('Assets\\tray-icon.ico')" /> -->
-    <!-- <Resource Include="Assets\\default-group-icon.ico" Condition="Exists('Assets\\default-group-icon.ico')" /> -->
+    <!-- Icon resources -->
+    <Resource Include="Assets\tray-icon.ico" Condition="Exists('Assets\tray-icon.ico')" />
+    <Resource Include="Assets\default-group-icon.ico" Condition="Exists('Assets\default-group-icon.ico')" />
   </ItemGroup>
 
 </Project>

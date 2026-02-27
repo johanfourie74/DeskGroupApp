@@ -44,9 +44,10 @@ public class ShortcutResolverService
 
     private void ResolveLnk(string lnkPath, ShortcutItem item)
     {
+        IShellLink? shellLink = null;
         try
         {
-            var shellLink = (IShellLink)new ShellLinkCoClass();
+            shellLink = (IShellLink)new ShellLinkCoClass();
             var persistFile = (IPersistFile)shellLink;
             persistFile.Load(lnkPath, 0);
 
@@ -67,7 +68,11 @@ public class ShortcutResolverService
             shellLink.GetIconLocation(iconPathBuilder, iconPathBuilder.Capacity, out int iconIndex);
             item.IconPath = iconPathBuilder.ToString();
             item.IconIndex = iconIndex;
+
+            // Use filename like desktop does (clean and consistent)
+            // Description field is often too verbose
             item.DisplayName = Path.GetFileNameWithoutExtension(lnkPath);
+            System.Diagnostics.Debug.WriteLine($"ResolveLnk: Using filename '{item.DisplayName}' for {Path.GetFileName(lnkPath)}");
 
             if (string.IsNullOrEmpty(item.IconPath) && !string.IsNullOrEmpty(item.TargetPath))
             {
@@ -75,11 +80,24 @@ public class ShortcutResolverService
                 item.IconIndex = 0;
             }
         }
-        catch
+        catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"ERROR in ResolveLnk: {ex.Message}");
             item.TargetPath = lnkPath;
             item.DisplayName = Path.GetFileNameWithoutExtension(lnkPath);
             item.IconPath = lnkPath;
+        }
+        finally
+        {
+            // Release COM object to prevent memory leaks
+            if (shellLink != null)
+            {
+                try
+                {
+                    Marshal.ReleaseComObject(shellLink);
+                }
+                catch { }
+            }
         }
     }
 
@@ -113,26 +131,26 @@ public class ShortcutResolverService
      Guid("000214F9-0000-0000-C000-000000000046")]
     private interface IShellLink
     {
-        void GetPath([Out, MarshalAs(UnmanagedType.LPStr)] StringBuilder pszFile, int cch,
+        void GetPath([Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder pszFile, int cch,
             out WIN32_FIND_DATAW pfd, int fFlags);
         void GetIDList(out IntPtr ppidl);
         void SetIDList(IntPtr pidl);
-        void GetDescription([Out, MarshalAs(UnmanagedType.LPStr)] StringBuilder pszName, int cch);
-        void SetDescription([MarshalAs(UnmanagedType.LPStr)] string pszName);
-        void GetWorkingDirectory([Out, MarshalAs(UnmanagedType.LPStr)] StringBuilder pszDir, int cch);
-        void SetWorkingDirectory([MarshalAs(UnmanagedType.LPStr)] string pszDir);
-        void GetArguments([Out, MarshalAs(UnmanagedType.LPStr)] StringBuilder pszArgs, int cch);
-        void SetArguments([MarshalAs(UnmanagedType.LPStr)] string pszArgs);
+        void GetDescription([Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder pszName, int cch);
+        void SetDescription([MarshalAs(UnmanagedType.LPWStr)] string pszName);
+        void GetWorkingDirectory([Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder pszDir, int cch);
+        void SetWorkingDirectory([MarshalAs(UnmanagedType.LPWStr)] string pszDir);
+        void GetArguments([Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder pszArgs, int cch);
+        void SetArguments([MarshalAs(UnmanagedType.LPWStr)] string pszArgs);
         void GetHotkey(out short pwHotkey);
         void SetHotkey(short wHotkey);
         void GetShowCmd(out int piShowCmd);
         void SetShowCmd(int iShowCmd);
-        void GetIconLocation([Out, MarshalAs(UnmanagedType.LPStr)] StringBuilder pszIconPath,
+        void GetIconLocation([Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder pszIconPath,
             int cch, out int piIcon);
-        void SetIconLocation([MarshalAs(UnmanagedType.LPStr)] string pszIconPath, int iIcon);
-        void SetRelativePath([MarshalAs(UnmanagedType.LPStr)] string pszPathRel, int dwReserved);
+        void SetIconLocation([MarshalAs(UnmanagedType.LPWStr)] string pszIconPath, int iIcon);
+        void SetRelativePath([MarshalAs(UnmanagedType.LPWStr)] string pszPathRel, int dwReserved);
         void Resolve(IntPtr hwnd, int fFlags);
-        void SetPath([MarshalAs(UnmanagedType.LPStr)] string pszFile);
+        void SetPath([MarshalAs(UnmanagedType.LPWStr)] string pszFile);
     }
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]

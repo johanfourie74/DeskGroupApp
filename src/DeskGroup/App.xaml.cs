@@ -44,6 +44,17 @@ public partial class App : Application
         DispatcherUnhandledException += OnUnhandledException;
         AppDomain.CurrentDomain.UnhandledException += OnDomainUnhandledException;
 
+        // Handle first-chance exceptions (for debugging)
+        // These are exceptions that are caught internally by WPF but break the debugger
+        AppDomain.CurrentDomain.FirstChanceException += (s, args) =>
+        {
+            // Log WPF internal exceptions that are normally handled
+            if (args.Exception is InvalidOperationException invOp)
+            {
+                System.Diagnostics.Debug.WriteLine($"[FirstChance] InvalidOperationException (handled by WPF): {invOp.Message}");
+            }
+        };
+
         // Initialize MainViewModel
         _mainViewModel = new MainViewModel();
 
@@ -78,15 +89,18 @@ public partial class App : Application
         // Create Helper Window for Hotkeys
         _helperWindow = new Window
         {
-            Width = 0,
-            Height = 0,
+            Width = 1,
+            Height = 1,
             WindowStyle = WindowStyle.None,
             ShowInTaskbar = false,
             ShowActivated = false,
-            Visibility = Visibility.Hidden
+            Opacity = 0,
+            Left = -10000,
+            Top = -10000,
+            AllowsTransparency = true,
+            Background = System.Windows.Media.Brushes.Transparent
         };
         _helperWindow.Show();
-        _helperWindow.Hide();
 
         // Register Hotkeys
         _mainViewModel.RegisterHotkeys(_helperWindow);
@@ -97,14 +111,55 @@ public partial class App : Application
         _mainViewModel.GroupRemoved += OnGroupRemoved;
         _mainViewModel.UngroupedIconsDetected += OnUngroupedIconsDetected;
 
-        // Create System Tray Icon
-        CreateTrayIcon();
+        System.Diagnostics.Debug.WriteLine("STARTUP: Creating tray icon");
+
+        try
+        {
+            // Create System Tray Icon
+            CreateTrayIcon();
+            System.Diagnostics.Debug.WriteLine("STARTUP: Tray icon created successfully");
+        }
+        catch (Exception trayEx)
+        {
+            System.Diagnostics.Debug.WriteLine($"STARTUP: Tray icon creation FAILED: {trayEx.Message}");
+            System.Diagnostics.Debug.WriteLine($"STARTUP: Stack: {trayEx.StackTrace}");
+
+            // Show error but continue without tray icon
+            MessageBox.Show(
+                $"Failed to create system tray icon:\n\n{trayEx.Message}\n\n" +
+                $"The application will continue but you'll need to create groups manually.\n\n" +
+                $"Use Alt+F4 to close the app.",
+                "Tray Icon Error",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+        }
+
+        System.Diagnostics.Debug.WriteLine($"STARTUP: Creating windows for {_mainViewModel.Groups.Count} groups");
 
         // Create Widget Windows for Existing Groups
+        int windowNum = 0;
         foreach (var groupVm in _mainViewModel.Groups)
         {
-            CreateGroupWindow(groupVm);
+            windowNum++;
+            System.Diagnostics.Debug.WriteLine($"STARTUP: Creating window {windowNum} for group '{groupVm.Name}'");
+
+            try
+            {
+                CreateGroupWindow(groupVm);
+                System.Diagnostics.Debug.WriteLine($"STARTUP: Window {windowNum} created successfully");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"STARTUP ERROR: Window {windowNum} failed: {ex.Message}");
+                MessageBox.Show(
+                    $"Failed to create window for group '{groupVm.Name}':\n\n{ex.Message}\n\nStack:\n{ex.StackTrace}",
+                    "Window Creation Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
         }
+
+        System.Diagnostics.Debug.WriteLine("STARTUP: All windows created, showing balloon tip");
 
         // Show first-run hint if applicable
         if (_mainViewModel.Settings.IsFirstRun)
@@ -114,6 +169,16 @@ public partial class App : Application
                 "Right-click the tray icon to create groups and manage settings.",
                 BalloonIcon.Info);
         }
+        else if (_mainViewModel.Groups.Count > 0)
+        {
+            // Not first run and groups exist - show helpful message
+            _trayIcon?.ShowBalloonTip(
+                $"DeskGroup loaded {_mainViewModel.Groups.Count} group(s)",
+                "If you don't see your groups, try 'Show All Groups' from the tray menu.",
+                BalloonIcon.Info);
+        }
+
+        // Note: Removed diagnostic message box to avoid blocking startup
     }
 
     protected override async void OnExit(ExitEventArgs e)
@@ -160,36 +225,70 @@ public partial class App : Application
 
     private void CreateTrayIcon()
     {
-        _trayIcon = new TaskbarIcon
-        {
-            ToolTipText = "DeskGroup - Desktop Icon Organizer",
-            MenuActivation = PopupActivationMode.RightClick
-        };
+        System.Diagnostics.Debug.WriteLine("CreateTrayIcon: START");
 
-        // Use the embedded icon resource
         try
         {
-            var iconUri = new Uri("pack://application:,,,/Assets/tray-icon.ico", UriKind.Absolute);
-            var streamInfo = GetResourceStream(iconUri);
-            if (streamInfo != null)
+            _trayIcon = new TaskbarIcon
             {
-                _trayIcon.Icon = new Icon(streamInfo.Stream);
+                ToolTipText = "DeskGroup - Desktop Icon Organizer",
+                MenuActivation = PopupActivationMode.RightClick
+            };
+
+            System.Diagnostics.Debug.WriteLine("CreateTrayIcon: TaskbarIcon created");
+
+            // Use the embedded icon resource
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("CreateTrayIcon: Loading icon from resources");
+
+                var iconUri = new Uri("pack://application:,,,/Assets/tray-icon.ico", UriKind.Absolute);
+                var streamInfo = GetResourceStream(iconUri);
+                if (streamInfo != null)
+                {
+                    System.Diagnostics.Debug.WriteLine("CreateTrayIcon: Icon stream loaded, creating Icon object");
+                    _trayIcon.Icon = new Icon(streamInfo.Stream);
+                    System.Diagnostics.Debug.WriteLine("CreateTrayIcon: Icon set successfully");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("CreateTrayIcon: Icon stream is null, using fallback");
+                    _trayIcon.Icon = SystemIcons.Application;
+                }
             }
-        }
-        catch
-        {
-            // Fallback: use default application icon
-            _trayIcon.Icon = SystemIcons.Application;
-        }
+            catch (Exception iconEx)
+            {
+                System.Diagnostics.Debug.WriteLine($"CreateTrayIcon: Icon loading failed: {iconEx.Message}");
+                // Fallback: use default application icon
+                _trayIcon.Icon = SystemIcons.Application;
+            }
 
-        // Build context menu
-        _trayIcon.ContextMenu = BuildTrayContextMenu();
+            System.Diagnostics.Debug.WriteLine("CreateTrayIcon: Building context menu");
 
-        // Double-click tray icon -> toggle visibility
-        _trayIcon.TrayMouseDoubleClick += (s, e) =>
+            // Build context menu
+            _trayIcon.ContextMenu = BuildTrayContextMenu();
+
+            System.Diagnostics.Debug.WriteLine("CreateTrayIcon: Wiring double-click event");
+
+            // Double-click tray icon -> toggle visibility
+            _trayIcon.TrayMouseDoubleClick += (s, e) =>
+            {
+                _mainViewModel?.ToggleAllGroupsVisibility();
+            };
+
+            System.Diagnostics.Debug.WriteLine("CreateTrayIcon: COMPLETE");
+        }
+        catch (Exception ex)
         {
-            _mainViewModel?.ToggleAllGroupsVisibility();
-        };
+            System.Diagnostics.Debug.WriteLine($"CreateTrayIcon: FAILED with exception: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"CreateTrayIcon: Stack trace: {ex.StackTrace}");
+
+            MessageBox.Show(
+                $"Failed to create system tray icon:\n\n{ex.Message}\n\nThe application will continue but won't show in the system tray.",
+                "Tray Icon Error",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+        }
     }
 
     private System.Windows.Controls.ContextMenu BuildTrayContextMenu()
@@ -204,6 +303,18 @@ public partial class App : Application
         var hideAll = new System.Windows.Controls.MenuItem { Header = "Hide All Groups" };
         hideAll.Click += (s, e) => _mainViewModel?.HideAllGroupsCommand.Execute(null);
         menu.Items.Add(hideAll);
+
+        menu.Items.Add(new System.Windows.Controls.Separator());
+
+        // DEBUG: Force all groups to visible float mode
+        var forceVisible = new System.Windows.Controls.MenuItem { Header = "🔧 DEBUG: Force All Visible (Float+Normal)" };
+        forceVisible.Click += (s, e) => ForceAllGroupsVisible();
+        menu.Items.Add(forceVisible);
+
+        // DEBUG: Show test window
+        var testWindow = new System.Windows.Controls.MenuItem { Header = "🧪 DEBUG: Show Test Window" };
+        testWindow.Click += (s, e) => ShowTestWindow();
+        menu.Items.Add(testWindow);
 
         menu.Items.Add(new System.Windows.Controls.Separator());
 
@@ -240,11 +351,118 @@ public partial class App : Application
     // GROUP WINDOW MANAGEMENT
     // ============================================================================================
 
+    private void ShowTestWindow()
+    {
+        var testWin = new Window
+        {
+            Title = "DeskGroup Test Window",
+            Width = 400,
+            Height = 300,
+            WindowStartupLocation = WindowStartupLocation.CenterScreen,
+            Topmost = true,
+            Background = System.Windows.Media.Brushes.White
+        };
+
+        var stack = new System.Windows.Controls.StackPanel
+        {
+            Margin = new Thickness(20)
+        };
+
+        stack.Children.Add(new System.Windows.Controls.TextBlock
+        {
+            Text = "✓ DeskGroup Window Rendering Works!",
+            FontSize = 18,
+            FontWeight = FontWeights.Bold,
+            Margin = new Thickness(0, 0, 0, 20)
+        });
+
+        stack.Children.Add(new System.Windows.Controls.TextBlock
+        {
+            Text = $"Groups loaded: {_mainViewModel?.Groups.Count ?? 0}",
+            FontSize = 14,
+            Margin = new Thickness(0, 0, 0, 10)
+        });
+
+        if (_mainViewModel != null)
+        {
+            foreach (var g in _mainViewModel.Groups)
+            {
+                stack.Children.Add(new System.Windows.Controls.TextBlock
+                {
+                    Text = $"• {g.Name}: {g.ViewMode}, {g.DockMode}, Visible={g.IsVisible}",
+                    FontSize = 12,
+                    Margin = new Thickness(10, 5, 0, 0)
+                });
+            }
+        }
+
+        stack.Children.Add(new System.Windows.Controls.TextBlock
+        {
+            Text = "\nIf you see THIS window, rendering works.\n" +
+                   "The issue is with GroupWidget windows specifically.",
+            FontSize = 12,
+            Margin = new Thickness(0, 20, 0, 0),
+            Foreground = System.Windows.Media.Brushes.Red
+        });
+
+        var btn = new System.Windows.Controls.Button
+        {
+            Content = "Close",
+            Width = 100,
+            Height = 30,
+            Margin = new Thickness(0, 20, 0, 0)
+        };
+        btn.Click += (s, e) => testWin.Close();
+        stack.Children.Add(btn);
+
+        testWin.Content = stack;
+        testWin.Show();
+    }
+
+    private void ForceAllGroupsVisible()
+    {
+        if (_mainViewModel == null) return;
+
+        foreach (var groupVm in _mainViewModel.Groups)
+        {
+            groupVm.IsVisible = true;
+            groupVm.ViewMode = GroupViewMode.Normal;
+            groupVm.DockMode = GroupDockMode.Float;
+
+            // Force window update
+            if (_groupWindows.TryGetValue(groupVm.Id, out var window))
+            {
+                window.Topmost = true;
+                window.Activate();
+            }
+        }
+
+        MessageBox.Show(
+            $"Forced {_mainViewModel.Groups.Count} group(s) to:\n" +
+            $"• ViewMode: Normal (large window)\n" +
+            $"• DockMode: Float (on top of windows)\n" +
+            $"• IsVisible: True\n\n" +
+            $"Check your screen at (100, 100) - top-left area!",
+            "Debug: Force Visible",
+            MessageBoxButton.OK,
+            MessageBoxImage.Information);
+    }
+
     private void CreateGroupWindow(GroupViewModel groupVm)
     {
-        if (_groupWindows.ContainsKey(groupVm.Id)) return;
+        System.Diagnostics.Debug.WriteLine($"CreateGroupWindow: START for '{groupVm.Name}'");
+
+        if (_groupWindows.ContainsKey(groupVm.Id))
+        {
+            System.Diagnostics.Debug.WriteLine($"CreateGroupWindow: Window already exists for '{groupVm.Name}', skipping");
+            return;
+        }
+
+        System.Diagnostics.Debug.WriteLine($"CreateGroupWindow: Creating new GroupWidget for '{groupVm.Name}'");
 
         var window = new GroupWidget(groupVm);
+
+        System.Diagnostics.Debug.WriteLine($"CreateGroupWindow: GroupWidget created, wiring events");
 
         window.DeleteRequested += (s, e) =>
         {
@@ -256,8 +474,54 @@ public partial class App : Application
             // Already handled inside GroupWidget, but hook available for future use
         };
 
+        // Handle visibility changes directly to avoid infinite loops
+        groupVm.PropertyChanged += (s, e) =>
+        {
+            if (e.PropertyName == nameof(GroupViewModel.IsVisible))
+            {
+                System.Diagnostics.Debug.WriteLine($"App: GroupVM.IsVisible changed to {groupVm.IsVisible} for '{groupVm.Name}'");
+
+                // Control window visibility using POSITION instead of Visibility property
+                // This avoids WPF layout recalculation loops!
+                if (_groupWindows.TryGetValue(groupVm.Id, out var win))
+                {
+                    win.Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        try
+                        {
+                            if (groupVm.IsVisible)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"  App: Moving window on-screen for '{groupVm.Name}'");
+                                // Move to saved position
+                                win.Left = groupVm.PositionX;
+                                win.Top = groupVm.PositionY;
+                            }
+                            else
+                            {
+                                System.Diagnostics.Debug.WriteLine($"  App: Moving window off-screen for '{groupVm.Name}'");
+                                // Move far off-screen (invisible but still "shown")
+                                win.Left = -10000;
+                                win.Top = -10000;
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"  App: ERROR changing position: {ex.Message}");
+                        }
+                    }), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+                }
+            }
+        };
+
+        System.Diagnostics.Debug.WriteLine($"CreateGroupWindow: Calling Show() for '{groupVm.Name}'");
+
         window.Show();
+
+        System.Diagnostics.Debug.WriteLine($"CreateGroupWindow: Show() returned, adding to dictionary");
+
         _groupWindows[groupVm.Id] = window;
+
+        System.Diagnostics.Debug.WriteLine($"CreateGroupWindow: COMPLETE for '{groupVm.Name}'");
     }
 
     private void DestroyGroupWindow(GroupViewModel groupVm)
@@ -410,6 +674,29 @@ public partial class App : Application
         _ungroupedDialog.SortingApplied += (s, assignments) =>
         {
             _mainViewModel.ProcessUngroupedAssignments(assignments);
+        };
+
+        _ungroupedDialog.CreateNewGroupRequested += async (s, data) =>
+        {
+            var (groupName, filePaths) = data;
+            System.Diagnostics.Debug.WriteLine($"CreateNewGroupRequested: '{groupName}' with {filePaths.Count} file(s)");
+
+            // Create new group
+            await _mainViewModel.CreateGroupCommand.ExecuteAsync(null);
+
+            // Get the newly created group (last one)
+            var newGroup = _mainViewModel.Groups.LastOrDefault();
+            if (newGroup != null)
+            {
+                // Rename it
+                newGroup.Name = groupName;
+
+                // Add shortcuts to it
+                var assignments = filePaths.ToDictionary(path => path, path => newGroup.Model);
+                _mainViewModel.ProcessUngroupedAssignments(assignments);
+
+                System.Diagnostics.Debug.WriteLine($"Created group '{groupName}' with {filePaths.Count} shortcuts");
+            }
         };
 
         _ungroupedDialog.Closed += (s, e) => _ungroupedDialog = null;

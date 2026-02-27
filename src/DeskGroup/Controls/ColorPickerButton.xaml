@@ -136,9 +136,14 @@
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <Button Style="{StaticResource ColorSwatchButton}"
+                                        Width="28"
+                                        Height="28"
                                         Click="ColorSwatch_Click"
-                                        Tag="{Binding}"
-                                        Background="{Binding Tag, RelativeSource={RelativeSource AncestorType=Button}, Converter={StaticResource HexToBrushConverter}}" />
+                                        Tag="{Binding}">
+                                    <Button.Background>
+                                        <Binding Path="Tag" RelativeSource="{RelativeSource Self}" Converter="{StaticResource HexToBrushConverter}" />
+                                    </Button.Background>
+                                </Button>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>

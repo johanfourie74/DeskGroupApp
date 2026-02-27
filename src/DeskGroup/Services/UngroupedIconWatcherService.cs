@@ -14,7 +14,7 @@ public class UngroupedIconWatcherService : IDisposable
     private readonly object _lock = new();
     private bool _disposed;
 
-    public int CooldownSeconds { get; set; } = 10;
+    public int CooldownSeconds { get; set; } = 5; // Reduced from 10 to 5 seconds
     public event EventHandler<List<string>>? NewUngroupedIconsDetected;
 
     public void StartWatching()
@@ -70,18 +70,42 @@ public class UngroupedIconWatcherService : IDisposable
 
     private void ProcessNewFile(string filePath)
     {
+        // Filter system files
+        var fileName = Path.GetFileName(filePath).ToLowerInvariant();
+        if (fileName == "desktop.ini" || fileName == "thumbs.db" || fileName.StartsWith("~"))
+        {
+            System.Diagnostics.Debug.WriteLine($"UngroupedWatcher: Ignoring system file: {fileName}");
+            return;
+        }
+
+        // Only watch shortcuts and executables
         var ext = Path.GetExtension(filePath).ToLowerInvariant();
-        if (ext != ".lnk" && ext != ".url" && ext != ".exe") return;
+        if (ext != ".lnk" && ext != ".url" && ext != ".exe")
+        {
+            System.Diagnostics.Debug.WriteLine($"UngroupedWatcher: Ignoring non-shortcut file: {fileName}");
+            return;
+        }
 
         lock (_lock)
         {
             _pendingNewFiles.Add(filePath);
-            _cooldownTimer?.Stop();
-            _cooldownTimer?.Dispose();
-            _cooldownTimer = new System.Timers.Timer(CooldownSeconds * 1000);
-            _cooldownTimer.AutoReset = false;
-            _cooldownTimer.Elapsed += OnCooldownElapsed;
-            _cooldownTimer.Start();
+            System.Diagnostics.Debug.WriteLine($"UngroupedWatcher: Added {fileName} to pending list ({_pendingNewFiles.Count} total)");
+
+            // CRITICAL: Only start timer if not already running!
+            if (_cooldownTimer == null || !_cooldownTimer.Enabled)
+            {
+                _cooldownTimer?.Stop();
+                _cooldownTimer?.Dispose();
+                _cooldownTimer = new System.Timers.Timer(CooldownSeconds * 1000);
+                _cooldownTimer.AutoReset = false;
+                _cooldownTimer.Elapsed += OnCooldownElapsed;
+                _cooldownTimer.Start();
+                System.Diagnostics.Debug.WriteLine($"UngroupedWatcher: Started {CooldownSeconds}s cooldown timer");
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"UngroupedWatcher: Timer already running, added to batch");
+            }
         }
     }
 
@@ -93,8 +117,16 @@ public class UngroupedIconWatcherService : IDisposable
             files = new List<string>(_pendingNewFiles);
             _pendingNewFiles.Clear();
         }
+
         if (files.Count > 0)
+        {
+            System.Diagnostics.Debug.WriteLine($"UngroupedWatcher: Cooldown elapsed, notifying about {files.Count} new icon(s)");
             NewUngroupedIconsDetected?.Invoke(this, files);
+        }
+        else
+        {
+            System.Diagnostics.Debug.WriteLine($"UngroupedWatcher: Cooldown elapsed but no files to notify");
+        }
     }
 
     public void Dispose()

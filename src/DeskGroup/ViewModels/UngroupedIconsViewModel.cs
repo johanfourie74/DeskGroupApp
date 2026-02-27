@@ -15,15 +15,22 @@ public partial class UngroupedIconsViewModel : ObservableObject
     private readonly IconExtractorService _iconExtractor;
     private readonly AppSettings _settings;
     private readonly PersistenceService _persistenceService;
+    private readonly IconGroup _createNewGroupPlaceholder;
 
     public ObservableCollection<UngroupedIconItem> UngroupedIcons { get; } = new();
     public ObservableCollection<IconGroup> AvailableGroups { get; } = new();
     public event EventHandler? Completed;
+    public event EventHandler<string>? CreateNewGroupRequested; // New event
 
     public UngroupedIconsViewModel(List<string> ungroupedPaths, List<IconGroup> existingGroups,
         IconExtractorService iconExtractor, AppSettings settings, PersistenceService persistenceService)
     {
         _iconExtractor = iconExtractor; _settings = settings; _persistenceService = persistenceService;
+
+        // Add placeholder for "Create new group..."
+        _createNewGroupPlaceholder = new IconGroup { Id = Guid.Empty, Name = "➕ Create new group..." };
+        AvailableGroups.Add(_createNewGroupPlaceholder);
+
         foreach (var group in existingGroups) AvailableGroups.Add(group);
         foreach (var path in ungroupedPaths)
         {
@@ -50,7 +57,13 @@ public partial class UngroupedIconsViewModel : ObservableObject
     private void ApplySorting() => Completed?.Invoke(this, EventArgs.Empty);
 
     public Dictionary<string, IconGroup?> GetAssignments() =>
-        UngroupedIcons.ToDictionary(i => i.FilePath, i => i.SelectedGroup);
+        UngroupedIcons.ToDictionary(i => i.FilePath, 
+            i => i.SelectedGroup?.Id == Guid.Empty ? null : i.SelectedGroup); // Treat placeholder as unassigned
+
+    public bool IsCreateNewGroupPlaceholder(IconGroup? group) => group?.Id == Guid.Empty;
+
+    public List<UngroupedIconItem> GetItemsWithCreateNewGroup() =>
+        UngroupedIcons.Where(i => i.SelectedGroup?.Id == Guid.Empty).ToList();
 }
 
 public partial class UngroupedIconItem : ObservableObject
