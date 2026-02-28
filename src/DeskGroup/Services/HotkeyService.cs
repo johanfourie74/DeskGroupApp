@@ -55,9 +55,13 @@ public class HotkeyService : IDisposable
         bool success = RegisterHotKey(_windowHandle, id, modifiers | (uint)HotkeyModifiers.NoRepeat, vk);
         if (!success)
         {
+            System.Diagnostics.Debug.WriteLine($"❌ RegisterHotKey FAILED for '{hotkeyString}' (ID: {id})");
+            int errorCode = System.Runtime.InteropServices.Marshal.GetLastWin32Error();
+            System.Diagnostics.Debug.WriteLine($"   Win32 Error Code: {errorCode}");
             RegistrationFailed?.Invoke(this, $"Failed to register hotkey '{hotkeyString}'. It may be in use by another application.");
             return -1;
         }
+        System.Diagnostics.Debug.WriteLine($"✅ RegisterHotKey SUCCESS for '{hotkeyString}' (ID: {id})");
         _hotkeyActions[id] = callback;
         return id;
     }

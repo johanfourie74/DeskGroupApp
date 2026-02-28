@@ -110,6 +110,7 @@ public partial class App : Application
         _mainViewModel.GroupAdded += OnGroupAdded;
         _mainViewModel.GroupRemoved += OnGroupRemoved;
         _mainViewModel.UngroupedIconsDetected += OnUngroupedIconsDetected;
+        _mainViewModel.OpenSettingsRequested += (s, e) => ShowSettingsWindow();
 
         System.Diagnostics.Debug.WriteLine("STARTUP: Creating tray icon");
 
@@ -515,9 +516,49 @@ public partial class App : Application
 
         System.Diagnostics.Debug.WriteLine($"CreateGroupWindow: Calling Show() for '{groupVm.Name}'");
 
+        // CRITICAL: Set all sizing properties BEFORE showing to prevent visible resize
+        window.SizeToContent = SizeToContent.Manual;
+        window.Opacity = 0; // Hide during initialization
+
+        // Pre-set position and size based on saved values to prevent visible resize
+        window.Left = groupVm.PositionX;
+        window.Top = groupVm.PositionY;
+
+        // Pre-set size and constraints based on view mode to prevent visible resize
+        switch (groupVm.ViewMode)
+        {
+            case GroupViewMode.Minimized:
+                window.MinWidth = 60;
+                window.MinHeight = 40;
+                window.Width = 160;
+                window.Height = 40;
+                break;
+            case GroupViewMode.Hover:
+                window.MinWidth = 200;
+                window.MinHeight = 60;
+                window.Width = 250;
+                window.Height = 150;
+                break;
+            case GroupViewMode.Normal:
+            case GroupViewMode.Grid:
+                window.MinWidth = 200;
+                window.MinHeight = 150;
+                window.Width = groupVm.Width;
+                window.Height = groupVm.Height;
+                break;
+            case GroupViewMode.Fullscreen:
+                window.MinWidth = 800;
+                window.MinHeight = 600;
+                window.Width = SystemParameters.PrimaryScreenWidth;
+                window.Height = SystemParameters.PrimaryScreenHeight;
+                window.Left = 0;
+                window.Top = 0;
+                break;
+        }
+
         window.Show();
 
-        System.Diagnostics.Debug.WriteLine($"CreateGroupWindow: Show() returned, adding to dictionary");
+        System.Diagnostics.Debug.WriteLine($"CreateGroupWindow: Show() returned at ({window.Left},{window.Top}) size ({window.Width}x{window.Height})");
 
         _groupWindows[groupVm.Id] = window;
 

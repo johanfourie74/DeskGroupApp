@@ -30,7 +30,8 @@ public enum GroupViewMode
     Minimized = 0,
     Hover = 1,
     Normal = 2,
-    Fullscreen = 3
+    Grid = 3,
+    Fullscreen = 4
 }
 
 public enum GroupDockMode

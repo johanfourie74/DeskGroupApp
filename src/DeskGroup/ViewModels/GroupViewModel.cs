@@ -20,6 +20,7 @@ public partial class GroupViewModel : ObservableObject
     private readonly DesktopIconService _desktopIconService;
     private readonly PersistenceService _persistenceService;
     private readonly WindowPositionHelper _positionHelper;
+    private bool _isInitializing = true; // Prevent syncing during initialization
 
     [ObservableProperty] private string _name = "New Group";
     [ObservableProperty] private GroupViewMode _viewMode = GroupViewMode.Minimized;
@@ -30,10 +31,43 @@ public partial class GroupViewModel : ObservableObject
     [ObservableProperty] private double _positionY = 100;
     [ObservableProperty] private double _width = 300;
     [ObservableProperty] private double _height = 250;
+    [ObservableProperty] private string _monitorDeviceName = string.Empty;
     [ObservableProperty] private bool _isVisible = true;
     [ObservableProperty] private SolidColorBrush _accentBrush = new(Colors.DodgerBlue);
     [ObservableProperty] private string _accentColorHex = "#0078D4";
     [ObservableProperty] private ImageSource? _groupIcon;
+
+    partial void OnViewModeChanged(GroupViewMode value)
+    {
+        if (_isInitializing) return; // Don't sync during initialization
+        System.Diagnostics.Debug.WriteLine($"OnViewModeChanged: {value} for group '{Name}'");
+        SyncToModel(); // Sync all properties to model
+        OnPropertyChanged(nameof(ViewMode)); // Trigger save via MainViewModel
+    }
+
+    partial void OnPositionXChanged(double value)
+    {
+        if (_isInitializing) return;
+        SyncToModel();
+    }
+
+    partial void OnPositionYChanged(double value)
+    {
+        if (_isInitializing) return;
+        SyncToModel();
+    }
+
+    partial void OnWidthChanged(double value)
+    {
+        if (_isInitializing) return;
+        SyncToModel();
+    }
+
+    partial void OnHeightChanged(double value)
+    {
+        if (_isInitializing) return;
+        SyncToModel();
+    }
 
     partial void OnAccentColorHexChanged(string value)
     {
@@ -73,16 +107,23 @@ public partial class GroupViewModel : ObservableObject
         _desktopIconService = desktopIconService; _persistenceService = persistenceService;
         _positionHelper = positionHelper;
 
-        Name = model.Name; ViewMode = model.ViewMode; DockMode = model.DockMode;
+        System.Diagnostics.Debug.WriteLine($"GroupViewModel.Constructor: Creating '{model.Name}' with saved position ({model.PositionX},{model.PositionY}), ViewMode={model.ViewMode}, DockMode={model.DockMode}");
+
+        Name = model.Name; 
         IsPinned = model.IsPinned; SnapToGrid = model.SnapToGrid;
         PositionX = model.PositionX; PositionY = model.PositionY;
         Width = model.Width; Height = model.Height;
+        MonitorDeviceName = model.MonitorDeviceName;
         IsVisible = model.IsVisible; AccentColorHex = model.AccentColor;
+        DockMode = model.DockMode;
+        ViewMode = model.ViewMode; // Set ViewMode LAST so SyncToModel doesn't overwrite positions
 
         ApplyAccentColor(model.AccentColor);
         LoadGroupIcon();
         LoadShortcuts();
         RefreshTopUsed();
+
+        _isInitializing = false; // Now allow syncing on property changes
     }
 
     private void ApplyAccentColor(string hex)
@@ -135,6 +176,7 @@ public partial class GroupViewModel : ObservableObject
         _model.IsPinned = IsPinned; _model.SnapToGrid = SnapToGrid;
         _model.PositionX = PositionX; _model.PositionY = PositionY;
         _model.Width = Width; _model.Height = Height;
+        _model.MonitorDeviceName = MonitorDeviceName;
         _model.IsVisible = IsVisible; _model.AccentColor = AccentColorHex;
     }
 
@@ -154,6 +196,17 @@ public partial class GroupViewModel : ObservableObject
     {
         if (ViewMode == GroupViewMode.Fullscreen) RestoreFromFullscreen();
         ViewMode = GroupViewMode.Normal;
+    }
+
+    [RelayCommand] private void SetGrid()
+    {
+        if (ViewMode == GroupViewMode.Fullscreen) RestoreFromFullscreen();
+        ViewMode = GroupViewMode.Grid;
+    }
+
+    [RelayCommand] private void SetFullscreen()
+    {
+        if (ViewMode != GroupViewMode.Fullscreen) EnterFullscreen();
     }
 
     [RelayCommand] private void ToggleFullscreen()
@@ -289,8 +342,5 @@ public partial class GroupViewModel : ObservableObject
         // and exit renaming mode
         IsRenaming = false;
     }
-
-    [RelayCommand]
-    private void SetFullscreen() => ViewMode = GroupViewMode.Fullscreen;
 }
 

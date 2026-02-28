@@ -39,6 +39,7 @@ public partial class MainViewModel : ObservableObject
     public event EventHandler<List<string>>? UngroupedIconsDetected;
     public event EventHandler<GroupViewModel>? GroupAdded;
     public event EventHandler<GroupViewModel>? GroupRemoved;
+    public event EventHandler? OpenSettingsRequested;
 
     public MainViewModel()
     {
@@ -93,10 +94,75 @@ public partial class MainViewModel : ObservableObject
     public void RegisterHotkeys(Window window)
     {
         _hotkeyService.Initialize(window);
+
+        // Subscribe to registration failures BEFORE registering
+        _hotkeyService.RegistrationFailed += OnHotkeyRegistrationFailed;
+
         _hotkeyService.RegisterHotkey(_settings.ToggleAllHotkey, ToggleAllGroupsVisibility);
         _hotkeyService.RegisterHotkey(_settings.FullscreenToggleHotkey, ToggleFocusedGroupFullscreen);
-        _hotkeyService.RegistrationFailed += (s, msg) =>
-            System.Diagnostics.Debug.WriteLine($"Hotkey registration failed: {msg}");
+    }
+
+    private void OnHotkeyRegistrationFailed(object? sender, string errorMessage)
+    {
+        System.Diagnostics.Debug.WriteLine($"🔥🔥🔥 OnHotkeyRegistrationFailed CALLED: {errorMessage}");
+
+        // Show user-friendly warning on UI thread
+        Application.Current?.Dispatcher.Invoke(() =>
+        {
+            System.Diagnostics.Debug.WriteLine($"🔥 About to show HotkeyWarningDialog...");
+
+            var message =
+                $"{errorMessage}\n\n" +
+                $"💡 WHY THIS HAPPENED:\n" +
+                $"This hotkey is already in use by Windows or another application.\n\n" +
+                $"⚠️ IMPORTANT:\n" +
+                $"• If you FORCED this hotkey to register, it may have BROKEN that other application\n" +
+                $"• That application may now behave unpredictably or not respond to its shortcuts\n" +
+                $"• The hotkey will NOT work in DeskGroup\n\n" +
+                $"👉 You should choose a DIFFERENT hotkey combination!\n\n" +
+                $"Recommended combinations:\n" +
+                $"• Ctrl+Shift+D, Ctrl+Alt+G, Ctrl+Shift+K (rarely used by other apps)\n\n" +
+                $"Would you like to open Settings to change the hotkey?";
+
+            var dialog = new DeskGroup.Views.HotkeyWarningDialog(
+                "Hotkey Registration Failed",
+                message);
+
+            // Change button texts and styles for this scenario
+            dialog.CancelButtonControl.Content = "IGNORE";
+            dialog.ForceButtonControl.Content = "OPEN SETTINGS";
+
+            // Swap the styles - "OPEN SETTINGS" should be green (recommended action)
+            dialog.CancelButtonControl.Style = (System.Windows.Style)dialog.FindResource("RedButtonStyle");
+            dialog.ForceButtonControl.Style = (System.Windows.Style)dialog.FindResource("GreenButtonStyle");
+
+            System.Diagnostics.Debug.WriteLine($"🔥 Showing dialog now...");
+            var result = dialog.ShowDialog();
+            System.Diagnostics.Debug.WriteLine($"🔥 Dialog closed with result: {result}, ForcedAnyway: {dialog.ForcedAnyway}");
+
+            if (result == true && dialog.ForcedAnyway)
+            {
+                // User chose to open Settings
+                System.Diagnostics.Debug.WriteLine($"🔥 User selected 'OPEN SETTINGS', invoking OpenSettingsRequested event");
+
+                // Delay slightly to let dialog close
+                System.Threading.Tasks.Task.Delay(100).ContinueWith(_ => 
+                {
+                    Application.Current?.Dispatcher.Invoke(() => 
+                    {
+                        System.Diagnostics.Debug.WriteLine($"🔥 Invoking OpenSettingsRequested NOW");
+                        OpenSettingsRequested?.Invoke(this, EventArgs.Empty);
+                        System.Diagnostics.Debug.WriteLine($"🔥 OpenSettingsRequested invoked, has subscribers: {OpenSettingsRequested != null}");
+                    });
+                });
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"🔥 User selected 'IGNORE' or closed dialog");
+            }
+        });
+
+        System.Diagnostics.Debug.WriteLine($"🔥 OnHotkeyRegistrationFailed COMPLETE");
     }
 
     private GroupViewModel CreateGroupViewModel(IconGroup model)
@@ -260,8 +326,13 @@ public partial class MainViewModel : ObservableObject
     public void ApplySettingsChanges(Window hotkeyWindow)
     {
         ThemeChanged?.Invoke(this, _settings.Theme);
-        _hotkeyService.UnregisterAll();
-        RegisterHotkeys(hotkeyWindow);
+
+        // DON'T re-register hotkeys here - requires app restart
+        // Reason: If hotkeys fail to register, it triggers the warning dialog
+        // which creates a loop when user is in Settings
+
+        // _hotkeyService.UnregisterAll();
+        // RegisterHotkeys(hotkeyWindow);
 
         // DISABLED: FileSystemWatcher causes infinite loop
         // if (_settings.WatchForUngroupedIcons) _ungroupedWatcher.StartWatching();
@@ -278,7 +349,8 @@ public partial class MainViewModel : ObservableObject
             group.Model.DockMode = group.DockMode; group.Model.IsPinned = group.IsPinned;
             group.Model.SnapToGrid = group.SnapToGrid; group.Model.PositionX = group.PositionX;
             group.Model.PositionY = group.PositionY; group.Model.Width = group.Width;
-            group.Model.Height = group.Height; group.Model.IsVisible = group.IsVisible;
+            group.Model.Height = group.Height; group.Model.MonitorDeviceName = group.MonitorDeviceName;
+            group.Model.IsVisible = group.IsVisible;
             group.Model.AccentColor = group.AccentColorHex;
         }
         await _persistenceService.SaveGroupsImmediateAsync(_groupModels);

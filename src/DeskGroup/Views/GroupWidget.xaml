@@ -10,10 +10,7 @@
         Background="Transparent"
         ShowInTaskbar="False"
         ResizeMode="NoResize"
-        Width="160"
-        Height="40"
-        MinWidth="60"
-        MinHeight="40"
+        SizeToContent="Manual"
         Topmost="False"
         AllowDrop="True"
         d:DesignWidth="320" d:DesignHeight="400">
@@ -173,6 +170,80 @@
             </Grid>
         </Border>
 
+        <!-- GRID VIEW - Compact tile grid (between Normal and Fullscreen) -->
+        <Border x:Name="GridView"
+                CornerRadius="8"
+                Background="{Binding AccentBrush, FallbackValue=#FF0078D4}"
+                BorderBrush="#40FFFFFF"
+                BorderThickness="2"
+                Padding="10"
+                Visibility="Collapsed">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- Header with drag handle -->
+                <Grid Grid.Row="0" Margin="0,0,0,10">
+                    <TextBlock Text="{Binding Name, FallbackValue='Group'}"
+                               Foreground="White"
+                               FontSize="16"
+                               FontWeight="Bold"
+                               HorizontalAlignment="Left"
+                               VerticalAlignment="Center"
+                               MouseLeftButtonDown="Header_MouseLeftButtonDown"
+                               MouseLeftButtonUp="Header_MouseLeftButtonUp"
+                               MouseMove="Header_MouseMove"
+                               Cursor="SizeAll"/>
+                </Grid>
+
+                <!-- Shortcuts in compact grid -->
+                <ScrollViewer Grid.Row="1"
+                              VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled"
+                              MaxHeight="500">
+                    <ItemsControl ItemsSource="{Binding AllShortcuts}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="#20FFFFFF"
+                                        BorderBrush="#40FFFFFF"
+                                        BorderThickness="1"
+                                        CornerRadius="4"
+                                        Width="80"
+                                        Height="80"
+                                        Margin="4"
+                                        Cursor="Hand"
+                                        MouseLeftButtonDown="Shortcut_Click"
+                                        MouseRightButtonUp="Shortcut_RightClick">
+                                    <StackPanel HorizontalAlignment="Center"
+                                                VerticalAlignment="Center">
+                                        <Image Source="{Binding IconImage}" 
+                                               Width="32" 
+                                               Height="32"
+                                               Margin="0,0,0,4"/>
+                                        <TextBlock Text="{Binding DisplayName}"
+                                                   Foreground="White"
+                                                   FontSize="10"
+                                                   TextWrapping="Wrap"
+                                                   TextAlignment="Center"
+                                                   MaxWidth="70"
+                                                   MaxHeight="28"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+
         <!-- FULLSCREEN VIEW - Entire screen coverage -->
         <Border x:Name="FullscreenView"
                 Background="{Binding AccentBrush, FallbackValue=#FF0078D4}"
@@ -264,6 +335,11 @@
                 <MenuItem Header="Normal" Click="SetNormal_Click">
                     <MenuItem.Icon>
                         <TextBlock Text="🗖" FontSize="12"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="Grid" Click="SetGrid_Click">
+                    <MenuItem.Icon>
+                        <TextBlock Text="▦" FontSize="12"/>
                     </MenuItem.Icon>
                 </MenuItem>
                 <MenuItem Header="Fullscreen (F11)" Click="SetFullscreen_Click">

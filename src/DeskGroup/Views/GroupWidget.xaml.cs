@@ -100,22 +100,20 @@ public partial class GroupWidget : Window
 
         if (_viewModel != null)
         {
-            System.Diagnostics.Debug.WriteLine($"GroupWidget.OnLoaded: Setting position to ({_viewModel.PositionX}, {_viewModel.PositionY})");
+            System.Diagnostics.Debug.WriteLine($"GroupWidget.OnLoaded: Position/size already set by App.xaml.cs");
 
-            // Set position from ViewModel
-            Left = _viewModel.PositionX;
-            Top = _viewModel.PositionY;
-
-            // Apply view mode to set initial size
+            // Position and size already set by App.xaml.cs before Show()
+            // Just show the correct view without calling UpdateViewMode (which would resize/reposition)
             _isInitializing = true; // Block property handlers during init
-            UpdateViewMode(_viewModel.ViewMode);
-            _isInitializing = false;
 
-            // Show if visible
-            if (_viewModel.IsVisible)
-            {
-                Show();
-            }
+            // Directly set visibility without going through UpdateViewMode
+            MinimizedView.Visibility = _viewModel.ViewMode == GroupViewMode.Minimized ? Visibility.Visible : Visibility.Collapsed;
+            HoverView.Visibility = _viewModel.ViewMode == GroupViewMode.Hover ? Visibility.Visible : Visibility.Collapsed;
+            NormalView.Visibility = _viewModel.ViewMode == GroupViewMode.Normal ? Visibility.Visible : Visibility.Collapsed;
+            GridView.Visibility = _viewModel.ViewMode == GroupViewMode.Grid ? Visibility.Visible : Visibility.Collapsed;
+            FullscreenView.Visibility = _viewModel.ViewMode == GroupViewMode.Fullscreen ? Visibility.Visible : Visibility.Collapsed;
+
+            _isInitializing = false;
 
             // Apply dock mode after a delay
             Dispatcher.BeginInvoke(new Action(() =>
@@ -126,6 +124,11 @@ public partial class GroupWidget : Window
 
                 // NOW enable property change handlers
                 _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+
+                System.Diagnostics.Debug.WriteLine($"GroupWidget.OnLoaded: Initialization complete, fading in");
+
+                // Fade in now that everything is positioned correctly
+                Opacity = 1.0;
 
                 System.Diagnostics.Debug.WriteLine($"GroupWidget.OnLoaded: COMPLETE for '{_viewModel.Name}'");
             }), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
@@ -219,7 +222,7 @@ public partial class GroupWidget : Window
 
                 case nameof(GroupViewModel.Width):
                 case nameof(GroupViewModel.Height):
-                    if (_viewModel != null && _viewModel.ViewMode == GroupViewMode.Normal)
+                    if (_viewModel != null && (_viewModel.ViewMode == GroupViewMode.Normal || _viewModel.ViewMode == GroupViewMode.Grid))
                     {
                         SizeToContent = SizeToContent.Manual;
                         Width = _viewModel.Width;
@@ -251,6 +254,8 @@ public partial class GroupWidget : Window
         if (_windowHandle == IntPtr.Zero) return;
         if (_isApplyingChanges) return; // Prevent re-entry
 
+        System.Diagnostics.Debug.WriteLine($"ApplyDockMode: {mode} for '{_viewModel?.Name}', Current window pos: ({Left},{Top}), ViewModel pos: ({_viewModel?.PositionX},{_viewModel?.PositionY})");
+
         switch (mode)
         {
             case GroupDockMode.Sticky:
@@ -271,6 +276,7 @@ public partial class GroupWidget : Window
                     // Always use SetWindowPos as fallback
                     if (_viewModel != null)
                     {
+                        System.Diagnostics.Debug.WriteLine($"  SetWindowPos called with pos: ({_viewModel.PositionX},{_viewModel.PositionY})");
                         Win32Interop.SetWindowPos(_windowHandle, Win32Interop.HWND_BOTTOM,
                             (int)_viewModel.PositionX, (int)_viewModel.PositionY, 
                             (int)Width, (int)Height,
@@ -289,6 +295,7 @@ public partial class GroupWidget : Window
                 Win32Interop.SetTopmost(_windowHandle, true);
                 Visibility = Visibility.Visible;
                 Show();
+                System.Diagnostics.Debug.WriteLine($"  Float mode set, window remains at: ({Left},{Top})");
                 break;
         }
     }
@@ -652,6 +659,7 @@ public partial class GroupWidget : Window
                     MinimizedView.Visibility = Visibility.Visible;
                     HoverView.Visibility = Visibility.Collapsed;
                     NormalView.Visibility = Visibility.Collapsed;
+                    GridView.Visibility = Visibility.Collapsed;
                     FullscreenView.Visibility = Visibility.Collapsed;
 
                     // 9. Final layout update
@@ -752,6 +760,7 @@ public partial class GroupWidget : Window
                     MinimizedView.Visibility = Visibility.Collapsed;
                     HoverView.Visibility = Visibility.Collapsed;
                     NormalView.Visibility = Visibility.Visible;
+                    GridView.Visibility = Visibility.Collapsed;
                     FullscreenView.Visibility = Visibility.Collapsed;
 
                     // 8. Final layout update
@@ -760,6 +769,57 @@ public partial class GroupWidget : Window
                     UpdateLayout();
 
                     System.Diagnostics.Debug.WriteLine($"  -> Normal view active at ({Left}, {Top}), size ({Width}x{Height}) - layout forced");
+                    break;
+
+                case GroupViewMode.Grid:
+                    // 1. Check if coming from fullscreen
+                    bool wasFullscreenGrid = (FullscreenView.Visibility == Visibility.Visible);
+
+                    // 2. Restore topmost if coming from fullscreen
+                    if (wasFullscreenGrid)
+                    {
+                        Topmost = false;
+                    }
+
+                    // 3. Set sizing mode FIRST
+                    SizeToContent = SizeToContent.Manual;
+                    // 4. RESET minimum sizes
+                    MinWidth = 250;
+                    MinHeight = 200;
+
+                    // 5. Restore position/size (AFTER setting sizing mode!)
+                    if (wasFullscreenGrid && _preFullscreenLeft > 0)
+                    {
+                        Left = _preFullscreenLeft;
+                        Top = _preFullscreenTop;
+                        Width = _preFullscreenWidth;
+                        Height = _preFullscreenHeight;
+                        System.Diagnostics.Debug.WriteLine($"  Restoring position/size from fullscreen: ({Left}, {Top}, {Width}x{Height})");
+                    }
+                    else if (_viewModel != null)
+                    {
+                        Left = _viewModel.PositionX;
+                        Top = _viewModel.PositionY;
+                        Width = _viewModel.Width;
+                        Height = _viewModel.Height;
+                    }
+
+                    // 6. Force layout update
+                    UpdateLayout();
+
+                    // 7. Change visibility
+                    MinimizedView.Visibility = Visibility.Collapsed;
+                    HoverView.Visibility = Visibility.Collapsed;
+                    NormalView.Visibility = Visibility.Collapsed;
+                    GridView.Visibility = Visibility.Visible;
+                    FullscreenView.Visibility = Visibility.Collapsed;
+
+                    // 8. Final layout update
+                    InvalidateMeasure();
+                    InvalidateArrange();
+                    UpdateLayout();
+
+                    System.Diagnostics.Debug.WriteLine($"  -> Grid view active at ({Left}, {Top}), size ({Width}x{Height}) - layout forced");
                     break;
 
                 case GroupViewMode.Fullscreen:
@@ -777,6 +837,7 @@ public partial class GroupWidget : Window
                     MinimizedView.Visibility = Visibility.Collapsed;
                     HoverView.Visibility = Visibility.Collapsed;
                     NormalView.Visibility = Visibility.Collapsed;
+                    GridView.Visibility = Visibility.Collapsed;
                     FullscreenView.Visibility = Visibility.Visible;
                     // 4. Set window properties for fullscreen
                     WindowStyle = WindowStyle.None;
@@ -799,6 +860,7 @@ public partial class GroupWidget : Window
                     MinimizedView.Visibility = Visibility.Visible;
                     HoverView.Visibility = Visibility.Collapsed;
                     NormalView.Visibility = Visibility.Collapsed;
+                    GridView.Visibility = Visibility.Collapsed;
                     FullscreenView.Visibility = Visibility.Collapsed;
                     InvalidateMeasure();
                     InvalidateArrange();
@@ -872,6 +934,12 @@ public partial class GroupWidget : Window
     {
         System.Diagnostics.Debug.WriteLine("SetNormal_Click");
         _viewModel?.SetNormalCommand.Execute(null);
+    }
+
+    private void SetGrid_Click(object sender, RoutedEventArgs e)
+    {
+        System.Diagnostics.Debug.WriteLine("SetGrid_Click");
+        _viewModel?.SetGridCommand.Execute(null);
     }
 
     private void SetFullscreen_Click(object sender, RoutedEventArgs e)
@@ -1068,10 +1136,11 @@ public partial class GroupWidget : Window
         if (_isDragging)
         {
             // Actual drag occurred - update ViewModel position
+            // Round to nearest integer to avoid fractional pixel issues
             if (_viewModel != null)
             {
-                _viewModel.PositionX = Left;
-                _viewModel.PositionY = Top;
+                _viewModel.PositionX = Math.Round(Left);
+                _viewModel.PositionY = Math.Round(Top);
             }
 
             System.Diagnostics.Debug.WriteLine($"Drag ended at ({Left}, {Top})");

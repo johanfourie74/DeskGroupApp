@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using DeskGroup.Models;
@@ -12,7 +13,7 @@ public partial class SettingsViewModel : ObservableObject
     private readonly PersistenceService _persistenceService;
     private readonly StartupService _startupService;
 
-    [ObservableProperty] private ThemeMode _theme;
+    [ObservableProperty] private Models.ThemeMode _theme;
     [ObservableProperty] private GroupDockMode _defaultDockMode;
     [ObservableProperty] private bool _defaultSnapToGrid;
     [ObservableProperty] private int _snapGridSize;
@@ -26,7 +27,7 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private bool _watchForUngroupedIcons;
     [ObservableProperty] private bool _allowMultiMonitor;
 
-    public List<ThemeMode> ThemeModes { get; } = new() { ThemeMode.Light, ThemeMode.Dark, ThemeMode.System };
+    public List<Models.ThemeMode> ThemeModes { get; } = new() { Models.ThemeMode.Light, Models.ThemeMode.Dark, Models.ThemeMode.System };
     public List<GroupDockMode> DockModes { get; } = new() { GroupDockMode.Sticky, GroupDockMode.Float };
     public List<IconSizeMode> IconSizeModes { get; } = new() { IconSizeMode.System, IconSizeMode.Custom };
 
@@ -46,6 +47,51 @@ public partial class SettingsViewModel : ObservableObject
     [RelayCommand]
     private async System.Threading.Tasks.Task Apply()
     {
+        // Validate hotkeys before saving
+        string? validationError = ValidateHotkeys();
+        if (validationError != null)
+        {
+            MessageBox.Show(
+                $"⚠️ Invalid Hotkey Configuration\n\n{validationError}\n\nPlease change the hotkey and try again.",
+                "Invalid Hotkey",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return; // Don't save
+        }
+
+        // Check for obviously problematic hotkeys
+        var warnings = GetHotkeyWarnings();
+        if (warnings.Count > 0)
+        {
+            var message = 
+                $"{string.Join("\n\n", warnings)}\n\n" +
+                $"⚠️ IMPORTANT WARNINGS:\n\n" +
+                $"• This hotkey is used by Windows or other applications\n" +
+                $"• Registering it may PREVENT other programs from working correctly\n" +
+                $"• It may cause UNPREDICTABLE BEHAVIOR in other applications\n" +
+                $"• The hotkey will likely NOT work in DeskGroup\n\n" +
+                $"👉 You should REALLY choose a different hotkey combination!\n\n" +
+                $"Recommended: Use Ctrl+Shift or Ctrl+Alt with a letter not commonly used.\n" +
+                $"Examples: Ctrl+Shift+D, Ctrl+Alt+G, Ctrl+Shift+K";
+
+            var dialog = new DeskGroup.Views.HotkeyWarningDialog(
+                "CRITICAL: Hotkey Conflict Detected",
+                message);
+
+            var result = dialog.ShowDialog();
+
+            if (result != true || !dialog.ForcedAnyway)
+            {
+                return; // User cancelled - don't save
+            }
+            // User clicked "FORCE ANYWAY" - proceed with save
+        }
+
+        // Check if hotkeys changed
+        bool hotkeysChanged = 
+            _settings.ToggleAllHotkey != ToggleAllHotkey ||
+            _settings.FullscreenToggleHotkey != FullscreenToggleHotkey;
+
         _settings.Theme = Theme; _settings.DefaultDockMode = DefaultDockMode;
         _settings.DefaultSnapToGrid = DefaultSnapToGrid; _settings.SnapGridSize = SnapGridSize;
         _settings.HideGroupedIcons = HideGroupedIcons; _settings.IconSizeMode = IconSizeMode;
@@ -56,6 +102,124 @@ public partial class SettingsViewModel : ObservableObject
         _settings.AllowMultiMonitor = AllowMultiMonitor;
         _startupService.SyncWithSetting(StartWithWindows);
         await _persistenceService.SaveSettingsImmediateAsync(_settings);
+
+        // Notify user if hotkeys changed
+        if (hotkeysChanged)
+        {
+            var dialog = new DeskGroup.Views.HotkeyWarningDialog(
+                "Restart Required",
+                "✅ Settings Saved Successfully!\n\n" +
+                "⚠️ IMPORTANT: Hotkey changes require an app restart.\n\n" +
+                "The new hotkeys will take effect after restarting DeskGroup.\n\n" +
+                "Would you like to restart now?");
+
+            // Customize buttons for restart scenario
+            dialog.CancelButtonControl.Content = "RESTART LATER";
+            dialog.ForceButtonControl.Content = "RESTART NOW";
+
+            // RESTART LATER = gray (default), RESTART NOW = green (recommended)
+            dialog.CancelButtonControl.Style = (System.Windows.Style)dialog.FindResource("DefaultButtonStyle");
+            dialog.ForceButtonControl.Style = (System.Windows.Style)dialog.FindResource("GreenButtonStyle");
+
+            var result = dialog.ShowDialog();
+
+            if (result == true && dialog.ForcedAnyway)
+            {
+                // User chose to restart now
+                RestartApplication();
+            }
+        }
+    }
+
+    private void RestartApplication()
+    {
+        try
+        {
+            // Get current executable path
+            var exePath = System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName;
+
+            if (!string.IsNullOrEmpty(exePath))
+            {
+                // Start new instance
+                System.Diagnostics.Process.Start(exePath);
+
+                // Shutdown current instance
+                System.Windows.Application.Current.Shutdown();
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to restart application: {ex.Message}");
+            MessageBox.Show(
+                $"Failed to restart automatically.\n\nPlease restart DeskGroup manually.\n\nError: {ex.Message}",
+                "Restart Failed",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+        }
+    }
+
+    private List<string> GetHotkeyWarnings()
+    {
+        var warnings = new List<string>();
+
+        // Common system hotkeys that will definitely conflict
+        var systemHotkeys = new[] 
+        { 
+            "CTRL+C", "CTRL+V", "CTRL+X", "CTRL+Z", "CTRL+A", "CTRL+S",
+            "CTRL+P", "CTRL+O", "CTRL+N", "CTRL+F", "CTRL+H",
+            "ALT+F4", "ALT+TAB", "WIN+D", "WIN+E", "WIN+L",
+            "CTRL+ALT+DELETE", "CTRL+SHIFT+ESC"
+        };
+
+        if (!string.IsNullOrWhiteSpace(ToggleAllHotkey))
+        {
+            var upper = ToggleAllHotkey.ToUpperInvariant().Replace(" ", "");
+            if (System.Array.Exists(systemHotkeys, h => h == upper))
+            {
+                warnings.Add($"'{ToggleAllHotkey}' is a common system shortcut and will likely not work.");
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(FullscreenToggleHotkey))
+        {
+            var upper = FullscreenToggleHotkey.ToUpperInvariant().Replace(" ", "");
+            if (System.Array.Exists(systemHotkeys, h => h == upper))
+            {
+                warnings.Add($"'{FullscreenToggleHotkey}' is a common system shortcut and will likely not work.");
+            }
+        }
+
+        return warnings;
+    }
+
+    private string? ValidateHotkeys()
+    {
+        // Check if hotkeys can be parsed
+        if (!string.IsNullOrWhiteSpace(ToggleAllHotkey))
+        {
+            if (!HotkeyService.TryParseHotkey(ToggleAllHotkey, out _, out _))
+            {
+                return $"'Toggle All Groups' hotkey '{ToggleAllHotkey}' is not in valid format.\n\nExample: Ctrl+Shift+D";
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(FullscreenToggleHotkey))
+        {
+            if (!HotkeyService.TryParseHotkey(FullscreenToggleHotkey, out _, out _))
+            {
+                return $"'Fullscreen Toggle' hotkey '{FullscreenToggleHotkey}' is not in valid format.\n\nExample: Ctrl+Shift+F";
+            }
+        }
+
+        // Check if both hotkeys are the same
+        if (!string.IsNullOrWhiteSpace(ToggleAllHotkey) && 
+            !string.IsNullOrWhiteSpace(FullscreenToggleHotkey) &&
+            ToggleAllHotkey.Equals(FullscreenToggleHotkey, System.StringComparison.OrdinalIgnoreCase))
+        {
+            return "Both hotkeys are set to the same combination.\n\nEach hotkey must be unique.";
+        }
+
+        return null; // Valid
     }
 
     [RelayCommand]
