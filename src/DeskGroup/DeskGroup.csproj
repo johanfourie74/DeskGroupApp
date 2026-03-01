@@ -8,13 +8,13 @@
     <UseWindowsForms>false</UseWindowsForms>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <!-- Application icon removed for build environment -->
+    <!-- Professional application icon (TODO: Add after creating proper ICO file) -->
+    <!-- <ApplicationIcon>Assets\DG_Color_.ico</ApplicationIcon> -->
     <AssemblyName>DeskGroup</AssemblyName>
     <RootNamespace>DeskGroup</RootNamespace>
     <Version>1.0.0</Version>
     <Authors>DeskGroup</Authors>
     <Description>Desktop Icon Organizer - Group your desktop shortcuts into clean, widget-like containers.</Description>
-    <!-- ApplicationManifest removed to avoid malformed Win32 resource embedding during build -->
   </PropertyGroup>
 
   <ItemGroup>
@@ -28,9 +28,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Icon resources -->
+    <!-- Professional icon resources -->
+    <Resource Include="Assets\dg_icon.png" Condition="Exists('Assets\dg_icon.png')" />
     <Resource Include="Assets\tray-icon.ico" Condition="Exists('Assets\tray-icon.ico')" />
+    <Resource Include="Assets\tray-icon-backup.ico" Condition="Exists('Assets\tray-icon-backup.ico')" />
     <Resource Include="Assets\default-group-icon.ico" Condition="Exists('Assets\default-group-icon.ico')" />
+    <!-- TODO: Add these after creating proper ICO files -->
+    <!-- <Resource Include="Assets\DG_Color_.ico" Condition="Exists('Assets\DG_Color_.ico')" /> -->
+    <!-- <Resource Include="Assets\DG_Gray_.ico" Condition="Exists('Assets\DG_Gray_.ico')" /> -->
   </ItemGroup>
 
 </Project>

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Threading;
@@ -264,39 +265,32 @@ public partial class App : Application
 
             System.Diagnostics.Debug.WriteLine("CreateTrayIcon: TaskbarIcon created");
 
-            // Use the embedded icon resource with fallback to defaults
+            // Use the embedded icon resource (now contains your professional icon!)
             Icon? loadedIcon = null;
 
             try
             {
-                System.Diagnostics.Debug.WriteLine("CreateTrayIcon: Attempting to load icon from resources");
+                System.Diagnostics.Debug.WriteLine("CreateTrayIcon: Loading tray-icon.ico");
 
                 var iconUri = new Uri("pack://application:,,,/Assets/tray-icon.ico", UriKind.Absolute);
                 var streamInfo = GetResourceStream(iconUri);
 
                 if (streamInfo != null && streamInfo.Stream != null)
                 {
-                    System.Diagnostics.Debug.WriteLine("CreateTrayIcon: Icon stream found, creating Icon object");
-
                     try
                     {
-                        // Try to create Icon from stream
+                        // Load icon - let Windows pick the best size
                         loadedIcon = new Icon(streamInfo.Stream);
-                        System.Diagnostics.Debug.WriteLine("CreateTrayIcon: Icon loaded successfully from resources");
+                        System.Diagnostics.Debug.WriteLine("CreateTrayIcon: Icon loaded successfully!");
                     }
                     catch (ArgumentException argEx)
                     {
                         System.Diagnostics.Debug.WriteLine($"CreateTrayIcon: Icon stream is invalid: {argEx.Message}");
-                        // Stream exists but isn't a valid icon - will use fallback
                     }
                     finally
                     {
                         streamInfo.Stream?.Dispose();
                     }
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine("CreateTrayIcon: Icon resource not found in assembly");
                 }
             }
             catch (Exception iconEx)
@@ -308,12 +302,12 @@ public partial class App : Application
             if (loadedIcon != null)
             {
                 _trayIcon.Icon = loadedIcon;
-                System.Diagnostics.Debug.WriteLine("CreateTrayIcon: Using custom icon");
+                System.Diagnostics.Debug.WriteLine("CreateTrayIcon: Using professional icon ✓");
             }
             else
             {
                 _trayIcon.Icon = SystemIcons.Application;
-                System.Diagnostics.Debug.WriteLine("CreateTrayIcon: Using fallback system icon (custom icon not available)");
+                System.Diagnostics.Debug.WriteLine("CreateTrayIcon: Using fallback system icon");
             }
 
             System.Diagnostics.Debug.WriteLine("CreateTrayIcon: Building context menu");
