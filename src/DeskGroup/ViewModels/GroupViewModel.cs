@@ -22,6 +22,37 @@ public partial class GroupViewModel : ObservableObject
     private readonly WindowPositionHelper _positionHelper;
     private bool _isInitializing = true; // Prevent syncing during initialization
 
+    // Track the saved dock mode before temporary float (for Show/Hide All)
+    private GroupDockMode? _savedDockModeBeforeFloat = null;
+
+    public AppSettings Settings { get; }
+
+    // Expose GroupBackgroundOpacity as observable property for live binding updates
+    public double GroupBackgroundOpacity => Settings.GroupBackgroundOpacity;
+
+    // Method to refresh opacity when settings change
+    public void RefreshOpacity()
+    {
+        OnPropertyChanged(nameof(GroupBackgroundOpacity));
+        UpdateTransparentAccentBrush();
+    }
+
+    private void UpdateTransparentAccentBrush()
+    {
+        // Create a new brush with the accent color but with opacity applied
+        var color = AccentBrush.Color;
+        var alpha = (byte)(Settings.GroupBackgroundOpacity * 255);
+        var transparentColor = Color.FromArgb(alpha, color.R, color.G, color.B);
+        TransparentAccentBrush = new SolidColorBrush(transparentColor);
+
+        // Border fades at slower rate: borderAlpha = (opacity * 0.8) + 0.2
+        // So at 100% background → 100% border, at 0% background → 20% border
+        var borderOpacity = (Settings.GroupBackgroundOpacity * 0.8) + 0.2;
+        var borderAlpha = (byte)(borderOpacity * 255);
+        var borderColor = Color.FromArgb(borderAlpha, color.R, color.G, color.B);
+        TransparentBorderBrush = new SolidColorBrush(borderColor);
+    }
+
     [ObservableProperty] private string _name = "New Group";
 
     partial void OnNameChanged(string value)
@@ -34,6 +65,14 @@ public partial class GroupViewModel : ObservableObject
     }
     [ObservableProperty] private GroupViewMode _viewMode = GroupViewMode.Minimized;
     [ObservableProperty] private GroupDockMode _dockMode = GroupDockMode.Sticky;
+
+    // Public property to access saved dock mode for restoration
+    public GroupDockMode? SavedDockModeBeforeFloat
+    {
+        get => _savedDockModeBeforeFloat;
+        set => _savedDockModeBeforeFloat = value;
+    }
+
     [ObservableProperty] private bool _isPinned;
     [ObservableProperty] private bool _snapToGrid = true;
     [ObservableProperty] private double _positionX = 100;
@@ -43,6 +82,8 @@ public partial class GroupViewModel : ObservableObject
     [ObservableProperty] private string _monitorDeviceName = string.Empty;
     [ObservableProperty] private bool _isVisible = true;
     [ObservableProperty] private SolidColorBrush _accentBrush = new(Colors.DodgerBlue);
+    [ObservableProperty] private SolidColorBrush _transparentAccentBrush = new(Colors.DodgerBlue);
+    [ObservableProperty] private SolidColorBrush _transparentBorderBrush = new(Colors.DodgerBlue);
     [ObservableProperty] private string _accentColorHex = "#0078D4";
     [ObservableProperty] private ImageSource? _groupIcon;
 
@@ -116,13 +157,28 @@ public partial class GroupViewModel : ObservableObject
 
     public GroupViewModel(IconGroup model, UsageTrackingService usageTracker,
         IconExtractorService iconExtractor, DesktopIconService desktopIconService,
-        PersistenceService persistenceService, WindowPositionHelper positionHelper)
+        PersistenceService persistenceService, WindowPositionHelper positionHelper,
+        AppSettings settings)
     {
         _model = model; _usageTracker = usageTracker; _iconExtractor = iconExtractor;
         _desktopIconService = desktopIconService; _persistenceService = persistenceService;
         _positionHelper = positionHelper;
+        Settings = settings;
 
         System.Diagnostics.Debug.WriteLine($"GroupViewModel.Constructor: Creating '{model.Name}' with saved position ({model.PositionX},{model.PositionY}), ViewMode={model.ViewMode}, DockMode={model.DockMode}");
+
+        // VALIDATE AND SANITIZE loaded positions to prevent billion-digit corruption
+        if (model.PositionX < -5000 || model.PositionX > 10000)
+        {
+            System.Diagnostics.Debug.WriteLine($"  WARNING: Corrupted PositionX={model.PositionX} detected! Resetting to 100");
+            model.PositionX = 100;
+        }
+
+        if (model.PositionY < -5000 || model.PositionY > 10000)
+        {
+            System.Diagnostics.Debug.WriteLine($"  WARNING: Corrupted PositionY={model.PositionY} detected! Resetting to 100");
+            model.PositionY = 100;
+        }
 
         Name = model.Name; 
         IsPinned = model.IsPinned; SnapToGrid = model.SnapToGrid;
@@ -150,6 +206,10 @@ public partial class GroupViewModel : ObservableObject
             var newBrush = new SolidColorBrush(color);
             newBrush.Freeze();
             AccentBrush = newBrush;
+
+            // Also create transparent version
+            UpdateTransparentAccentBrush();
+
             System.Diagnostics.Debug.WriteLine($"  Successfully created brush for color: {color}");
         }
         catch (Exception ex)
@@ -158,6 +218,7 @@ public partial class GroupViewModel : ObservableObject
             var fallbackBrush = new SolidColorBrush(Colors.DodgerBlue);
             fallbackBrush.Freeze();
             AccentBrush = fallbackBrush;
+            UpdateTransparentAccentBrush();
         }
     }
 

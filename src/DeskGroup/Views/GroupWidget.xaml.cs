@@ -69,6 +69,7 @@ public partial class GroupWidget : Window
         Drop += OnDrop;
         DragEnter += OnDragEnter;
         KeyDown += OnKeyDown; // Keyboard shortcuts
+        PreviewMouseLeftButtonDown += OnAnyMouseClick; // Catch ALL clicks to restore sticky mode
 
         System.Diagnostics.Debug.WriteLine("GroupWidget.Constructor: Wiring routed events");
 
@@ -252,7 +253,6 @@ public partial class GroupWidget : Window
     private void ApplyDockMode(GroupDockMode mode)
     {
         if (_windowHandle == IntPtr.Zero) return;
-        if (_isApplyingChanges) return; // Prevent re-entry
 
         System.Diagnostics.Debug.WriteLine($"ApplyDockMode: {mode} for '{_viewModel?.Name}', Current window pos: ({Left},{Top}), ViewModel pos: ({_viewModel?.PositionX},{_viewModel?.PositionY})");
 
@@ -264,6 +264,10 @@ public partial class GroupWidget : Window
                     Topmost = false;
                     Win32Interop.SetTopmost(_windowHandle, false);
 
+                    // Add WS_EX_NOACTIVATE to prevent activation on click
+                    int exStyle = Win32Interop.GetWindowLong(_windowHandle, Win32Interop.GWL_EXSTYLE);
+                    Win32Interop.SetWindowLong(_windowHandle, Win32Interop.GWL_EXSTYLE, exStyle | Win32Interop.WS_EX_NOACTIVATE);
+
                     // Show window first
                     Visibility = Visibility.Visible;
                     Show();
@@ -273,15 +277,18 @@ public partial class GroupWidget : Window
                     bool attached = Win32Interop.AttachToDesktop(_windowHandle);
                     _isAttachedToDesktop = attached;
 
-                    // Always use SetWindowPos as fallback
-                    if (_viewModel != null)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"  SetWindowPos called with pos: ({_viewModel.PositionX},{_viewModel.PositionY})");
-                        Win32Interop.SetWindowPos(_windowHandle, Win32Interop.HWND_BOTTOM,
-                            (int)_viewModel.PositionX, (int)_viewModel.PositionY, 
-                            (int)Width, (int)Height,
-                            Win32Interop.SWP_SHOWWINDOW | Win32Interop.SWP_NOACTIVATE);
-                    }
+                    // Use CURRENT window position (Left/Top), not saved ViewModel position
+                    // This prevents the jump when switching modes
+                    var targetX = (int)Left;
+                    var targetY = (int)Top;
+                    System.Diagnostics.Debug.WriteLine($"  SetWindowPos called with CURRENT pos: ({targetX},{targetY})");
+                    Win32Interop.SetWindowPos(_windowHandle, Win32Interop.HWND_BOTTOM,
+                        targetX, targetY, 
+                        (int)Width, (int)Height,
+                        Win32Interop.SWP_SHOWWINDOW | Win32Interop.SWP_NOACTIVATE);
+
+                    // DON'T re-sync WPF position - it causes a visible second jump!
+                    // SetWindowPos already positioned the window correctly.
                 }
                 break;
 
@@ -291,6 +298,11 @@ public partial class GroupWidget : Window
                     Win32Interop.DetachFromDesktop(_windowHandle);
                     _isAttachedToDesktop = false;
                 }
+
+                // Remove WS_EX_NOACTIVATE so window can be activated normally
+                int exStyle2 = Win32Interop.GetWindowLong(_windowHandle, Win32Interop.GWL_EXSTYLE);
+                Win32Interop.SetWindowLong(_windowHandle, Win32Interop.GWL_EXSTYLE, exStyle2 & ~Win32Interop.WS_EX_NOACTIVATE);
+
                 Topmost = true;
                 Win32Interop.SetTopmost(_windowHandle, true);
                 Visibility = Visibility.Visible;
@@ -997,6 +1009,15 @@ public partial class GroupWidget : Window
                     _viewModel.SetMinimizedCommand.Execute(null);
                 }
 
+                // RESTORE STICKY MODE: If user temporarily floated this window via Show/Hide All,
+                // restore it back to Sticky when they click an icon
+                if (_viewModel != null && _viewModel.SavedDockModeBeforeFloat.HasValue)
+                {
+                    System.Diagnostics.Debug.WriteLine($"  Restoring dock mode from {_viewModel.DockMode} to {_viewModel.SavedDockModeBeforeFloat}");
+                    _viewModel.DockMode = _viewModel.SavedDockModeBeforeFloat.Value;
+                    _viewModel.SavedDockModeBeforeFloat = null; // Clear the saved state
+                }
+
                 shortcut.LaunchCommand.Execute(null);
                 e.Handled = true; // Mark as handled to prevent bubbling
             }
@@ -1044,6 +1065,35 @@ public partial class GroupWidget : Window
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Shortcut_RightClick: ERROR - {ex.Message}");
+        }
+    }
+
+    // ============================================================================================
+    // GLOBAL MOUSE CLICK HANDLER (for sticky mode restoration)
+    // ============================================================================================
+
+    private void OnAnyMouseClick(object sender, MouseButtonEventArgs e)
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine($"OnAnyMouseClick: FIRED! SavedDockModeBeforeFloat = {_viewModel?.SavedDockModeBeforeFloat}, Current DockMode = {_viewModel?.DockMode}");
+
+            // RESTORE STICKY MODE: If user temporarily floated this window via Show/Hide All,
+            // restore it back to Sticky when they click ANYWHERE in the window
+            if (_viewModel != null && _viewModel.SavedDockModeBeforeFloat.HasValue)
+            {
+                System.Diagnostics.Debug.WriteLine($"  → Restoring dock mode from {_viewModel.DockMode} to {_viewModel.SavedDockModeBeforeFloat}");
+                _viewModel.DockMode = _viewModel.SavedDockModeBeforeFloat.Value;
+                _viewModel.SavedDockModeBeforeFloat = null; // Clear the saved state
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"  → No saved dock mode to restore (SavedDockModeBeforeFloat is null)");
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"OnAnyMouseClick: ERROR - {ex.Message}");
         }
     }
 
@@ -1137,13 +1187,29 @@ public partial class GroupWidget : Window
         {
             // Actual drag occurred - update ViewModel position
             // Round to nearest integer to avoid fractional pixel issues
+            // VALIDATE: Ensure positions are reasonable (not corrupted billion-digit values!)
             if (_viewModel != null)
             {
-                _viewModel.PositionX = Math.Round(Left);
-                _viewModel.PositionY = Math.Round(Top);
-            }
+                var newX = Math.Round(Left);
+                var newY = Math.Round(Top);
 
-            System.Diagnostics.Debug.WriteLine($"Drag ended at ({Left}, {Top})");
+                // Sanity check: positions should be within reasonable screen bounds
+                // Allow negative (multi-monitor) but reject extreme values
+                if (newX > -5000 && newX < 10000 && newY > -5000 && newY < 10000)
+                {
+                    _viewModel.PositionX = newX;
+                    _viewModel.PositionY = newY;
+                    System.Diagnostics.Debug.WriteLine($"Drag ended at ({newX}, {newY}) - position saved ✓");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"Drag ended at INVALID position ({newX}, {newY}) - position NOT saved! Using ViewModel values: ({_viewModel.PositionX}, {_viewModel.PositionY})");
+                }
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"Drag ended at ({Left}, {Top})");
+            }
         }
         else
         {

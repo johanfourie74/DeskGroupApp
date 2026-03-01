@@ -13,7 +13,21 @@ public partial class SettingsViewModel : ObservableObject
     private readonly PersistenceService _persistenceService;
     private readonly StartupService _startupService;
 
+    // Event to notify when opacity changes (for live updates)
+    public event EventHandler? OpacityChanged;
+
     [ObservableProperty] private Models.ThemeMode _theme;
+    [ObservableProperty] private double _groupBackgroundOpacity;
+
+    partial void OnGroupBackgroundOpacityChanged(double value)
+    {
+        // Immediately update the settings model so group windows see the change in real-time
+        _settings.GroupBackgroundOpacity = value;
+
+        // Notify subscribers (MainViewModel) to refresh all groups
+        OpacityChanged?.Invoke(this, EventArgs.Empty);
+    }
+
     [ObservableProperty] private GroupDockMode _defaultDockMode;
     [ObservableProperty] private bool _defaultSnapToGrid;
     [ObservableProperty] private int _snapGridSize;
@@ -34,7 +48,9 @@ public partial class SettingsViewModel : ObservableObject
     public SettingsViewModel(AppSettings settings, PersistenceService persistenceService, StartupService startupService)
     {
         _settings = settings; _persistenceService = persistenceService; _startupService = startupService;
-        Theme = settings.Theme; DefaultDockMode = settings.DefaultDockMode;
+        Theme = settings.Theme; 
+        GroupBackgroundOpacity = settings.GroupBackgroundOpacity;
+        DefaultDockMode = settings.DefaultDockMode;
         DefaultSnapToGrid = settings.DefaultSnapToGrid; SnapGridSize = settings.SnapGridSize;
         HideGroupedIcons = settings.HideGroupedIcons; IconSizeMode = settings.IconSizeMode;
         CustomIconSize = settings.CustomIconSize; StartWithWindows = settings.StartWithWindows;
@@ -92,7 +108,9 @@ public partial class SettingsViewModel : ObservableObject
             _settings.ToggleAllHotkey != ToggleAllHotkey ||
             _settings.FullscreenToggleHotkey != FullscreenToggleHotkey;
 
-        _settings.Theme = Theme; _settings.DefaultDockMode = DefaultDockMode;
+        _settings.Theme = Theme; 
+        _settings.GroupBackgroundOpacity = GroupBackgroundOpacity;
+        _settings.DefaultDockMode = DefaultDockMode;
         _settings.DefaultSnapToGrid = DefaultSnapToGrid; _settings.SnapGridSize = SnapGridSize;
         _settings.HideGroupedIcons = HideGroupedIcons; _settings.IconSizeMode = IconSizeMode;
         _settings.CustomIconSize = CustomIconSize; _settings.StartWithWindows = StartWithWindows;
@@ -226,7 +244,9 @@ public partial class SettingsViewModel : ObservableObject
     private void ResetToDefaults()
     {
         var d = new AppSettings();
-        Theme = d.Theme; DefaultDockMode = d.DefaultDockMode; DefaultSnapToGrid = d.DefaultSnapToGrid;
+        Theme = d.Theme; 
+        GroupBackgroundOpacity = d.GroupBackgroundOpacity;
+        DefaultDockMode = d.DefaultDockMode; DefaultSnapToGrid = d.DefaultSnapToGrid;
         SnapGridSize = d.SnapGridSize; HideGroupedIcons = d.HideGroupedIcons; IconSizeMode = d.IconSizeMode;
         CustomIconSize = d.CustomIconSize; StartWithWindows = d.StartWithWindows;
         StartMinimizedToTray = d.StartMinimizedToTray; ToggleAllHotkey = d.ToggleAllHotkey;

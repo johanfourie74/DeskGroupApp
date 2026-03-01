@@ -6,7 +6,9 @@ namespace DeskGroup.Models;
 public class AppSettings
 {
     public ThemeMode Theme { get; set; } = ThemeMode.System;
-    public GroupDockMode DefaultDockMode { get; set; } = GroupDockMode.Float; // Changed to Float for better visibility
+    public WindowThemeStyle WindowStyle { get; set; } = WindowThemeStyle.Default;
+    public double GroupBackgroundOpacity { get; set; } = 1.0;
+    public GroupDockMode DefaultDockMode { get; set; } = GroupDockMode.Float;
     public bool DefaultSnapToGrid { get; set; } = true;
     public int SnapGridSize { get; set; } = 20;
     public bool HideGroupedIcons { get; set; } = true;
@@ -30,6 +32,14 @@ public enum ThemeMode
     Light = 0,
     Dark = 1,
     System = 2
+}
+
+public enum WindowThemeStyle
+{
+    Default = 0,
+    StandardLight = 1,
+    StandardDark = 2,
+    FollowSystem = 3
 }
 
 public enum IconSizeMode

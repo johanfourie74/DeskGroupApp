@@ -604,15 +604,25 @@ public partial class App : Application
     {
         if (_mainViewModel == null) return;
 
+        int offsetY = 100; // Start at 100px from top
+        const int spacing = 60; // Space between groups
+
         foreach (var groupVm in _mainViewModel.Groups)
         {
             groupVm.IsVisible = true;
             groupVm.ViewMode = GroupViewMode.Normal;
             groupVm.DockMode = GroupDockMode.Float;
 
+            // Move to main screen, stacked vertically
+            groupVm.PositionX = 100;
+            groupVm.PositionY = offsetY;
+            offsetY += spacing;
+
             // Force window update
             if (_groupWindows.TryGetValue(groupVm.Id, out var window))
             {
+                window.Left = groupVm.PositionX;
+                window.Top = groupVm.PositionY;
                 window.Topmost = true;
                 window.Activate();
             }
@@ -622,8 +632,9 @@ public partial class App : Application
             $"Forced {_mainViewModel.Groups.Count} group(s) to:\n" +
             $"• ViewMode: Normal (large window)\n" +
             $"• DockMode: Float (on top of windows)\n" +
-            $"• IsVisible: True\n\n" +
-            $"Check your screen at (100, 100) - top-left area!",
+            $"• IsVisible: True\n" +
+            $"• Position: Top-left of main screen, stacked vertically\n\n" +
+            $"All groups should now be visible at x=100!",
             "Debug: Force Visible",
             MessageBoxButton.OK,
             MessageBoxImage.Information);
@@ -779,6 +790,7 @@ public partial class App : Application
 
     private void ApplyTheme(DeskGroup.Models.ThemeMode mode)
     {
+        // Apply theme to UI windows (Settings, Dialogs)
         var themeUri = mode switch
         {
             DeskGroup.Models.ThemeMode.Light => new Uri("Themes/LightTheme.xaml", UriKind.Relative),
@@ -846,12 +858,25 @@ public partial class App : Application
         var settingsVm = _mainViewModel.CreateSettingsViewModel();
         _settingsWindow = new SettingsWindow(settingsVm);
 
+        // Subscribe to opacity changes for live updates
+        settingsVm.OpacityChanged += (s, e) =>
+        {
+            // Refresh opacity on all group windows immediately
+            foreach (var groupVm in _mainViewModel.Groups)
+            {
+                groupVm.RefreshOpacity();
+            }
+        };
+
         _settingsWindow.SettingsApplied += (s, e) =>
         {
             if (_helperWindow != null)
             {
                 _mainViewModel.ApplySettingsChanges(_helperWindow);
             }
+
+            // Re-apply UI theme
+            ApplyTheme(_mainViewModel.Settings.Theme);
         };
 
         _settingsWindow.Closed += (s, e) => _settingsWindow = null;

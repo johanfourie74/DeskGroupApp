@@ -53,12 +53,34 @@
             CornerRadius="10">
         <Grid>
             <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>   <!-- Title header -->
                 <RowDefinition Height="*"/>      <!-- Scrollable content -->
                 <RowDefinition Height="Auto"/>   <!-- Bottom buttons -->
             </Grid.RowDefinitions>
 
+            <!-- Title Header (prevents scrollbar from overlapping rounded corner) -->
+            <Border Grid.Row="0"
+                    Background="{DynamicResource BackgroundSecondary}"
+                    BorderBrush="{DynamicResource BorderSubtle}"
+                    BorderThickness="0,0,0,1"
+                    CornerRadius="10,10,0,0"
+                    Padding="24,16">
+                <StackPanel>
+                    <TextBlock Text="Settings"
+                               FontFamily="{DynamicResource DefaultFont}"
+                               FontSize="24"
+                               FontWeight="Bold"
+                               Foreground="{DynamicResource ForegroundPrimary}"/>
+                    <TextBlock Text="Customize DeskGroup appearance and behavior"
+                               FontFamily="{DynamicResource DefaultFont}"
+                               FontSize="{DynamicResource FontSizeSmall}"
+                               Foreground="{DynamicResource ForegroundSecondary}"
+                               Margin="0,4,0,0"/>
+                </StackPanel>
+            </Border>
+
         <!-- Scrollable settings content -->
-        <ScrollViewer Grid.Row="0"
+        <ScrollViewer Grid.Row="1"
                       VerticalScrollBarVisibility="Auto"
                       HorizontalScrollBarVisibility="Disabled"
                       Padding="24,8,24,8">
@@ -70,9 +92,9 @@
                 <!-- ====================================================================== -->
                 <TextBlock Text="Appearance" Style="{StaticResource SectionHeader}"/>
 
-                <!-- Theme -->
+                <!-- UI Theme (for Settings window and dialogs ONLY) -->
                 <DockPanel Style="{StaticResource SettingRow}">
-                    <TextBlock Text="Theme" Style="{StaticResource SettingLabel}"
+                    <TextBlock Text="UI Color Theme" Style="{StaticResource SettingLabel}"
                                DockPanel.Dock="Left" Width="160"/>
                     <ComboBox ItemsSource="{Binding ThemeModes}"
                               SelectedItem="{Binding Theme}"
@@ -80,7 +102,33 @@
                               HorizontalAlignment="Left"
                               Padding="8,4"/>
                 </DockPanel>
-                <TextBlock Text="Choose Light, Dark, or follow your Windows system theme."
+                <TextBlock Text="Color scheme for Settings window and dialogs (Light/Dark/Follow System)."
+                           Style="{StaticResource SettingDesc}"/>
+
+                <!-- Group Background Transparency -->
+                <DockPanel Style="{StaticResource SettingRow}">
+                    <TextBlock Text="Group Transparency" Style="{StaticResource SettingLabel}"
+                               DockPanel.Dock="Left" Width="160"/>
+                    <StackPanel Orientation="Horizontal">
+                        <Slider Value="{Binding GroupBackgroundOpacity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                Minimum="0.0"
+                                Maximum="1.0"
+                                Width="150"
+                                VerticalAlignment="Center"
+                                TickFrequency="0.01"
+                                IsSnapToTickEnabled="False"
+                                SmallChange="0.05"
+                                LargeChange="0.1"/>
+                        <TextBlock Text="{Binding GroupBackgroundOpacity, StringFormat={}{0:P0}}"
+                                   FontFamily="{DynamicResource DefaultFont}"
+                                   FontSize="{DynamicResource FontSizeSmall}"
+                                   Foreground="{DynamicResource ForegroundSecondary}"
+                                   VerticalAlignment="Center"
+                                   Margin="8,0,0,0"
+                                   MinWidth="45"/>
+                    </StackPanel>
+                </DockPanel>
+                <TextBlock Text="Adjust transparency of group windows (100% = opaque, 0% = fully transparent). Changes apply immediately to all groups."
                            Style="{StaticResource SettingDesc}"/>
 
                 <!-- ====================================================================== -->
@@ -242,7 +290,7 @@
         </ScrollViewer>
 
         <!-- Bottom button bar -->
-        <Border Grid.Row="1"
+        <Border Grid.Row="2"
                 BorderBrush="{DynamicResource BorderSubtle}"
                 BorderThickness="0,1,0,0"
                 Padding="24,12">

@@ -168,7 +168,7 @@ public partial class MainViewModel : ObservableObject
     private GroupViewModel CreateGroupViewModel(IconGroup model)
     {
         var vm = new GroupViewModel(model, _usageTracker, _iconExtractor,
-            _desktopIconService, _persistenceService, _positionHelper);
+            _desktopIconService, _persistenceService, _positionHelper, _settings);
 
         // Subscribe to property changes to trigger auto-save
         vm.PropertyChanged += async (s, e) =>
@@ -260,7 +260,46 @@ public partial class MainViewModel : ObservableObject
     public void ToggleAllGroupsVisibility()
     {
         AllGroupsVisible = !AllGroupsVisible;
-        foreach (var group in Groups) group.IsVisible = AllGroupsVisible;
+
+        System.Diagnostics.Debug.WriteLine($"ToggleAllGroupsVisibility: AllGroupsVisible = {AllGroupsVisible}");
+
+        foreach (var group in Groups)
+        {
+            System.Diagnostics.Debug.WriteLine($"  Processing group '{group.Name}': Current DockMode={group.DockMode}, SavedDockModeBeforeFloat={group.SavedDockModeBeforeFloat}");
+
+            if (AllGroupsVisible)
+            {
+                // SHOWING: Temporarily float sticky windows so they're selectable
+                if (group.DockMode == GroupDockMode.Sticky)
+                {
+                    System.Diagnostics.Debug.WriteLine($"    → Saving Sticky mode and switching to Float for '{group.Name}'");
+                    group.SavedDockModeBeforeFloat = GroupDockMode.Sticky;
+                    group.DockMode = GroupDockMode.Float;
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"    → Group '{group.Name}' is already Float, no mode change needed");
+                }
+                group.IsVisible = true;
+            }
+            else
+            {
+                // HIDING: Restore sticky mode if it was saved
+                group.IsVisible = false;
+                if (group.SavedDockModeBeforeFloat.HasValue)
+                {
+                    System.Diagnostics.Debug.WriteLine($"    → Restoring '{group.Name}' from Float to {group.SavedDockModeBeforeFloat.Value}");
+                    group.DockMode = group.SavedDockModeBeforeFloat.Value;
+                    group.SavedDockModeBeforeFloat = null;
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"    → No saved dock mode to restore for '{group.Name}'");
+                }
+            }
+        }
+
+        System.Diagnostics.Debug.WriteLine($"ToggleAllGroupsVisibility: COMPLETE");
     }
 
     private void ToggleFocusedGroupFullscreen()

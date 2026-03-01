@@ -20,8 +20,8 @@
         <!-- MINIMIZED VIEW - Compact button -->
         <Border x:Name="MinimizedView"
                 CornerRadius="8" 
-                Background="{Binding AccentBrush, FallbackValue=#FF0078D4}"
-                BorderBrush="#40FFFFFF"
+                Background="{Binding TransparentAccentBrush, FallbackValue=#FF0078D4}"
+                BorderBrush="{Binding TransparentBorderBrush, FallbackValue=#FF0078D4}"
                 BorderThickness="1"
                 Padding="8"
                 MinWidth="200"
@@ -66,8 +66,8 @@
         <!-- HOVER VIEW - Quick preview with top shortcuts -->
         <Border x:Name="HoverView"
                 CornerRadius="8"
-                Background="{Binding AccentBrush, FallbackValue=#FF0078D4}"
-                BorderBrush="#60FFFFFF"
+                Background="{Binding TransparentAccentBrush, FallbackValue=#FF0078D4}"
+                BorderBrush="{Binding TransparentBorderBrush, FallbackValue=#FF0078D4}"
                 BorderThickness="2"
                 Padding="10"
                 MinWidth="200"
@@ -131,8 +131,8 @@
         <!-- NORMAL VIEW - Full icon grid -->
         <Border x:Name="NormalView"
                 CornerRadius="8"
-                Background="{Binding AccentBrush, FallbackValue=#FF0078D4}"
-                BorderBrush="#40FFFFFF"
+                Background="{Binding TransparentAccentBrush, FallbackValue=#FF0078D4}"
+                BorderBrush="{Binding TransparentBorderBrush, FallbackValue=#FF0078D4}"
                 BorderThickness="2"
                 Padding="10"
                 Visibility="Collapsed">
@@ -199,8 +199,8 @@
         <!-- GRID VIEW - Compact tile grid (between Normal and Fullscreen) -->
         <Border x:Name="GridView"
                 CornerRadius="8"
-                Background="{Binding AccentBrush, FallbackValue=#FF0078D4}"
-                BorderBrush="#40FFFFFF"
+                Background="{Binding TransparentAccentBrush, FallbackValue=#FF0078D4}"
+                BorderBrush="{Binding TransparentBorderBrush, FallbackValue=#FF0078D4}"
                 BorderThickness="2"
                 Padding="10"
                 Visibility="Collapsed">
@@ -432,7 +432,7 @@
                           IsCheckable="True"
                           IsChecked="{Binding SnapToGrid, Mode=OneWay}"/>
                 <Separator/>
-                <MenuItem Header="Sticky (desktop layer)"
+                <MenuItem Header="Toggle Sticky/Float Mode"
                           Command="{Binding ToggleDockModeCommand}">
                     <MenuItem.Icon>
                         <TextBlock Text="📌" FontSize="12"/>
