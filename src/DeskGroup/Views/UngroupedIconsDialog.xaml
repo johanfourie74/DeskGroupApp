@@ -8,9 +8,10 @@
         Width="560" Height="480"
         MinWidth="440" MinHeight="360"
         WindowStartupLocation="CenterScreen"
-        WindowStyle="ToolWindow"
+        WindowStyle="None"
         ResizeMode="CanResizeWithGrip"
-        Background="{DynamicResource BackgroundPrimary}">
+        AllowsTransparency="True"
+        Background="Transparent">
 
     <Window.Resources>
         <!-- Row style for each ungrouped icon -->
@@ -27,11 +28,15 @@
         </Style>
     </Window.Resources>
 
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>   <!-- Header -->
-            <RowDefinition Height="*"/>      <!-- Icon list -->
-            <RowDefinition Height="Auto"/>   <!-- Buttons -->
+    <Border Background="{DynamicResource BackgroundPrimary}"
+            BorderBrush="{DynamicResource BorderBrush}"
+            BorderThickness="1"
+            CornerRadius="10">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>   <!-- Header -->
+                <RowDefinition Height="*"/>      <!-- Icon list -->
+                <RowDefinition Height="Auto"/>   <!-- Buttons -->
         </Grid.RowDefinitions>
 
         <!-- Header -->
@@ -197,5 +202,6 @@
             </DockPanel>
         </Border>
 
-    </Grid>
+        </Grid>
+    </Border>
 </Window>

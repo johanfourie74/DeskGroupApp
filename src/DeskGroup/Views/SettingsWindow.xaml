@@ -9,9 +9,10 @@
         Width="520" Height="600"
         MinWidth="440" MinHeight="500"
         WindowStartupLocation="CenterScreen"
-        WindowStyle="ToolWindow"
+        WindowStyle="None"
         ResizeMode="CanResizeWithGrip"
-        Background="{DynamicResource BackgroundPrimary}">
+        AllowsTransparency="True"
+        Background="Transparent">
 
     <Window.Resources>
         <!-- Section header style -->
@@ -46,11 +47,15 @@
         </Style>
     </Window.Resources>
 
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="*"/>      <!-- Scrollable content -->
-            <RowDefinition Height="Auto"/>   <!-- Bottom buttons -->
-        </Grid.RowDefinitions>
+    <Border Background="{DynamicResource BackgroundPrimary}"
+            BorderBrush="{DynamicResource BorderBrush}"
+            BorderThickness="1"
+            CornerRadius="10">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>      <!-- Scrollable content -->
+                <RowDefinition Height="Auto"/>   <!-- Bottom buttons -->
+            </Grid.RowDefinitions>
 
         <!-- Scrollable settings content -->
         <ScrollViewer Grid.Row="0"
@@ -265,5 +270,6 @@
             </DockPanel>
         </Border>
 
-    </Grid>
+        </Grid>
+    </Border>
 </Window>

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Threading;
 using DeskGroup.Helpers;
@@ -15,6 +16,34 @@ namespace DeskGroup;
 
 public partial class App : Application
 {
+    [DllImport("shell32.dll", SetLastError = true)]
+    private static extern bool Shell_NotifyIcon(int dwMessage, ref NOTIFYICONDATA lpData);
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+    private struct NOTIFYICONDATA
+    {
+        public int cbSize;
+        public IntPtr hWnd;
+        public int uID;
+        public int uFlags;
+        public int uCallbackMessage;
+        public IntPtr hIcon;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
+        public string szTip;
+        public int dwState;
+        public int dwStateMask;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 256)]
+        public string szInfo;
+        public int uTimeoutOrVersion;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 64)]
+        public string szInfoTitle;
+        public int dwInfoFlags;
+        public Guid guidItem;
+        public IntPtr hBalloonIcon;
+    }
+
+    private const int NIM_DELETE = 0x00000002;
+
     private SingleInstanceGuard? _singleInstanceGuard;
     private MainViewModel? _mainViewModel;
     private TaskbarIcon? _trayIcon;
@@ -167,16 +196,22 @@ public partial class App : Application
         if (_mainViewModel.Settings.IsFirstRun)
         {
             _trayIcon?.ShowBalloonTip(
-                "DeskGroup is running",
-                "Right-click the tray icon to create groups and manage settings.",
+                "Welcome to DeskGroup! 🎉",
+                "Right-click the tray icon to create your first group and organize your desktop icons!",
                 BalloonIcon.Info);
         }
         else if (_mainViewModel.Groups.Count > 0)
         {
-            // Not first run and groups exist - show helpful message
             _trayIcon?.ShowBalloonTip(
-                $"DeskGroup loaded {_mainViewModel.Groups.Count} group(s)",
-                "If you don't see your groups, try 'Show All Groups' from the tray menu.",
+                $"DeskGroup loaded {_mainViewModel.Groups.Count} group(s) ✓",
+                "Tip: Double-click the tray icon to toggle all groups on/off!",
+                BalloonIcon.Info);
+        }
+        else
+        {
+            _trayIcon?.ShowBalloonTip(
+                "DeskGroup is running",
+                "Right-click the tray icon to create groups and organize your desktop!",
                 BalloonIcon.Info);
         }
 
@@ -208,25 +243,37 @@ public partial class App : Application
         }
         _groupWindows.Clear();
 
-        // Dispose tray icon - AGGRESSIVE cleanup to force Windows to remove it
+        // Dispose tray icon - FORCE Windows to remove it immediately with Shell_NotifyIcon API
         if (_trayIcon != null)
         {
             try
             {
-                // Step 1: Remove icon immediately
+                // CRITICAL: Use Shell_NotifyIcon API to FORCE immediate removal
+                // This bypasses WPF's delayed cleanup that causes the icon to hang
+                var iconHandle = _trayIcon.Icon?.Handle ?? IntPtr.Zero;
+
+                if (iconHandle != IntPtr.Zero)
+                {
+                    var nid = new NOTIFYICONDATA
+                    {
+                        cbSize = Marshal.SizeOf(typeof(NOTIFYICONDATA)),
+                        hWnd = new System.Windows.Interop.WindowInteropHelper(this.MainWindow ?? _helperWindow!).Handle,
+                        uID = 1,
+                        hIcon = iconHandle
+                    };
+
+                    // Force Windows to DELETE the icon immediately
+                    Shell_NotifyIcon(NIM_DELETE, ref nid);
+                    System.Diagnostics.Debug.WriteLine("OnExit: Shell_NotifyIcon(NIM_DELETE) called - icon forcibly removed!");
+                }
+
+                // Now cleanup the WPF wrapper
                 _trayIcon.Icon = null;
-
-                // Step 2: Hide visibility
                 _trayIcon.Visibility = Visibility.Hidden;
-
-                // Step 3: Clear tooltip
                 _trayIcon.ToolTipText = string.Empty;
-
-                // Step 4: Dispose (this should trigger Windows to remove the icon)
                 _trayIcon.Dispose();
 
-                // Step 5: Force dispatcher to process pending messages (WPF way)
-                Dispatcher.Invoke(() => { }, DispatcherPriority.Background);
+                System.Diagnostics.Debug.WriteLine("OnExit: Tray icon disposed successfully!");
             }
             catch (Exception ex)
             {
@@ -709,7 +756,16 @@ public partial class App : Application
 
     private void OnGroupAdded(object? sender, GroupViewModel groupVm)
     {
-        Dispatcher.Invoke(() => CreateGroupWindow(groupVm));
+        Dispatcher.Invoke(() =>
+        {
+            CreateGroupWindow(groupVm);
+
+            // Show helpful tip when user creates a new group
+            _trayIcon?.ShowBalloonTip(
+                $"Group '{groupVm.Name}' created! 🎨",
+                "Tip: Right-click the group window for options, or drag desktop shortcuts into it!",
+                BalloonIcon.Info);
+        });
     }
 
     private void OnGroupRemoved(object? sender, GroupViewModel groupVm)
