@@ -310,9 +310,9 @@ public partial class GroupWidget : Window
                 // Force manual sizing for minimized mode to avoid SizeToContent issues
                 SizeToContent = SizeToContent.Manual;
                 ResizeMode = ResizeMode.NoResize;
-                Width = 160;
+                Width = 220;   // Match App.xaml.cs startup size (fits icon + name + count)
                 Height = 40;
-                MinWidth = 100;
+                MinWidth = 200; // Match Border MinWidth
                 MinHeight = 40;
                 break;
 
@@ -646,11 +646,11 @@ public partial class GroupWidget : Window
 
                     // 4. Set sizing mode
                     SizeToContent = SizeToContent.Manual;
-                    // 5. RESET minimum sizes (critical!)
-                    MinWidth = 60;
+                    // 5. Set minimum sizes (match App.xaml.cs and ApplyViewMode!)
+                    MinWidth = 200;  // Match Border MinWidth
                     MinHeight = 40;
-                    // 6. Set size
-                    Width = 160;
+                    // 6. Set size (match App.xaml.cs and ApplyViewMode!)
+                    Width = 220;     // Fits icon + name + count
                     Height = 40;
                     // 7. Force layout with new size
                     UpdateLayout();
@@ -673,7 +673,7 @@ public partial class GroupWidget : Window
                         _hoverLeaveTimer?.Stop();
                     }
 
-                    System.Diagnostics.Debug.WriteLine($"  -> Minimized view active at ({Left}, {Top}), size (160x40) - layout forced");
+                    System.Diagnostics.Debug.WriteLine($"  -> Minimized view active at ({Left}, {Top}), size (220x40) - layout forced");
                     break;
 
                 case GroupViewMode.Hover:
@@ -850,12 +850,12 @@ public partial class GroupWidget : Window
                     break;
 
                 default:
-                    // Default to minimized
+                    // Default to minimized (match the new sizes!)
                     SizeToContent = SizeToContent.Manual;
-                    MinWidth = 60;
+                    MinWidth = 200;  // Match Border MinWidth
                     MinHeight = 40;
                     UpdateLayout();
-                    Width = 160;
+                    Width = 220;     // Fits icon + name + count
                     Height = 40;
                     MinimizedView.Visibility = Visibility.Visible;
                     HoverView.Visibility = Visibility.Collapsed;
@@ -865,7 +865,7 @@ public partial class GroupWidget : Window
                     InvalidateMeasure();
                     InvalidateArrange();
                     UpdateLayout();
-                    System.Diagnostics.Debug.WriteLine($"  -> Default to minimized (MinSize: {MinWidth}x{MinHeight}) - layout forced");
+                    System.Diagnostics.Debug.WriteLine($"  -> Default to minimized (size: 220x40, MinSize: {MinWidth}x{MinHeight}) - layout forced");
                     break;
             }
         }

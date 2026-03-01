@@ -23,6 +23,15 @@ public partial class GroupViewModel : ObservableObject
     private bool _isInitializing = true; // Prevent syncing during initialization
 
     [ObservableProperty] private string _name = "New Group";
+
+    partial void OnNameChanged(string value)
+    {
+        // Regenerate icon when name changes (if no custom icon)
+        if (!_isInitializing && string.IsNullOrEmpty(_model.CustomIconPath))
+        {
+            LoadGroupIcon();
+        }
+    }
     [ObservableProperty] private GroupViewMode _viewMode = GroupViewMode.Minimized;
     [ObservableProperty] private GroupDockMode _dockMode = GroupDockMode.Sticky;
     [ObservableProperty] private bool _isPinned;
@@ -76,6 +85,12 @@ public partial class GroupViewModel : ObservableObject
             System.Diagnostics.Debug.WriteLine($"OnAccentColorHexChanged: {value} for group '{Name}'");
             ApplyAccentColor(value);
             _model.AccentColor = value;
+
+            // Regenerate icon if no custom icon set (color changed!)
+            if (string.IsNullOrEmpty(_model.CustomIconPath))
+            {
+                LoadGroupIcon();
+            }
 
             // Notify that a property changed to trigger auto-save
             OnPropertyChanged(nameof(AccentColorHex));
@@ -148,8 +163,94 @@ public partial class GroupViewModel : ObservableObject
 
     private void LoadGroupIcon()
     {
-        if (!string.IsNullOrEmpty(_model.CustomIconPath))
+        // Try to load custom icon first
+        if (!string.IsNullOrEmpty(_model.CustomIconPath) && System.IO.File.Exists(_model.CustomIconPath))
+        {
             GroupIcon = _iconExtractor.ExtractLargeIcon(_model.CustomIconPath);
+            if (GroupIcon != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"LoadGroupIcon: Loaded custom icon from '{_model.CustomIconPath}'");
+                return;
+            }
+        }
+
+        // Generate letter-based icon with INVERTED colors (accent color text on off-white bg)
+        GroupIcon = CreateGroupLetterIcon(Name, AccentColorHex);
+        System.Diagnostics.Debug.WriteLine($"LoadGroupIcon: Generated letter-based icon for '{Name}'");
+    }
+
+    private static ImageSource CreateGroupLetterIcon(string groupName, string accentColorHex)
+    {
+        // Extract initials (same logic as shortcuts)
+        string initials = GetInitials(groupName);
+
+        // Parse accent color
+        Color accentColor;
+        try
+        {
+            accentColor = (Color)ColorConverter.ConvertFromString(accentColorHex);
+        }
+        catch
+        {
+            accentColor = Colors.DodgerBlue;
+        }
+
+        // Create a 48x48 icon
+        var bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap(48, 48, 96, 96, System.Windows.Media.PixelFormats.Pbgra32);
+        var visual = new System.Windows.Media.DrawingVisual();
+
+        using (var context = visual.RenderOpen())
+        {
+            // Draw rounded rectangle background (off-white/light gray)
+            var backgroundColor = Color.FromRgb(245, 245, 245); // Very light gray
+            var rect = new System.Windows.Rect(2, 2, 44, 44);
+            var roundedRect = new System.Windows.Media.RectangleGeometry(rect, 6, 6);
+            context.DrawGeometry(new SolidColorBrush(backgroundColor), null, roundedRect);
+
+            // Draw initials text in ACCENT COLOR
+            var formattedText = new System.Windows.Media.FormattedText(
+                initials,
+                System.Globalization.CultureInfo.CurrentCulture,
+                System.Windows.FlowDirection.LeftToRight,
+                new System.Windows.Media.Typeface(new System.Windows.Media.FontFamily("Segoe UI"), 
+                    FontStyles.Normal, FontWeights.SemiBold, FontStretches.Normal),
+                20,
+                new SolidColorBrush(accentColor),
+                96);
+
+            // Center the text
+            var textPoint = new System.Windows.Point(
+                24 - formattedText.Width / 2,
+                24 - formattedText.Height / 2);
+
+            context.DrawText(formattedText, textPoint);
+        }
+
+        bitmap.Render(visual);
+        bitmap.Freeze();
+        return bitmap;
+    }
+
+    private static string GetInitials(string displayName)
+    {
+        if (string.IsNullOrWhiteSpace(displayName))
+            return "??";
+
+        // Split into words and take first letter of first 2 words
+        var words = displayName.Split(new[] { ' ', '-', '_', '.' }, StringSplitOptions.RemoveEmptyEntries);
+
+        if (words.Length == 0)
+            return "??";
+
+        if (words.Length == 1)
+        {
+            // Single word - take first 2 letters or first letter twice
+            string word = words[0].ToUpperInvariant();
+            return word.Length >= 2 ? word.Substring(0, 2) : word.Substring(0, 1) + word.Substring(0, 1);
+        }
+
+        // Two or more words - first letter of first 2 words
+        return words[0][0].ToString().ToUpperInvariant() + words[1][0].ToString().ToUpperInvariant();
     }
 
     private void LoadShortcuts()
