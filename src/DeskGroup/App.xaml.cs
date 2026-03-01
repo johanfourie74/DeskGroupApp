@@ -265,27 +265,114 @@ public partial class App : Application
 
             System.Diagnostics.Debug.WriteLine("CreateTrayIcon: TaskbarIcon created");
 
-            // Use the embedded icon resource (now contains your professional icon!)
+            // Load PNG and convert to Icon (avoids ICO file issues)
             Icon? loadedIcon = null;
 
             try
             {
-                System.Diagnostics.Debug.WriteLine("CreateTrayIcon: Loading tray-icon.ico");
+                System.Diagnostics.Debug.WriteLine("CreateTrayIcon: Loading dg_icon.png and converting to Icon");
 
-                var iconUri = new Uri("pack://application:,,,/Assets/tray-icon.ico", UriKind.Absolute);
-                var streamInfo = GetResourceStream(iconUri);
+                var pngUri = new Uri("pack://application:,,,/Assets/dg_icon.png", UriKind.Absolute);
+                var streamInfo = GetResourceStream(pngUri);
 
                 if (streamInfo != null && streamInfo.Stream != null)
                 {
                     try
                     {
-                        // Load icon - let Windows pick the best size
-                        loadedIcon = new Icon(streamInfo.Stream);
-                        System.Diagnostics.Debug.WriteLine("CreateTrayIcon: Icon loaded successfully!");
+                        // Load PNG as WPF BitmapImage
+                        var bitmapImage = new System.Windows.Media.Imaging.BitmapImage();
+                        bitmapImage.BeginInit();
+                        bitmapImage.StreamSource = streamInfo.Stream;
+                        bitmapImage.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+                        bitmapImage.EndInit();
+                        bitmapImage.Freeze();
+
+                        // Convert to System.Drawing.Bitmap
+                        using (var memoryStream = new MemoryStream())
+                        {
+                            var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
+                            encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmapImage));
+                            encoder.Save(memoryStream);
+                            memoryStream.Seek(0, SeekOrigin.Begin);
+
+                            using (var bitmap = new System.Drawing.Bitmap(memoryStream))
+                            {
+                                System.Diagnostics.Debug.WriteLine($"CreateTrayIcon: Original bitmap: {bitmap.Width}x{bitmap.Height}");
+
+                                // STEP 1: Find the bounds of non-transparent pixels (crop the padding!)
+                                int minX = bitmap.Width, minY = bitmap.Height, maxX = 0, maxY = 0;
+                                bool foundPixel = false;
+
+                                for (int y = 0; y < bitmap.Height; y++)
+                                {
+                                    for (int x = 0; x < bitmap.Width; x++)
+                                    {
+                                        var pixel = bitmap.GetPixel(x, y);
+                                        // Check if pixel is not fully transparent
+                                        if (pixel.A > 10) // More than 10 alpha = visible
+                                        {
+                                            foundPixel = true;
+                                            if (x < minX) minX = x;
+                                            if (y < minY) minY = y;
+                                            if (x > maxX) maxX = x;
+                                            if (y > maxY) maxY = y;
+                                        }
+                                    }
+                                }
+
+                                System.Drawing.Bitmap croppedBitmap;
+
+                                if (foundPixel && (maxX > minX) && (maxY > minY))
+                                {
+                                    // Calculate crop rectangle
+                                    int cropWidth = maxX - minX + 1;
+                                    int cropHeight = maxY - minY + 1;
+
+                                    System.Diagnostics.Debug.WriteLine($"CreateTrayIcon: Found content bounds: {minX},{minY} to {maxX},{maxY} (size: {cropWidth}x{cropHeight})");
+
+                                    // Crop to content
+                                    var cropRect = new System.Drawing.Rectangle(minX, minY, cropWidth, cropHeight);
+                                    croppedBitmap = bitmap.Clone(cropRect, bitmap.PixelFormat);
+
+                                    System.Diagnostics.Debug.WriteLine($"CreateTrayIcon: Cropped to: {croppedBitmap.Width}x{croppedBitmap.Height}");
+                                }
+                                else
+                                {
+                                    // No cropping needed or failed to find bounds
+                                    croppedBitmap = (System.Drawing.Bitmap)bitmap.Clone();
+                                    System.Diagnostics.Debug.WriteLine("CreateTrayIcon: No cropping needed");
+                                }
+
+                                // STEP 2: Resize to 64x64 with high quality (now without the padding!)
+                                var targetSize = 64;
+                                var resized = new System.Drawing.Bitmap(targetSize, targetSize);
+
+                                using (var graphics = System.Drawing.Graphics.FromImage(resized))
+                                {
+                                    // Use highest quality settings
+                                    graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                                    graphics.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighQuality;
+                                    graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
+                                    graphics.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
+
+                                    // Draw the CROPPED image at target size
+                                    graphics.DrawImage(croppedBitmap, 0, 0, targetSize, targetSize);
+                                }
+
+                                croppedBitmap.Dispose();
+
+                                // Convert to Icon - Windows will scale for DPI
+                                IntPtr hIcon = resized.GetHicon();
+                                loadedIcon = Icon.FromHandle(hIcon);
+                                resized.Dispose();
+
+                                System.Diagnostics.Debug.WriteLine($"CreateTrayIcon: Final icon created at {targetSize}x{targetSize} (cropped & resized)");
+                            }
+                        }
                     }
-                    catch (ArgumentException argEx)
+                    catch (Exception convEx)
                     {
-                        System.Diagnostics.Debug.WriteLine($"CreateTrayIcon: Icon stream is invalid: {argEx.Message}");
+                        System.Diagnostics.Debug.WriteLine($"CreateTrayIcon: PNG conversion failed: {convEx.Message}");
                     }
                     finally
                     {
@@ -302,7 +389,7 @@ public partial class App : Application
             if (loadedIcon != null)
             {
                 _trayIcon.Icon = loadedIcon;
-                System.Diagnostics.Debug.WriteLine("CreateTrayIcon: Using professional icon ✓");
+                System.Diagnostics.Debug.WriteLine("CreateTrayIcon: Using PNG-converted icon ✓");
             }
             else
             {
@@ -778,8 +865,8 @@ public partial class App : Application
                 // Rename it
                 newGroup.Name = groupName;
 
-                // Add shortcuts to it
-                var assignments = filePaths.ToDictionary(path => path, path => newGroup.Model);
+                // Add shortcuts to it - cast to IconGroup? to match method signature
+                var assignments = filePaths.ToDictionary(path => path, path => (IconGroup?)newGroup.Model);
                 _mainViewModel.ProcessUngroupedAssignments(assignments);
 
                 System.Diagnostics.Debug.WriteLine($"Created group '{groupName}' with {filePaths.Count} shortcuts");
