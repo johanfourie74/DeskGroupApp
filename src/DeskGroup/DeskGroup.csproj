@@ -8,8 +8,8 @@
     <UseWindowsForms>false</UseWindowsForms>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <!-- Application icon temporarily disabled - using PNG at runtime -->
-    <!-- <ApplicationIcon>Assets\DG_Color_.ico</ApplicationIcon> -->
+    <!-- Professional application icon (auto-cropped from master PNG) -->
+    <ApplicationIcon>Assets\DG_Color_.ico</ApplicationIcon>
     <AssemblyName>DeskGroup</AssemblyName>
     <RootNamespace>DeskGroup</RootNamespace>
     <Version>1.0.0</Version>
