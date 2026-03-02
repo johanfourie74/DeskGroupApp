@@ -47,6 +47,13 @@ Based on new features added in BATCH 2 (Status Footer, Transparency Controls, Ex
 
 ---
 
+## 📦 ARCHIVED: DETAILED FEATURE BACKLOG
+
+**Note:** These items will be re-prioritized based on Phase 1 user feedback.  
+**Moved here to keep active backlog focused on Phase 1 release.**
+
+---
+
 ## 📋 FEATURE BACKLOG (By Category)
 
 ### **Performance & Optimization** ⚡
@@ -264,25 +271,146 @@ Based on new features added in BATCH 2 (Status Footer, Transparency Controls, Ex
 
 ---
 
-## 🎯 NEXT SESSION SUGGESTIONS
+## 🎯 RELEASE STRATEGY
 
-### **Immediate Next Steps:**
-1. ✅ **UI Polish** (Item #1 above) - High visibility, improves user experience
-2. **Remove Test Menu Items** (if no longer needed)
-3. **Keyboard Shortcuts** - High user demand feature
-4. **Grid View Enhancements** - Natural extension of existing view modes
+### **PHASE 1: MVP RELEASE (Field Test)** 🚀 **← CURRENT TARGET**
+**Goal:** Production-ready v1.0 for public release and user feedback collection  
+**Timeline:** ~30 hours / 6-8 sessions  
+**Target Date:** 2-3 weeks  
 
-### **Quick Wins (Low Effort, High Impact):**
-- [ ] Configurable hover delay
-- [ ] Shortcut count badge in minimized view
-- [ ] Settings window position/size persistence
+#### **Release Criteria (Must Have):**
+- [x] All BATCH 2 features verified ✓
+- [ ] UI Polish completed (current priority #1)
+- [ ] All critical bugs fixed
+- [ ] Settings window polished
+- [ ] User documentation (README, basic guide)
+- [ ] Installer tested on clean Windows 10/11
+- [ ] No memory leaks in 24-hour test
+- [ ] Test menu items removed or hidden
+
+#### **Phase 1 Deliverables:**
+**Core Features (Already Done ✓):**
+- ✅ 4 View Modes (Minimized, Hover, Normal, Fullscreen)
+- ✅ Sticky/Float dock modes
+- ✅ Drag & drop shortcuts
+- ✅ Custom group colors & icons
+- ✅ Group transparency controls
+- ✅ Light/Dark/System themes
+- ✅ Multi-monitor support
+- ✅ Snap-to-grid & pin position
+- ✅ Auto-save with backups
+- ✅ Usage tracking (top 10 most-used)
+
+**Polish Tasks (In Progress):**
+- [ ] Footer styling refinement
+- [ ] Transparency UX improvements (preset buttons)
+- [ ] Settings window organization
+- [ ] Color picker tooltips
+- [ ] Settings persistence (window size/position)
+
+**Quality Gates:**
+- [ ] Build successful on clean machine
+- [ ] No crashes during normal usage (8-hour test)
+- [ ] No data corruption (stress test)
+- [ ] Performance acceptable (<50MB RAM, <1% CPU idle)
+- [ ] All features documented in README
+
+**Release Blockers (Must Fix Before Release):**
+- [ ] Any critical bugs discovered during final testing
+- [ ] Installer issues
+- [ ] Data loss scenarios
+
+---
+
+### **PHASE 2: POWER USER EDITION** 💪
+**Goal:** Enhanced features based on Phase 1 user feedback  
+**Timeline:** ~60 hours / 12-15 sessions  
+**Start After:** Phase 1 release + 2-4 weeks of user feedback  
+
+#### **Features (Priority based on user feedback):**
+- [ ] **Keyboard Shortcuts** (global hotkeys, navigation)
+- [ ] **Grid View Enhancements** (customizable columns, icon sizes)
+- [ ] **Hover Behavior Refinement** (configurable delays, auto-collapse options)
+- [ ] **Drag & Drop Enhancements** (reorder, between groups)
+- [ ] **Layout Presets** (save/load configurations)
+- [ ] **Enhanced Usage Analytics** (dashboard, reports)
+- [ ] **Shortcut count badge** in minimized view
+- [ ] **Quick switcher** (Ctrl+Tab between groups)
+
+**User Feedback Will Guide:**
+- Which keyboard shortcuts are most needed
+- Grid view preferences (columns, sizes)
+- Layout preset use cases
+- Analytics value proposition
+
+---
+
+### **PHASE 3: SMART & ENTERPRISE** 🧠
+**Goal:** Advanced features for power users and teams  
+**Timeline:** ~80+ hours / 16-20 sessions  
+**Start After:** Phase 2 release + user feedback analysis  
+
+#### **Features (Data-Driven Priorities):**
+- [ ] **Cloud Sync** (OneDrive/Dropbox based on demand)
+- [ ] **Auto-Organization** (AI grouping suggestions)
+- [ ] **Context-Aware Behavior** (time-based, app-triggered)
+- [ ] **Platform Integration** (Windows 11 Widgets, Search)
+- [ ] **Third-Party Apps** (Steam, Epic, browsers)
+- [ ] **Accessibility** (screen readers, high contrast)
+- [ ] **Team Features** (shared layouts, sync)
+
+**Long-Term Vision:**
+- [ ] Mobile companion app (view/launch remotely)
+- [ ] Web dashboard (analytics, remote management)
+- [ ] Plugin system (community extensions)
+
+---
+
+## 📋 IMMEDIATE NEXT STEPS (PHASE 1 COMPLETION)
+
+### **Session 1-2: UI Polish** ✨
+- [ ] Footer styling (all view modes)
+- [ ] Transparency preset buttons (25%, 50%, 75%, 100%)
+- [ ] Settings window layout & grouping
+- [ ] Color picker tooltips
+- [ ] Test in both themes
+
+### **Session 3-4: Quality & Testing** 🧪
+- [ ] Remove/hide test menu items
+- [ ] Settings window size/position persistence
+- [ ] 24-hour memory leak test
+- [ ] Multi-monitor stress test
+- [ ] Clean install test (Windows 10 & 11)
+
+### **Session 5-6: Documentation & Release Prep** 📚
+- [ ] Update README with all features
+- [ ] Create quick start guide
+- [ ] Add tooltips to all settings
+- [ ] Record demo video (optional)
+- [ ] Create release notes
+- [ ] Tag v1.0.0-rc1 (release candidate)
+
+### **Session 7-8: Release** 🎉
+- [ ] Final testing pass
+- [ ] Create installer package
+- [ ] GitHub release with binaries
+- [ ] Publish release announcement
+- [ ] Set up feedback channels (GitHub Issues/Discussions)
+- [ ] Monitor for critical bugs (hotfix readiness)
+
+---
+
+## 🎯 QUICK WINS FOR PHASE 1 (Low Effort, High Impact)
+
+**Can be done in 1-2 hours each:**
 - [ ] Preset opacity buttons (25%, 50%, 75%, 100%)
-
-### **Long-Term Goals:**
-- [ ] Cloud sync (high complexity, high value)
-- [ ] AI-powered grouping (research phase)
-- [ ] Windows 11 Widgets integration (platform-specific)
+- [ ] Settings window position persistence
+- [ ] Tooltips for color picker colors
+- [ ] Remove test menu items
+- [ ] Add "About" dialog with version info
 
 ---
 
 **END OF BACKLOG** 📋
+
+**Next Session:** UI Polish (Footer + Transparency + Settings) 🎨
