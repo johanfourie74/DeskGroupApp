@@ -66,6 +66,31 @@ public partial class GroupViewModel : ObservableObject
     [ObservableProperty] private GroupViewMode _viewMode = GroupViewMode.Minimized;
     [ObservableProperty] private GroupDockMode _dockMode = GroupDockMode.Sticky;
 
+    partial void OnDockModeChanged(GroupDockMode value)
+    {
+        if (_isInitializing) return;
+
+        System.Diagnostics.Debug.WriteLine($"OnDockModeChanged: {value} for group '{Name}', SavedDockModeBeforeFloat={SavedDockModeBeforeFloat}");
+
+        // CRITICAL: Don't save temporary Float mode from Show All!
+        // If SavedDockModeBeforeFloat is set, this is a TEMPORARY mode change, NOT permanent!
+        // We STILL need to update the UI (OnPropertyChanged), but we skip saving to JSON
+        if (SavedDockModeBeforeFloat.HasValue)
+        {
+            System.Diagnostics.Debug.WriteLine($"  → Skipping JSON save - this is a temporary mode change (saved mode: {SavedDockModeBeforeFloat})");
+            System.Diagnostics.Debug.WriteLine($"  → But still updating UI via OnPropertyChanged");
+
+            // CRITICAL: Still notify UI so ApplyDockMode gets called!
+            OnPropertyChanged(nameof(DockMode));
+            return; // Skip JSON save
+        }
+
+        // PERMANENT change: Sync position BEFORE save and trigger save
+        System.Diagnostics.Debug.WriteLine($"  → Saving DockMode to JSON (permanent change)");
+        SyncToModel();
+        OnPropertyChanged(nameof(DockMode)); // Trigger save via MainViewModel
+    }
+
     // Public property to access saved dock mode for restoration
     public GroupDockMode? SavedDockModeBeforeFloat
     {
@@ -98,12 +123,28 @@ public partial class GroupViewModel : ObservableObject
     partial void OnPositionXChanged(double value)
     {
         if (_isInitializing) return;
+
+        // DON'T save off-screen positions (from hide/show transitions)
+        if (value < -5000 || value > 10000)
+        {
+            System.Diagnostics.Debug.WriteLine($"OnPositionXChanged: Skipping save for off-screen X={value}");
+            return;
+        }
+
         SyncToModel();
     }
 
     partial void OnPositionYChanged(double value)
     {
         if (_isInitializing) return;
+
+        // DON'T save off-screen positions (from hide/show transitions)
+        if (value < -5000 || value > 10000)
+        {
+            System.Diagnostics.Debug.WriteLine($"OnPositionYChanged: Skipping save for off-screen Y={value}");
+            return;
+        }
+
         SyncToModel();
     }
 
@@ -471,8 +512,15 @@ public partial class GroupViewModel : ObservableObject
         PositionX = final.X; PositionY = final.Y;
     }
 
-    [RelayCommand] private void ToggleDockMode() =>
-        DockMode = DockMode == GroupDockMode.Sticky ? GroupDockMode.Float : GroupDockMode.Sticky;
+    [RelayCommand]
+    private void ToggleDockMode()
+    {
+        var oldMode = DockMode;
+        var newMode = DockMode == GroupDockMode.Sticky ? GroupDockMode.Float : GroupDockMode.Sticky;
+        System.Diagnostics.Debug.WriteLine($"ToggleDockMode: {oldMode} → {newMode} for '{Name}'");
+        DockMode = newMode;
+    }
+
     [RelayCommand] private void TogglePin() => IsPinned = !IsPinned;
     [RelayCommand] private void ToggleSnapToGrid() => SnapToGrid = !SnapToGrid;
 

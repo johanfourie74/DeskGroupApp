@@ -269,23 +269,27 @@ public partial class MainViewModel : ObservableObject
 
             if (AllGroupsVisible)
             {
-                // SHOWING: Temporarily float sticky windows so they're selectable
+                // SHOWING: First make visible, THEN change dock mode so window is on-screen!
+                group.IsVisible = true;
+
+                // TEMP-FLOAT: If Sticky, temporarily make it Float so user can interact
                 if (group.DockMode == GroupDockMode.Sticky)
                 {
                     System.Diagnostics.Debug.WriteLine($"    → Saving Sticky mode and switching to Float for '{group.Name}'");
                     group.SavedDockModeBeforeFloat = GroupDockMode.Sticky;
                     group.DockMode = GroupDockMode.Float;
+
+                    // Set timestamp in GroupWidget to prevent immediate restoration on same click
+                    DeskGroup.Views.GroupWidget.SetLastTempFloatTime();
                 }
                 else
                 {
                     System.Diagnostics.Debug.WriteLine($"    → Group '{group.Name}' is already Float, no mode change needed");
                 }
-                group.IsVisible = true;
             }
             else
             {
-                // HIDING: Restore sticky mode if it was saved
-                group.IsVisible = false;
+                // HIDING: Restore sticky mode if it was saved, THEN hide
                 if (group.SavedDockModeBeforeFloat.HasValue)
                 {
                     System.Diagnostics.Debug.WriteLine($"    → Restoring '{group.Name}' from Float to {group.SavedDockModeBeforeFloat.Value}");
@@ -296,6 +300,8 @@ public partial class MainViewModel : ObservableObject
                 {
                     System.Diagnostics.Debug.WriteLine($"    → No saved dock mode to restore for '{group.Name}'");
                 }
+
+                group.IsVisible = false;
             }
         }
 
@@ -415,8 +421,18 @@ public partial class MainViewModel : ObservableObject
             foreach (var group in Groups)
             {
                 count++;
-                System.Diagnostics.Debug.WriteLine($"  Showing group {count}: {group.Name}");
+                System.Diagnostics.Debug.WriteLine($"  Showing group {count}: {group.Name}, DockMode={group.DockMode}");
+
+                // Make visible FIRST
                 group.IsVisible = true;
+
+                // TEMP-FLOAT: If group is Sticky, temporarily make it Float so user can interact with it
+                if (group.DockMode == GroupDockMode.Sticky)
+                {
+                    System.Diagnostics.Debug.WriteLine($"    → Saving Sticky mode and switching to Float for '{group.Name}'");
+                    group.SavedDockModeBeforeFloat = GroupDockMode.Sticky;
+                    group.DockMode = GroupDockMode.Float;
+                }
             }
 
             System.Diagnostics.Debug.WriteLine($"ShowAllGroups: COMPLETE");
@@ -448,6 +464,16 @@ public partial class MainViewModel : ObservableObject
             {
                 count++;
                 System.Diagnostics.Debug.WriteLine($"  Hiding group {count}: {group.Name}");
+
+                // RESTORE: If we temporarily floated this group, restore it back to Sticky FIRST
+                if (group.SavedDockModeBeforeFloat.HasValue)
+                {
+                    System.Diagnostics.Debug.WriteLine($"    → Restoring '{group.Name}' from Float to {group.SavedDockModeBeforeFloat.Value}");
+                    group.DockMode = group.SavedDockModeBeforeFloat.Value;
+                    group.SavedDockModeBeforeFloat = null;
+                }
+
+                // Then hide
                 group.IsVisible = false;
             }
 
@@ -467,4 +493,25 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand] private void ExitApplication() => Application.Current?.Shutdown();
+
+    /// <summary>
+    /// Restore ALL groups that were temporarily floated (from Show All) back to their saved dock mode.
+    /// Called when user clicks any shortcut in any group.
+    /// </summary>
+    public void RestoreAllTemporaryFloats()
+    {
+        System.Diagnostics.Debug.WriteLine($"RestoreAllTemporaryFloats: START - checking {Groups.Count} groups");
+
+        foreach (var group in Groups)
+        {
+            if (group.SavedDockModeBeforeFloat.HasValue)
+            {
+                System.Diagnostics.Debug.WriteLine($"  → Restoring '{group.Name}' from Float to {group.SavedDockModeBeforeFloat.Value}");
+                group.DockMode = group.SavedDockModeBeforeFloat.Value;
+                group.SavedDockModeBeforeFloat = null;
+            }
+        }
+
+        System.Diagnostics.Debug.WriteLine($"RestoreAllTemporaryFloats: COMPLETE");
+    }
 }

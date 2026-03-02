@@ -88,6 +88,21 @@ public partial class App : Application
         // Initialize MainViewModel
         _mainViewModel = new MainViewModel();
 
+        // Set application-level binding proxy to main view model (BEFORE InitializeAsync!)
+        // This must happen before resources are frozen by first window creation
+        try
+        {
+            if (Resources["AppDataProxy"] is DeskGroup.Helpers.BindingProxy proxy)
+            {
+                proxy.Data = _mainViewModel;
+                System.Diagnostics.Debug.WriteLine("STARTUP: BindingProxy.Data set successfully");
+            }
+        }
+        catch (Exception proxyEx)
+        {
+            System.Diagnostics.Debug.WriteLine($"STARTUP: BindingProxy set FAILED: {proxyEx.Message}");
+        }
+
         try
         {
             await _mainViewModel.InitializeAsync();
@@ -102,16 +117,6 @@ public partial class App : Application
             Shutdown();
             return;
         }
-
-        // Set application-level binding proxy to main view model (for resource bindings)
-        try
-        {
-            if (Resources["AppDataProxy"] is DeskGroup.Helpers.BindingProxy proxy)
-            {
-                proxy.Data = _mainViewModel;
-            }
-        }
-        catch { }
 
         // Apply Theme
         ApplyTheme(_mainViewModel.Settings.Theme);
@@ -712,8 +717,9 @@ public partial class App : Application
         window.Opacity = 0; // Hide during initialization
 
         // Pre-set position and size based on saved values to prevent visible resize
-        window.Left = groupVm.PositionX;
-        window.Top = groupVm.PositionY;
+        // IMPORTANT: Force integer conversion to prevent decimal/comma parsing corruption!
+        window.Left = Math.Round(groupVm.PositionX);
+        window.Top = Math.Round(groupVm.PositionY);
 
         // Pre-set size and constraints based on view mode to prevent visible resize
         switch (groupVm.ViewMode)

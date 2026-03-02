@@ -29,6 +29,19 @@ public partial class GroupWidget : Window
     private double _preFullscreenWidth;
     private double _preFullscreenHeight;
 
+    // Track when temp-float was applied (to prevent immediate restoration on same click)
+    private static DateTime _lastTempFloatTime = DateTime.MinValue;
+
+    /// <summary>
+    /// Called by MainViewModel when Show All applies temporary float.
+    /// Sets timestamp to prevent immediate restoration on the same menu click.
+    /// </summary>
+    public static void SetLastTempFloatTime()
+    {
+        _lastTempFloatTime = DateTime.Now;
+        System.Diagnostics.Debug.WriteLine($"SetLastTempFloatTime: Set to {_lastTempFloatTime:HH:mm:ss.fff}");
+    }
+
     /// <summary>
     /// Fired when the user requests to delete this group.
     /// The MainViewModel handles the actual deletion.
@@ -70,6 +83,7 @@ public partial class GroupWidget : Window
         DragEnter += OnDragEnter;
         KeyDown += OnKeyDown; // Keyboard shortcuts
         PreviewMouseLeftButtonDown += OnAnyMouseClick; // Catch ALL clicks to restore sticky mode
+        MouseLeftButtonUp += OnMouseUpSyncPosition; // Sync position after ANY mouse release
 
         System.Diagnostics.Debug.WriteLine("GroupWidget.Constructor: Wiring routed events");
 
@@ -277,18 +291,19 @@ public partial class GroupWidget : Window
                     bool attached = Win32Interop.AttachToDesktop(_windowHandle);
                     _isAttachedToDesktop = attached;
 
-                    // Use CURRENT window position (Left/Top), not saved ViewModel position
-                    // This prevents the jump when switching modes
-                    var targetX = (int)Left;
-                    var targetY = (int)Top;
-                    System.Diagnostics.Debug.WriteLine($"  SetWindowPos called with CURRENT pos: ({targetX},{targetY})");
+                    // CRITICAL: Use ViewModel position (already synced before toggle), NOT Window.Left/Top!
+                    // Window.Left/Top might be stale if WPF hasn't updated yet from ViewModel changes
+                    var targetX = (int)Math.Round(_viewModel.PositionX);
+                    var targetY = (int)Math.Round(_viewModel.PositionY);
+                    System.Diagnostics.Debug.WriteLine($"  SetWindowPos called with ViewModel pos: ({targetX},{targetY})");
                     Win32Interop.SetWindowPos(_windowHandle, Win32Interop.HWND_BOTTOM,
                         targetX, targetY, 
                         (int)Width, (int)Height,
                         Win32Interop.SWP_SHOWWINDOW | Win32Interop.SWP_NOACTIVATE);
 
-                    // DON'T re-sync WPF position - it causes a visible second jump!
-                    // SetWindowPos already positioned the window correctly.
+                    // Sync WPF position to match Win32 position
+                    Left = targetX;
+                    Top = targetY;
                 }
                 break;
 
@@ -516,18 +531,54 @@ public partial class GroupWidget : Window
 
     private void OnSetStickyRequested(object sender, RoutedEventArgs e)
     {
+        System.Diagnostics.Debug.WriteLine($"OnSetStickyRequested: Current DockMode={_viewModel?.DockMode}");
+
         if (_viewModel != null && _viewModel.DockMode != GroupDockMode.Sticky)
         {
+            // CRITICAL: Sync window position to ViewModel BEFORE toggling mode!
+            // This ensures the JSON saves with the CURRENT position, not old position
+            if (Left > -5000 && Top > -5000)
+            {
+                var currentX = Math.Round(Left);
+                var currentY = Math.Round(Top);
+                System.Diagnostics.Debug.WriteLine($"  → Syncing position BEFORE toggle: Window ({Left},{Top}) → ViewModel ({currentX},{currentY})");
+                _viewModel.PositionX = currentX;
+                _viewModel.PositionY = currentY;
+            }
+
+            System.Diagnostics.Debug.WriteLine($"  → Toggling from {_viewModel.DockMode} to Sticky");
             _viewModel.ToggleDockModeCommand.Execute(null);
+        }
+        else
+        {
+            System.Diagnostics.Debug.WriteLine($"  → Already Sticky, no action needed");
         }
         e.Handled = true;
     }
 
     private void OnSetFloatRequested(object sender, RoutedEventArgs e)
     {
+        System.Diagnostics.Debug.WriteLine($"OnSetFloatRequested: Current DockMode={_viewModel?.DockMode}");
+
         if (_viewModel != null && _viewModel.DockMode != GroupDockMode.Float)
         {
+            // CRITICAL: Sync window position to ViewModel BEFORE toggling mode!
+            // This ensures the JSON saves with the CURRENT position, not old position
+            if (Left > -5000 && Top > -5000)
+            {
+                var currentX = Math.Round(Left);
+                var currentY = Math.Round(Top);
+                System.Diagnostics.Debug.WriteLine($"  → Syncing position BEFORE toggle: Window ({Left},{Top}) → ViewModel ({currentX},{currentY})");
+                _viewModel.PositionX = currentX;
+                _viewModel.PositionY = currentY;
+            }
+
+            System.Diagnostics.Debug.WriteLine($"  → Toggling from {_viewModel.DockMode} to Float");
             _viewModel.ToggleDockModeCommand.Execute(null);
+        }
+        else
+        {
+            System.Diagnostics.Debug.WriteLine($"  → Already Float, no action needed");
         }
         e.Handled = true;
     }
@@ -607,6 +658,69 @@ public partial class GroupWidget : Window
         if (result == MessageBoxResult.Yes)
         {
             DeleteRequested?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    /// <summary>
+    /// Footer click handler - logs which group was clicked for debugging Show All → Sticky restore
+    /// </summary>
+    private void Footer_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        System.Diagnostics.Debug.WriteLine($"🖱️ FOOTER CLICKED in '{_viewModel?.Name}' (DockMode: {_viewModel?.DockMode}, ViewMode: {_viewModel?.ViewMode})");
+
+        // DIRECTLY trigger restore logic instead of relying on event bubbling
+        if (_viewModel != null)
+        {
+            // Get the MainViewModel to check ALL groups
+            var app = Application.Current as App;
+            System.Diagnostics.Debug.WriteLine($"  → Footer: app = {(app == null ? "NULL" : "OK")}");
+
+            if (app != null)
+            {
+                object? proxyObj = null;
+                try
+                {
+                    proxyObj = app.Resources["AppDataProxy"];
+                    System.Diagnostics.Debug.WriteLine($"  → Footer: AppDataProxy = {(proxyObj == null ? "NULL" : proxyObj.GetType().Name)}");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"  → Footer: Error getting AppDataProxy: {ex.Message}");
+                }
+
+                var proxy = proxyObj as DeskGroup.Helpers.BindingProxy;
+                System.Diagnostics.Debug.WriteLine($"  → Footer: proxy = {(proxy == null ? "NULL" : "OK")}");
+
+                if (proxy != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"  → Footer: proxy.Data = {(proxy.Data == null ? "NULL" : proxy.Data.GetType().Name)}");
+                }
+
+                var mainVm = proxy?.Data as DeskGroup.ViewModels.MainViewModel;
+                System.Diagnostics.Debug.WriteLine($"  → Footer: mainVm = {(mainVm == null ? "NULL" : "OK")}");
+
+                if (mainVm != null)
+                {
+                    // Check if ANY group (not just this one) has been temporarily floated
+                    bool anyGroupTemporarilyFloated = mainVm.Groups.Any(g => g.SavedDockModeBeforeFloat.HasValue);
+
+                    System.Diagnostics.Debug.WriteLine($"  → Footer: anyGroupTemporarilyFloated = {anyGroupTemporarilyFloated}");
+
+                    if (anyGroupTemporarilyFloated)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"  → Footer: RESTORING ALL from temp-float!");
+                        mainVm.RestoreAllTemporaryFloats();
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"  → Footer: No temp-floated groups found");
+                    }
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"  → Footer: Could not access MainViewModel!");
+                }
+            }
         }
     }
 
@@ -1076,24 +1190,78 @@ public partial class GroupWidget : Window
     {
         try
         {
-            System.Diagnostics.Debug.WriteLine($"OnAnyMouseClick: FIRED! SavedDockModeBeforeFloat = {_viewModel?.SavedDockModeBeforeFloat}, Current DockMode = {_viewModel?.DockMode}");
+            System.Diagnostics.Debug.WriteLine($"OnAnyMouseClick: FIRED! (clicked in '{_viewModel?.Name}')");
 
-            // RESTORE STICKY MODE: If user temporarily floated this window via Show/Hide All,
-            // restore it back to Sticky when they click ANYWHERE in the window
-            if (_viewModel != null && _viewModel.SavedDockModeBeforeFloat.HasValue)
+            // RESTORE ALL GROUPS: Check if ANY group has SavedDockModeBeforeFloat set (not just this one!)
+            // This happens when user clicks Show All (all sticky groups become Float temporarily)
+            // Then when they click ANY shortcut in ANY group, ALL groups restore to their saved mode
+            if (_viewModel != null)
             {
-                System.Diagnostics.Debug.WriteLine($"  → Restoring dock mode from {_viewModel.DockMode} to {_viewModel.SavedDockModeBeforeFloat}");
-                _viewModel.DockMode = _viewModel.SavedDockModeBeforeFloat.Value;
-                _viewModel.SavedDockModeBeforeFloat = null; // Clear the saved state
-            }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine($"  → No saved dock mode to restore (SavedDockModeBeforeFloat is null)");
+                // CRITICAL: Prevent immediate restoration on the SAME click that triggered Show All!
+                // Give at least 500ms grace period for user to see the floated windows
+                var timeSinceLastTempFloat = DateTime.Now - _lastTempFloatTime;
+                if (timeSinceLastTempFloat.TotalMilliseconds < 500)
+                {
+                    System.Diagnostics.Debug.WriteLine($"  → Ignoring click (too soon after Show All: {timeSinceLastTempFloat.TotalMilliseconds}ms)");
+                    return;
+                }
+
+                // Get the MainViewModel to check ALL groups
+                var app = Application.Current as App;
+                if (app != null)
+                {
+                    var proxy = app.Resources["AppDataProxy"] as DeskGroup.Helpers.BindingProxy;
+                    var mainVm = proxy?.Data as DeskGroup.ViewModels.MainViewModel;
+
+                    if (mainVm != null)
+                    {
+                        // Check if ANY group (not just this one) has been temporarily floated
+                        bool anyGroupTemporarilyFloated = mainVm.Groups.Any(g => g.SavedDockModeBeforeFloat.HasValue);
+
+                        if (anyGroupTemporarilyFloated)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"  → Found temporarily floated group(s), restoring ALL to saved modes");
+                            mainVm.RestoreAllTemporaryFloats();
+                        }
+                        else
+                        {
+                            System.Diagnostics.Debug.WriteLine($"  → No temporarily floated groups found");
+                        }
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"  → WARNING: Could not access MainViewModel!");
+                    }
+                }
             }
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"OnAnyMouseClick: ERROR - {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Sync window position to ViewModel on EVERY mouse release.
+    /// This ensures position is always up-to-date, even if window was moved by Windows (Win+Arrow, snap, etc.)
+    /// </summary>
+    private void OnMouseUpSyncPosition(object sender, MouseButtonEventArgs e)
+    {
+        if (_viewModel == null || _isInitializing) return;
+
+        // Only sync if window is on-screen
+        if (Left > -5000 && Top > -5000 && Left < 10000 && Top < 10000)
+        {
+            var currentX = Math.Round(Left);
+            var currentY = Math.Round(Top);
+
+            // Only update if position changed significantly (avoid spamming saves)
+            if (Math.Abs(currentX - _viewModel.PositionX) > 1 || Math.Abs(currentY - _viewModel.PositionY) > 1)
+            {
+                System.Diagnostics.Debug.WriteLine($"OnMouseUpSyncPosition: Syncing position Window ({Left},{Top}) → ViewModel ({currentX},{currentY})");
+                _viewModel.PositionX = currentX;
+                _viewModel.PositionY = currentY;
+            }
         }
     }
 
