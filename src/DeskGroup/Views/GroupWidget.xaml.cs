@@ -39,7 +39,6 @@ public partial class GroupWidget : Window
     public static void SetLastTempFloatTime()
     {
         _lastTempFloatTime = DateTime.Now;
-        System.Diagnostics.Debug.WriteLine($"SetLastTempFloatTime: Set to {_lastTempFloatTime:HH:mm:ss.fff}");
     }
 
     /// <summary>
@@ -55,11 +54,7 @@ public partial class GroupWidget : Window
 
     public GroupWidget()
     {
-        System.Diagnostics.Debug.WriteLine("GroupWidget.Constructor: START");
-
         InitializeComponent();
-
-        System.Diagnostics.Debug.WriteLine("GroupWidget.Constructor: InitializeComponent done");
 
         // Reduce flickering during drag/resize
         System.Windows.Interop.HwndSource.DefaultAcquireHwndFocusInMenuMode = false;
@@ -67,13 +62,11 @@ public partial class GroupWidget : Window
         // Additional performance optimization - use layered window composition
         SourceInitialized += (s, e) =>
         {
-            System.Diagnostics.Debug.WriteLine("GroupWidget.SourceInitialized: START");
             var source = PresentationSource.FromVisual(this) as HwndSource;
             if (source != null)
             {
                 source.CompositionTarget.RenderMode = RenderMode.Default;
             }
-            System.Diagnostics.Debug.WriteLine("GroupWidget.SourceInitialized: COMPLETE");
         };
 
         Loaded += OnLoaded;
@@ -85,38 +78,28 @@ public partial class GroupWidget : Window
         PreviewMouseLeftButtonDown += OnAnyMouseClick; // Catch ALL clicks to restore sticky mode
         MouseLeftButtonUp += OnMouseUpSyncPosition; // Sync position after ANY mouse release
 
-        System.Diagnostics.Debug.WriteLine("GroupWidget.Constructor: Wiring routed events");
-
         // Subscribe to routed events from child controls
         AddHandler(IconTile.RemoveShortcutEvent, new RoutedEventHandler(OnRemoveShortcutRequested));
         AddHandler(DragThumb.TogglePinRequestedEvent, new RoutedEventHandler(OnTogglePinRequested));
         AddHandler(DragThumb.ToggleSnapRequestedEvent, new RoutedEventHandler(OnToggleSnapRequested));
         AddHandler(DragThumb.SetStickyRequestedEvent, new RoutedEventHandler(OnSetStickyRequested));
         AddHandler(DragThumb.SetFloatRequestedEvent, new RoutedEventHandler(OnSetFloatRequested));
-
-        System.Diagnostics.Debug.WriteLine("GroupWidget.Constructor: COMPLETE");
     }
 
     public GroupWidget(GroupViewModel viewModel) : this()
     {
-        System.Diagnostics.Debug.WriteLine($"GroupWidget.Constructor(VM): Setting DataContext to '{viewModel?.Name}'");
         DataContext = viewModel;
-        System.Diagnostics.Debug.WriteLine("GroupWidget.Constructor(VM): COMPLETE");
     }
 
     // Lifecycle
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
-        System.Diagnostics.Debug.WriteLine("GroupWidget.OnLoaded: START");
-
         _windowHandle = new WindowInteropHelper(this).Handle;
         Win32Interop.SetToolWindow(_windowHandle);
 
         if (_viewModel != null)
         {
-            System.Diagnostics.Debug.WriteLine($"GroupWidget.OnLoaded: Position/size already set by App.xaml.cs");
-
             // Position and size already set by App.xaml.cs before Show()
             // Just show the correct view without calling UpdateViewMode (which would resize/reposition)
             _isInitializing = true; // Block property handlers during init
@@ -140,12 +123,8 @@ public partial class GroupWidget : Window
                 // NOW enable property change handlers
                 _viewModel.PropertyChanged += OnViewModelPropertyChanged;
 
-                System.Diagnostics.Debug.WriteLine($"GroupWidget.OnLoaded: Initialization complete, fading in");
-
                 // Fade in now that everything is positioned correctly
                 Opacity = 1.0;
-
-                System.Diagnostics.Debug.WriteLine($"GroupWidget.OnLoaded: COMPLETE for '{_viewModel.Name}'");
             }), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
         }
     }
@@ -189,14 +168,12 @@ public partial class GroupWidget : Window
         // Skip during initialization
         if (_isInitializing)
         {
-            System.Diagnostics.Debug.WriteLine($"OnViewModelPropertyChanged: SKIPPED (initializing) - '{e.PropertyName}'");
             return;
         }
 
         // Prevent re-entry
         if (_isApplyingChanges)
         {
-            System.Diagnostics.Debug.WriteLine($"OnViewModelPropertyChanged: BLOCKED (re-entry) - '{e.PropertyName}'");
             return;
         }
 
@@ -204,8 +181,6 @@ public partial class GroupWidget : Window
 
         try
         {
-            System.Diagnostics.Debug.WriteLine($"OnViewModelPropertyChanged: '{e.PropertyName}' for '{_viewModel?.Name}'");
-
             switch (e.PropertyName)
             {
                 case nameof(GroupViewModel.DockMode):
@@ -218,8 +193,6 @@ public partial class GroupWidget : Window
                 case nameof(GroupViewModel.ViewMode):
                     if (_viewModel != null) 
                     {
-                        System.Diagnostics.Debug.WriteLine($"  ViewMode changing to: {_viewModel.ViewMode}");
-
                         // CRITICAL: Save position BEFORE switching to fullscreen!
                         if (_viewModel.ViewMode == GroupViewMode.Fullscreen)
                         {
@@ -228,7 +201,6 @@ public partial class GroupWidget : Window
                             _preFullscreenTop = Top;
                             _preFullscreenWidth = Width;
                             _preFullscreenHeight = Height;
-                            System.Diagnostics.Debug.WriteLine($"    -> Saved pre-fullscreen: pos=({_preFullscreenLeft},{_preFullscreenTop}), size=({_preFullscreenWidth}x{_preFullscreenHeight})");
                         }
 
                         UpdateViewMode(_viewModel.ViewMode);
@@ -248,7 +220,6 @@ public partial class GroupWidget : Window
                 case nameof(GroupViewModel.IsVisible):
                     // DISABLED: Causes infinite loop when hiding/showing
                     // Visibility is now controlled directly by App.xaml.cs
-                    System.Diagnostics.Debug.WriteLine($"  IsVisible handler: DISABLED to prevent loops");
                     break;
             }
         }
@@ -267,8 +238,6 @@ public partial class GroupWidget : Window
     private void ApplyDockMode(GroupDockMode mode)
     {
         if (_windowHandle == IntPtr.Zero) return;
-
-        System.Diagnostics.Debug.WriteLine($"ApplyDockMode: {mode} for '{_viewModel?.Name}', Current window pos: ({Left},{Top}), ViewModel pos: ({_viewModel?.PositionX},{_viewModel?.PositionY})");
 
         switch (mode)
         {
@@ -295,7 +264,6 @@ public partial class GroupWidget : Window
                     // Window.Left/Top might be stale if WPF hasn't updated yet from ViewModel changes
                     var targetX = (int)Math.Round(_viewModel.PositionX);
                     var targetY = (int)Math.Round(_viewModel.PositionY);
-                    System.Diagnostics.Debug.WriteLine($"  SetWindowPos called with ViewModel pos: ({targetX},{targetY})");
                     Win32Interop.SetWindowPos(_windowHandle, Win32Interop.HWND_BOTTOM,
                         targetX, targetY, 
                         (int)Width, (int)Height,
@@ -322,7 +290,6 @@ public partial class GroupWidget : Window
                 Win32Interop.SetTopmost(_windowHandle, true);
                 Visibility = Visibility.Visible;
                 Show();
-                System.Diagnostics.Debug.WriteLine($"  Float mode set, window remains at: ({Left},{Top})");
                 break;
         }
     }
@@ -416,8 +383,6 @@ public partial class GroupWidget : Window
 
     private void StartHoverLeaveTimer()
     {
-        System.Diagnostics.Debug.WriteLine("StartHoverLeaveTimer: Starting 300ms timer");
-
         _hoverLeaveTimer?.Stop();
         _hoverLeaveTimer = new System.Windows.Threading.DispatcherTimer
         {
@@ -427,24 +392,13 @@ public partial class GroupWidget : Window
         {
             _hoverLeaveTimer.Stop();
 
-            System.Diagnostics.Debug.WriteLine($"  Timer Tick: IsMouseOver={IsMouseOver}, ViewMode={_viewModel?.ViewMode}");
-
             // Collapse if mouse is outside AND we're in hover mode
             if (!IsMouseOver && _viewModel != null)
             {
                 if (_viewModel.ViewMode == GroupViewMode.Hover)
                 {
-                    System.Diagnostics.Debug.WriteLine("  -> Timer: Collapsing to Minimized");
                     _viewModel.ViewMode = GroupViewMode.Minimized;
                 }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine($"  -> Timer: No collapse needed, mode is {_viewModel.ViewMode}");
-                }
-            }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine("  -> Timer: Mouse still over, not collapsing");
             }
         };
         _hoverLeaveTimer.Start();
@@ -531,54 +485,32 @@ public partial class GroupWidget : Window
 
     private void OnSetStickyRequested(object sender, RoutedEventArgs e)
     {
-        System.Diagnostics.Debug.WriteLine($"OnSetStickyRequested: Current DockMode={_viewModel?.DockMode}");
-
         if (_viewModel != null && _viewModel.DockMode != GroupDockMode.Sticky)
         {
             // CRITICAL: Sync window position to ViewModel BEFORE toggling mode!
-            // This ensures the JSON saves with the CURRENT position, not old position
             if (Left > -5000 && Top > -5000)
             {
-                var currentX = Math.Round(Left);
-                var currentY = Math.Round(Top);
-                System.Diagnostics.Debug.WriteLine($"  → Syncing position BEFORE toggle: Window ({Left},{Top}) → ViewModel ({currentX},{currentY})");
-                _viewModel.PositionX = currentX;
-                _viewModel.PositionY = currentY;
+                _viewModel.PositionX = Math.Round(Left);
+                _viewModel.PositionY = Math.Round(Top);
             }
 
-            System.Diagnostics.Debug.WriteLine($"  → Toggling from {_viewModel.DockMode} to Sticky");
             _viewModel.ToggleDockModeCommand.Execute(null);
-        }
-        else
-        {
-            System.Diagnostics.Debug.WriteLine($"  → Already Sticky, no action needed");
         }
         e.Handled = true;
     }
 
     private void OnSetFloatRequested(object sender, RoutedEventArgs e)
     {
-        System.Diagnostics.Debug.WriteLine($"OnSetFloatRequested: Current DockMode={_viewModel?.DockMode}");
-
         if (_viewModel != null && _viewModel.DockMode != GroupDockMode.Float)
         {
             // CRITICAL: Sync window position to ViewModel BEFORE toggling mode!
-            // This ensures the JSON saves with the CURRENT position, not old position
             if (Left > -5000 && Top > -5000)
             {
-                var currentX = Math.Round(Left);
-                var currentY = Math.Round(Top);
-                System.Diagnostics.Debug.WriteLine($"  → Syncing position BEFORE toggle: Window ({Left},{Top}) → ViewModel ({currentX},{currentY})");
-                _viewModel.PositionX = currentX;
-                _viewModel.PositionY = currentY;
+                _viewModel.PositionX = Math.Round(Left);
+                _viewModel.PositionY = Math.Round(Top);
             }
 
-            System.Diagnostics.Debug.WriteLine($"  → Toggling from {_viewModel.DockMode} to Float");
             _viewModel.ToggleDockModeCommand.Execute(null);
-        }
-        else
-        {
-            System.Diagnostics.Debug.WriteLine($"  → Already Float, no action needed");
         }
         e.Handled = true;
     }
@@ -641,7 +573,6 @@ public partial class GroupWidget : Window
             if (_viewModel != null && !string.IsNullOrEmpty(newColor))
             {
                 _viewModel.AccentColorHex = newColor;
-                System.Diagnostics.Debug.WriteLine($"Color changed to: {newColor}");
             }
         }
     }
@@ -662,63 +593,28 @@ public partial class GroupWidget : Window
     }
 
     /// <summary>
-    /// Footer click handler - logs which group was clicked for debugging Show All → Sticky restore
+    /// Footer click handler - restores sticky mode after Show All
     /// </summary>
     private void Footer_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        System.Diagnostics.Debug.WriteLine($"🖱️ FOOTER CLICKED in '{_viewModel?.Name}' (DockMode: {_viewModel?.DockMode}, ViewMode: {_viewModel?.ViewMode})");
-
-        // DIRECTLY trigger restore logic instead of relying on event bubbling
+        // DIRECTLY trigger restore logic
         if (_viewModel != null)
         {
-            // Get the MainViewModel to check ALL groups
             var app = Application.Current as App;
-            System.Diagnostics.Debug.WriteLine($"  → Footer: app = {(app == null ? "NULL" : "OK")}");
-
             if (app != null)
             {
-                object? proxyObj = null;
-                try
-                {
-                    proxyObj = app.Resources["AppDataProxy"];
-                    System.Diagnostics.Debug.WriteLine($"  → Footer: AppDataProxy = {(proxyObj == null ? "NULL" : proxyObj.GetType().Name)}");
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"  → Footer: Error getting AppDataProxy: {ex.Message}");
-                }
-
-                var proxy = proxyObj as DeskGroup.Helpers.BindingProxy;
-                System.Diagnostics.Debug.WriteLine($"  → Footer: proxy = {(proxy == null ? "NULL" : "OK")}");
-
-                if (proxy != null)
-                {
-                    System.Diagnostics.Debug.WriteLine($"  → Footer: proxy.Data = {(proxy.Data == null ? "NULL" : proxy.Data.GetType().Name)}");
-                }
-
+                var proxy = app.Resources["AppDataProxy"] as DeskGroup.Helpers.BindingProxy;
                 var mainVm = proxy?.Data as DeskGroup.ViewModels.MainViewModel;
-                System.Diagnostics.Debug.WriteLine($"  → Footer: mainVm = {(mainVm == null ? "NULL" : "OK")}");
 
                 if (mainVm != null)
                 {
-                    // Check if ANY group (not just this one) has been temporarily floated
+                    // Check if ANY group has been temporarily floated
                     bool anyGroupTemporarilyFloated = mainVm.Groups.Any(g => g.SavedDockModeBeforeFloat.HasValue);
-
-                    System.Diagnostics.Debug.WriteLine($"  → Footer: anyGroupTemporarilyFloated = {anyGroupTemporarilyFloated}");
 
                     if (anyGroupTemporarilyFloated)
                     {
-                        System.Diagnostics.Debug.WriteLine($"  → Footer: RESTORING ALL from temp-float!");
                         mainVm.RestoreAllTemporaryFloats();
                     }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine($"  → Footer: No temp-floated groups found");
-                    }
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine($"  → Footer: Could not access MainViewModel!");
                 }
             }
         }
@@ -733,7 +629,6 @@ public partial class GroupWidget : Window
         // CRITICAL: Prevent re-entry!
         if (_isUpdatingViewMode)
         {
-            System.Diagnostics.Debug.WriteLine($"UpdateViewMode: BLOCKED re-entry for mode {mode}");
             return;
         }
 
@@ -741,8 +636,6 @@ public partial class GroupWidget : Window
 
         try
         {
-            System.Diagnostics.Debug.WriteLine($"UpdateViewMode: Switching to {mode} (current visible: Min={MinimizedView.Visibility}, Hover={HoverView.Visibility}, Normal={NormalView.Visibility})");
-
             // IMPORTANT: Set sizing mode FIRST before changing visibility
             switch (mode)
             {
@@ -755,7 +648,6 @@ public partial class GroupWidget : Window
                     {
                         Left = _preFullscreenLeft;
                         Top = _preFullscreenTop;
-                        System.Diagnostics.Debug.WriteLine($"  Restoring position from fullscreen: ({Left}, {Top})");
                     }
                     else if (_viewModel != null)
                     {
@@ -798,8 +690,6 @@ public partial class GroupWidget : Window
                     {
                         _hoverLeaveTimer?.Stop();
                     }
-
-                    System.Diagnostics.Debug.WriteLine($"  -> Minimized view active at ({Left}, {Top}), size (220x40) - layout forced");
                     break;
 
                 case GroupViewMode.Hover:
@@ -811,7 +701,6 @@ public partial class GroupWidget : Window
                     {
                         Left = _preFullscreenLeft;
                         Top = _preFullscreenTop;
-                        System.Diagnostics.Debug.WriteLine($"  Restoring position from fullscreen to hover: ({Left}, {Top})");
                     }
 
                     // 3. Switch to MANUAL sizing to prevent progressive resize
@@ -830,8 +719,6 @@ public partial class GroupWidget : Window
                     var desiredWidth = Math.Max(HoverView.DesiredSize.Width + 20, 200); // +20 for borders/padding
                     var desiredHeight = Math.Max(HoverView.DesiredSize.Height + 20, 60);
 
-                    System.Diagnostics.Debug.WriteLine($"  HoverView measured: {desiredWidth}x{desiredHeight}");
-
                     // 7. Set window to exact size immediately
                     Width = desiredWidth;
                     Height = desiredHeight;
@@ -842,8 +729,6 @@ public partial class GroupWidget : Window
                     InvalidateMeasure();
                     InvalidateArrange();
                     UpdateLayout();
-
-                    System.Diagnostics.Debug.WriteLine($"  -> Hover view active (fixed size: {Width}x{Height}) at ({Left},{Top}) - layout forced");
                     break;
 
                 case GroupViewMode.Normal:
@@ -869,7 +754,6 @@ public partial class GroupWidget : Window
                         Top = _preFullscreenTop;
                         Width = _preFullscreenWidth;
                         Height = _preFullscreenHeight;
-                        System.Diagnostics.Debug.WriteLine($"  Restoring position/size from fullscreen: ({Left}, {Top}, {Width}x{Height})");
                     }
                     else if (_viewModel != null)
                     {
@@ -893,8 +777,6 @@ public partial class GroupWidget : Window
                     InvalidateMeasure();
                     InvalidateArrange();
                     UpdateLayout();
-
-                    System.Diagnostics.Debug.WriteLine($"  -> Normal view active at ({Left}, {Top}), size ({Width}x{Height}) - layout forced");
                     break;
 
                 case GroupViewMode.Grid:
@@ -920,7 +802,6 @@ public partial class GroupWidget : Window
                         Top = _preFullscreenTop;
                         Width = _preFullscreenWidth;
                         Height = _preFullscreenHeight;
-                        System.Diagnostics.Debug.WriteLine($"  Restoring position/size from fullscreen: ({Left}, {Top}, {Width}x{Height})");
                     }
                     else if (_viewModel != null)
                     {
@@ -944,8 +825,6 @@ public partial class GroupWidget : Window
                     InvalidateMeasure();
                     InvalidateArrange();
                     UpdateLayout();
-
-                    System.Diagnostics.Debug.WriteLine($"  -> Grid view active at ({Left}, {Top}), size ({Width}x{Height}) - layout forced");
                     break;
 
                 case GroupViewMode.Fullscreen:
@@ -972,7 +851,6 @@ public partial class GroupWidget : Window
                     InvalidateMeasure();
                     InvalidateArrange();
                     UpdateLayout();
-                    System.Diagnostics.Debug.WriteLine($"  -> Fullscreen view active ({Width}x{Height}) at (0,0) - layout forced");
                     break;
 
                 default:
@@ -991,7 +869,6 @@ public partial class GroupWidget : Window
                     InvalidateMeasure();
                     InvalidateArrange();
                     UpdateLayout();
-                    System.Diagnostics.Debug.WriteLine($"  -> Default to minimized (size: 220x40, MinSize: {MinWidth}x{MinHeight}) - layout forced");
                     break;
             }
         }
@@ -1009,12 +886,9 @@ public partial class GroupWidget : Window
 
     private void MinimizedView_MouseEnter(object sender, MouseEventArgs e)
     {
-        System.Diagnostics.Debug.WriteLine($"MinimizedView_MouseEnter - Current mode: {_viewModel?.ViewMode}");
-
         // Don't expand if dragging
         if (_isDragging || _dragStarted)
         {
-            System.Diagnostics.Debug.WriteLine("  -> Ignoring hover during drag");
             return;
         }
 
@@ -1024,25 +898,20 @@ public partial class GroupWidget : Window
         // Switch to hover view to show preview
         if (_viewModel != null && _viewModel.ViewMode == GroupViewMode.Minimized)
         {
-            System.Diagnostics.Debug.WriteLine("  -> Switching to Hover");
             _viewModel.ViewMode = GroupViewMode.Hover;
         }
     }
 
     private void MinimizedView_MouseLeave(object sender, MouseEventArgs e)
     {
-        System.Diagnostics.Debug.WriteLine("MinimizedView_MouseLeave");
         // Don't collapse here - let hover view handle it
     }
 
     private void HoverView_MouseLeave(object sender, MouseEventArgs e)
     {
-        System.Diagnostics.Debug.WriteLine($"HoverView_MouseLeave - Current mode: {_viewModel?.ViewMode}");
-
         // Don't collapse if dragging
         if (_isDragging || _dragStarted)
         {
-            System.Diagnostics.Debug.WriteLine("  -> Ignoring leave during drag");
             return;
         }
 
@@ -1052,25 +921,21 @@ public partial class GroupWidget : Window
 
     private void SetMinimized_Click(object sender, RoutedEventArgs e)
     {
-        System.Diagnostics.Debug.WriteLine("SetMinimized_Click");
         _viewModel?.SetMinimizedCommand.Execute(null);
     }
 
     private void SetNormal_Click(object sender, RoutedEventArgs e)
     {
-        System.Diagnostics.Debug.WriteLine("SetNormal_Click");
         _viewModel?.SetNormalCommand.Execute(null);
     }
 
     private void SetGrid_Click(object sender, RoutedEventArgs e)
     {
-        System.Diagnostics.Debug.WriteLine("SetGrid_Click");
         _viewModel?.SetGridCommand.Execute(null);
     }
 
     private void SetFullscreen_Click(object sender, RoutedEventArgs e)
     {
-        System.Diagnostics.Debug.WriteLine("SetFullscreen_Click");
         _viewModel?.SetFullscreenCommand.Execute(null);
     }
 
@@ -1081,7 +946,6 @@ public partial class GroupWidget : Window
         // F11 toggles fullscreen
         if (e.Key == Key.F11)
         {
-            System.Diagnostics.Debug.WriteLine("F11 pressed - toggling fullscreen");
             if (_viewModel.ViewMode == GroupViewMode.Fullscreen)
             {
                 _viewModel.SetMinimizedCommand.Execute(null);
@@ -1096,7 +960,6 @@ public partial class GroupWidget : Window
         // ESC exits fullscreen
         if (e.Key == Key.Escape && _viewModel.ViewMode == GroupViewMode.Fullscreen)
         {
-            System.Diagnostics.Debug.WriteLine("ESC pressed - exiting fullscreen");
             _viewModel.SetMinimizedCommand.Execute(null);
             e.Handled = true;
         }
@@ -1114,12 +977,9 @@ public partial class GroupWidget : Window
             var frameworkElement = sender as FrameworkElement;
             if (frameworkElement?.DataContext is ShortcutItemViewModel shortcut)
             {
-                System.Diagnostics.Debug.WriteLine($"Shortcut_Click: Launching '{shortcut.DisplayName}'");
-
                 // If in fullscreen, exit to minimized so launched app is visible
                 if (_viewModel?.ViewMode == GroupViewMode.Fullscreen)
                 {
-                    System.Diagnostics.Debug.WriteLine("  Exiting fullscreen before launch");
                     _viewModel.SetMinimizedCommand.Execute(null);
                 }
 
@@ -1127,13 +987,12 @@ public partial class GroupWidget : Window
                 // restore it back to Sticky when they click an icon
                 if (_viewModel != null && _viewModel.SavedDockModeBeforeFloat.HasValue)
                 {
-                    System.Diagnostics.Debug.WriteLine($"  Restoring dock mode from {_viewModel.DockMode} to {_viewModel.SavedDockModeBeforeFloat}");
                     _viewModel.DockMode = _viewModel.SavedDockModeBeforeFloat.Value;
-                    _viewModel.SavedDockModeBeforeFloat = null; // Clear the saved state
+                    _viewModel.SavedDockModeBeforeFloat = null;
                 }
 
                 shortcut.LaunchCommand.Execute(null);
-                e.Handled = true; // Mark as handled to prevent bubbling
+                e.Handled = true;
             }
             else
             {
@@ -1158,15 +1017,12 @@ public partial class GroupWidget : Window
             var frameworkElement = sender as FrameworkElement;
             if (frameworkElement?.DataContext is ShortcutItemViewModel shortcut)
             {
-                System.Diagnostics.Debug.WriteLine($"Shortcut_RightClick: Showing menu for '{shortcut.DisplayName}'");
-
                 var menu = new ContextMenu();
 
                 // Remove shortcut
                 var removeItem = new MenuItem { Header = "Remove from group" };
                 removeItem.Click += (s, args) =>
                 {
-                    System.Diagnostics.Debug.WriteLine($"  Removing '{shortcut.DisplayName}' from group");
                     _viewModel?.RemoveShortcutCommand.Execute(shortcut);
                 };
                 menu.Items.Add(removeItem);
@@ -1190,19 +1046,13 @@ public partial class GroupWidget : Window
     {
         try
         {
-            System.Diagnostics.Debug.WriteLine($"OnAnyMouseClick: FIRED! (clicked in '{_viewModel?.Name}')");
-
-            // RESTORE ALL GROUPS: Check if ANY group has SavedDockModeBeforeFloat set (not just this one!)
-            // This happens when user clicks Show All (all sticky groups become Float temporarily)
-            // Then when they click ANY shortcut in ANY group, ALL groups restore to their saved mode
+            // RESTORE ALL GROUPS: Check if ANY group has SavedDockModeBeforeFloat set
             if (_viewModel != null)
             {
                 // CRITICAL: Prevent immediate restoration on the SAME click that triggered Show All!
-                // Give at least 500ms grace period for user to see the floated windows
                 var timeSinceLastTempFloat = DateTime.Now - _lastTempFloatTime;
                 if (timeSinceLastTempFloat.TotalMilliseconds < 500)
                 {
-                    System.Diagnostics.Debug.WriteLine($"  → Ignoring click (too soon after Show All: {timeSinceLastTempFloat.TotalMilliseconds}ms)");
                     return;
                 }
 
@@ -1215,22 +1065,13 @@ public partial class GroupWidget : Window
 
                     if (mainVm != null)
                     {
-                        // Check if ANY group (not just this one) has been temporarily floated
+                        // Check if ANY group has been temporarily floated
                         bool anyGroupTemporarilyFloated = mainVm.Groups.Any(g => g.SavedDockModeBeforeFloat.HasValue);
 
                         if (anyGroupTemporarilyFloated)
                         {
-                            System.Diagnostics.Debug.WriteLine($"  → Found temporarily floated group(s), restoring ALL to saved modes");
                             mainVm.RestoreAllTemporaryFloats();
                         }
-                        else
-                        {
-                            System.Diagnostics.Debug.WriteLine($"  → No temporarily floated groups found");
-                        }
-                    }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine($"  → WARNING: Could not access MainViewModel!");
                     }
                 }
             }
@@ -1258,7 +1099,6 @@ public partial class GroupWidget : Window
             // Only update if position changed significantly (avoid spamming saves)
             if (Math.Abs(currentX - _viewModel.PositionX) > 1 || Math.Abs(currentY - _viewModel.PositionY) > 1)
             {
-                System.Diagnostics.Debug.WriteLine($"OnMouseUpSyncPosition: Syncing position Window ({Left},{Top}) → ViewModel ({currentX},{currentY})");
                 _viewModel.PositionX = currentX;
                 _viewModel.PositionY = currentY;
             }
@@ -1316,7 +1156,6 @@ public partial class GroupWidget : Window
         {
             // Just crossed threshold - start actual drag
             _isDragging = true;
-            System.Diagnostics.Debug.WriteLine($"Drag started (threshold crossed) at screen pos {currentMouseScreen}");
 
             // Stop hover timer to prevent collapse during drag
             _hoverLeaveTimer?.Stop();
@@ -1335,8 +1174,6 @@ public partial class GroupWidget : Window
             // Restore position (size lock might have shifted it)
             Left = posBeforeLock.X;
             Top = posBeforeLock.Y;
-
-            System.Diagnostics.Debug.WriteLine($"Size locked to {Width}x{Height}, position: ({Left}, {Top})");
         }
 
         // Calculate position from original baseline + current mouse delta
@@ -1362,27 +1199,20 @@ public partial class GroupWidget : Window
                 var newY = Math.Round(Top);
 
                 // Sanity check: positions should be within reasonable screen bounds
-                // Allow negative (multi-monitor) but reject extreme values
                 if (newX > -5000 && newX < 10000 && newY > -5000 && newY < 10000)
                 {
                     _viewModel.PositionX = newX;
                     _viewModel.PositionY = newY;
-                    System.Diagnostics.Debug.WriteLine($"Drag ended at ({newX}, {newY}) - position saved ✓");
                 }
                 else
                 {
-                    System.Diagnostics.Debug.WriteLine($"Drag ended at INVALID position ({newX}, {newY}) - position NOT saved! Using ViewModel values: ({_viewModel.PositionX}, {_viewModel.PositionY})");
+                    System.Diagnostics.Debug.WriteLine($"Drag ended at INVALID position ({newX}, {newY}) - position NOT saved!");
                 }
-            }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine($"Drag ended at ({Left}, {Top})");
             }
         }
         else
         {
-            // No drag occurred (click or tiny movement) - allow hover-to-expand to trigger
-            System.Diagnostics.Debug.WriteLine("Click detected (no drag)");
+            // No drag occurred (click or tiny movement)
         }
 
         _isDragging = false;

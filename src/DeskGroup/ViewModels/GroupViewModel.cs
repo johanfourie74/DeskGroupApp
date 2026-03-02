@@ -70,23 +70,15 @@ public partial class GroupViewModel : ObservableObject
     {
         if (_isInitializing) return;
 
-        System.Diagnostics.Debug.WriteLine($"OnDockModeChanged: {value} for group '{Name}', SavedDockModeBeforeFloat={SavedDockModeBeforeFloat}");
-
         // CRITICAL: Don't save temporary Float mode from Show All!
-        // If SavedDockModeBeforeFloat is set, this is a TEMPORARY mode change, NOT permanent!
-        // We STILL need to update the UI (OnPropertyChanged), but we skip saving to JSON
         if (SavedDockModeBeforeFloat.HasValue)
         {
-            System.Diagnostics.Debug.WriteLine($"  → Skipping JSON save - this is a temporary mode change (saved mode: {SavedDockModeBeforeFloat})");
-            System.Diagnostics.Debug.WriteLine($"  → But still updating UI via OnPropertyChanged");
-
-            // CRITICAL: Still notify UI so ApplyDockMode gets called!
+            // Still notify UI so ApplyDockMode gets called!
             OnPropertyChanged(nameof(DockMode));
             return; // Skip JSON save
         }
 
         // PERMANENT change: Sync position BEFORE save and trigger save
-        System.Diagnostics.Debug.WriteLine($"  → Saving DockMode to JSON (permanent change)");
         SyncToModel();
         OnPropertyChanged(nameof(DockMode)); // Trigger save via MainViewModel
     }
@@ -242,7 +234,6 @@ public partial class GroupViewModel : ObservableObject
     {
         try
         {
-            System.Diagnostics.Debug.WriteLine($"ApplyAccentColor: {hex}");
             var color = (Color)ColorConverter.ConvertFromString(hex);
             var newBrush = new SolidColorBrush(color);
             newBrush.Freeze();
@@ -250,8 +241,6 @@ public partial class GroupViewModel : ObservableObject
 
             // Also create transparent version
             UpdateTransparentAccentBrush();
-
-            System.Diagnostics.Debug.WriteLine($"  Successfully created brush for color: {color}");
         }
         catch (Exception ex)
         {
@@ -271,7 +260,6 @@ public partial class GroupViewModel : ObservableObject
             GroupIcon = _iconExtractor.ExtractLargeIcon(_model.CustomIconPath);
             if (GroupIcon != null)
             {
-                System.Diagnostics.Debug.WriteLine($"LoadGroupIcon: Loaded custom icon from '{_model.CustomIconPath}'");
                 return;
             }
         }
