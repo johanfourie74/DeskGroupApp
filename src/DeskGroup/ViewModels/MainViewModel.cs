@@ -99,7 +99,10 @@ public partial class MainViewModel : ObservableObject
         _hotkeyService.RegistrationFailed += OnHotkeyRegistrationFailed;
 
         _hotkeyService.RegisterHotkey(_settings.ToggleAllHotkey, ToggleAllGroupsVisibility);
-        _hotkeyService.RegisterHotkey(_settings.FullscreenToggleHotkey, ToggleFocusedGroupFullscreen);
+
+        // F11 hotkey removed - per-window KeyDown handler is more reliable
+        // (Users press F11 while focused on the group they want to fullscreen)
+        // _hotkeyService.RegisterHotkey(_settings.FullscreenToggleHotkey, ToggleFocusedGroupFullscreen);
     }
 
     private void OnHotkeyRegistrationFailed(object? sender, string errorMessage)

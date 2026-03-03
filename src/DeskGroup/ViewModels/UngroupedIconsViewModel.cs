@@ -20,7 +20,6 @@ public partial class UngroupedIconsViewModel : ObservableObject
     public ObservableCollection<UngroupedIconItem> UngroupedIcons { get; } = new();
     public ObservableCollection<IconGroup> AvailableGroups { get; } = new();
     public event EventHandler? Completed;
-    public event EventHandler<string>? CreateNewGroupRequested; // New event
 
     public UngroupedIconsViewModel(List<string> ungroupedPaths, List<IconGroup> existingGroups,
         IconExtractorService iconExtractor, AppSettings settings, PersistenceService persistenceService)

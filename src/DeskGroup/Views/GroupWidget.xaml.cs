@@ -23,7 +23,7 @@ public partial class GroupWidget : Window
     private bool _isInitializing = true; // Skip handlers during init
     private bool _isUpdatingViewMode = false; // Guard for view mode updates
 
-    // Save position before fullscreen
+    // Save position before fullscreen (view mode is saved in ViewModel)
     private double _preFullscreenLeft;
     private double _preFullscreenTop;
     private double _preFullscreenWidth;
@@ -71,6 +71,8 @@ public partial class GroupWidget : Window
 
         Loaded += OnLoaded;
         Closing += OnClosing;
+        Activated += OnActivated; // Visual feedback when window gets focus
+        Deactivated += OnDeactivated; // Remove feedback when window loses focus
         DataContextChanged += OnDataContextChanged;
         Drop += OnDrop;
         DragEnter += OnDragEnter;
@@ -149,6 +151,58 @@ public partial class GroupWidget : Window
         }
     }
 
+    private void OnActivated(object? sender, EventArgs e)
+    {
+        // Add visual feedback - increase border thickness slightly
+        if (_viewModel != null)
+        {
+            // Apply glow effect to the active view
+            var activeView = GetActiveView();
+            if (activeView is Border border)
+            {
+                border.BorderThickness = new Thickness(3); // Thicker border when focused
+            }
+        }
+    }
+
+    private void OnDeactivated(object? sender, EventArgs e)
+    {
+        // Remove visual feedback
+        if (_viewModel != null)
+        {
+            // Restore normal border thickness
+            var activeView = GetActiveView();
+            if (activeView is Border border)
+            {
+                // Restore based on view mode
+                border.BorderThickness = _viewModel.ViewMode == GroupViewMode.Minimized 
+                    ? new Thickness(1) 
+                    : new Thickness(2);
+            }
+
+            // RESTORE WS_EX_NOACTIVATE for Sticky mode when window loses focus
+            if (_viewModel.DockMode == GroupDockMode.Sticky && _windowHandle != IntPtr.Zero)
+            {
+                int exStyle = Win32Interop.GetWindowLong(_windowHandle, Win32Interop.GWL_EXSTYLE);
+                Win32Interop.SetWindowLong(_windowHandle, Win32Interop.GWL_EXSTYLE, exStyle | Win32Interop.WS_EX_NOACTIVATE);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Get the currently visible view Border element
+    /// </summary>
+    private Border? GetActiveView()
+    {
+        if (MinimizedView.Visibility == Visibility.Visible) return MinimizedView;
+        if (HoverView.Visibility == Visibility.Visible) return HoverView;
+        if (CompactView.Visibility == Visibility.Visible) return CompactView;
+        if (NormalView.Visibility == Visibility.Visible) return NormalView;
+        if (GridView.Visibility == Visibility.Visible) return GridView;
+        if (FullscreenView.Visibility == Visibility.Visible) return FullscreenView;
+        return null;
+    }
+
     private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
         if (e.OldValue is GroupViewModel oldVm)
@@ -201,11 +255,13 @@ public partial class GroupWidget : Window
                         // CRITICAL: Save position BEFORE switching to fullscreen!
                         if (_viewModel.ViewMode == GroupViewMode.Fullscreen)
                         {
-                            // Save current state before fullscreen
+                            // Save current window position/size (ViewModel saves view mode)
                             _preFullscreenLeft = Left;
                             _preFullscreenTop = Top;
                             _preFullscreenWidth = Width;
                             _preFullscreenHeight = Height;
+
+                            System.Diagnostics.Debug.WriteLine($"💾 SAVING position before fullscreen: ({_preFullscreenLeft}, {_preFullscreenTop}), size: {_preFullscreenWidth}x{_preFullscreenHeight}");
                         }
 
                         UpdateViewMode(_viewModel.ViewMode);
@@ -687,40 +743,16 @@ public partial class GroupWidget : Window
             switch (mode)
             {
                 case GroupViewMode.Minimized:
-                    // 1. Check if coming from fullscreen
+                    // Calculate target values FIRST
                     bool wasFullscreen = (FullscreenView.Visibility == Visibility.Visible);
+                    int targetWidth = 220;
+                    int targetHeight = 40;
+                    int targetX = wasFullscreen && _preFullscreenLeft > 0 ? (int)_preFullscreenLeft : (_viewModel != null ? (int)_viewModel.PositionX : 0);
+                    int targetY = wasFullscreen && _preFullscreenTop > 0 ? (int)_preFullscreenTop : (_viewModel != null ? (int)_viewModel.PositionY : 0);
 
-                    // 2. Restore position FIRST (before any size/visibility changes!)
-                    if (wasFullscreen && _preFullscreenLeft > 0)
-                    {
-                        Left = _preFullscreenLeft;
-                        Top = _preFullscreenTop;
-                    }
-                    else if (_viewModel != null)
-                    {
-                        Left = _viewModel.PositionX;
-                        Top = _viewModel.PositionY;
-                    }
+                    System.Diagnostics.Debug.WriteLine($"📍 RESTORING Minimized to: ({targetX}, {targetY}), size: {targetWidth}x{targetHeight}");
 
-                    // 3. Restore window style if coming from fullscreen
-                    if (wasFullscreen)
-                    {
-                        WindowStyle = WindowStyle.None; // Keep borderless
-                        Topmost = false; // Not topmost in normal modes
-                    }
-
-                    // 4. Set sizing mode
-                    SizeToContent = SizeToContent.Manual;
-                    // 5. Set minimum sizes (match App.xaml.cs and ApplyViewMode!)
-                    MinWidth = 200;  // Match Border MinWidth
-                    MinHeight = 40;
-                    // 6. Set size (match App.xaml.cs and ApplyViewMode!)
-                    Width = 220;     // Fits icon + name + count
-                    Height = 40;
-                    // 7. Force layout with new size
-                    UpdateLayout();
-
-                    // 8. Change visibility
+                    // Change ONLY view visibility (cheap, no layout)
                     MinimizedView.Visibility = Visibility.Visible;
                     HoverView.Visibility = Visibility.Collapsed;
                     CompactView.Visibility = Visibility.Collapsed;
@@ -728,137 +760,136 @@ public partial class GroupWidget : Window
                     GridView.Visibility = Visibility.Collapsed;
                     FullscreenView.Visibility = Visibility.Collapsed;
 
-                    // 9. Final layout update
-                    InvalidateMeasure();
-                    InvalidateArrange();
-                    UpdateLayout();
+                    // WIN32 FIRST: Atomic position/size change!
+                    if (_windowHandle != IntPtr.Zero)
+                    {
+                        bool success = Win32Interop.SetWindowPos(_windowHandle, IntPtr.Zero,
+                            targetX, targetY, targetWidth, targetHeight,
+                            Win32Interop.SWP_NOZORDER | Win32Interop.SWP_NOACTIVATE | Win32Interop.SWP_SHOWWINDOW);
 
-                    // 10. If coming from fullscreen, stop any pending hover timer
+                        System.Diagnostics.Debug.WriteLine($"✅ SetWindowPos minimized: {success}");
+                    }
+
+                    // Sync WPF properties AFTER (bookkeeping only)
+                    Left = targetX;
+                    Top = targetY;
+                    Width = targetWidth;
+                    Height = targetHeight;
                     if (wasFullscreen)
                     {
-                        _hoverLeaveTimer?.Stop();
+                        WindowStyle = WindowStyle.None;
+                        Topmost = false;
                     }
+                    SizeToContent = SizeToContent.Manual;
+                    ResizeMode = ResizeMode.NoResize;
+                    MinWidth = 200;
+                    MinHeight = 40;
+                    Visibility = Visibility.Visible;
+
+                    if (wasFullscreen) _hoverLeaveTimer?.Stop();
                     break;
 
                 case GroupViewMode.Hover:
-                    // 1. Check if coming from fullscreen
+                    // Calculate target values FIRST
                     bool wasFullscreenHover = (FullscreenView.Visibility == Visibility.Visible);
 
-                    // 2. Restore position if coming from fullscreen
-                    if (wasFullscreenHover && _preFullscreenLeft > 0)
-                    {
-                        Left = _preFullscreenLeft;
-                        Top = _preFullscreenTop;
-                    }
-
-                    // 3. Switch to MANUAL sizing to prevent progressive resize
-                    SizeToContent = SizeToContent.Manual;
-
-                    // 4. Hide all views
+                    // Measure HoverView to get size (need to make it visible first)
                     MinimizedView.Visibility = Visibility.Collapsed;
                     CompactView.Visibility = Visibility.Collapsed;
                     NormalView.Visibility = Visibility.Collapsed;
                     GridView.Visibility = Visibility.Collapsed;
                     FullscreenView.Visibility = Visibility.Collapsed;
-
-                    // 5. Show HoverView but measure it off-screen
                     HoverView.Visibility = Visibility.Visible;
+
                     HoverView.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                    int hoverTargetW = (int)Math.Max(HoverView.DesiredSize.Width + 20, 200);
+                    int hoverTargetH = (int)Math.Max(HoverView.DesiredSize.Height + 20, 60);
+                    int hoverTargetX = wasFullscreenHover && _preFullscreenLeft > 0 ? (int)_preFullscreenLeft : (_viewModel != null ? (int)_viewModel.PositionX : 0);
+                    int hoverTargetY = wasFullscreenHover && _preFullscreenTop > 0 ? (int)_preFullscreenTop : (_viewModel != null ? (int)_viewModel.PositionY : 0);
 
-                    // 6. Get the desired size
-                    var desiredWidth = Math.Max(HoverView.DesiredSize.Width + 20, 200); // +20 for borders/padding
-                    var desiredHeight = Math.Max(HoverView.DesiredSize.Height + 20, 60);
+                    // WIN32 FIRST: Atomic position/size change!
+                    if (_windowHandle != IntPtr.Zero)
+                    {
+                        bool success = Win32Interop.SetWindowPos(_windowHandle, IntPtr.Zero,
+                            hoverTargetX, hoverTargetY, hoverTargetW, hoverTargetH,
+                            Win32Interop.SWP_NOZORDER | Win32Interop.SWP_NOACTIVATE | Win32Interop.SWP_SHOWWINDOW);
 
-                    // 7. Set window to exact size immediately
-                    Width = desiredWidth;
-                    Height = desiredHeight;
+                        System.Diagnostics.Debug.WriteLine($"✅ SetWindowPos hover: {success}");
+                    }
+
+                    // Sync WPF properties AFTER (bookkeeping only)
+                    Left = hoverTargetX;
+                    Top = hoverTargetY;
+                    Width = hoverTargetW;
+                    Height = hoverTargetH;
+                    if (wasFullscreenHover)
+                    {
+                        WindowStyle = WindowStyle.None;
+                        Topmost = false;
+                    }
+                    SizeToContent = SizeToContent.Manual;
+                    ResizeMode = ResizeMode.NoResize;
                     MinWidth = 200;
                     MinHeight = 60;
-
-                    // 8. Force layout
-                    InvalidateMeasure();
-                    InvalidateArrange();
-                    UpdateLayout();
+                    Visibility = Visibility.Visible;
                     break;
 
                 case GroupViewMode.Compact:
-                    // 1. Check if coming from fullscreen
+                    // Calculate target values FIRST
                     bool wasFullscreenCompact = (FullscreenView.Visibility == Visibility.Visible);
 
-                    // 2. Restore position if coming from fullscreen
-                    if (wasFullscreenCompact && _preFullscreenLeft > 0)
-                    {
-                        Left = _preFullscreenLeft;
-                        Top = _preFullscreenTop;
-                    }
-
-                    // 3. Set sizing mode FIRST (fixed size for compact)
-                    SizeToContent = SizeToContent.Manual;
-
-                    // 4. Hide all views
+                    // Measure CompactView to get size (need to make it visible first)
                     MinimizedView.Visibility = Visibility.Collapsed;
                     HoverView.Visibility = Visibility.Collapsed;
                     NormalView.Visibility = Visibility.Collapsed;
                     GridView.Visibility = Visibility.Collapsed;
                     FullscreenView.Visibility = Visibility.Collapsed;
-
-                    // 5. Show CompactView and measure it
                     CompactView.Visibility = Visibility.Visible;
-                    UpdateLayout(); // Force layout before measuring
+
                     CompactView.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                    int compactTargetW = (int)Math.Max(CompactView.DesiredSize.Width + 60, 200);
+                    int compactTargetH = (int)Math.Max(CompactView.DesiredSize.Height + 60, 280);
+                    int compactTargetX = wasFullscreenCompact && _preFullscreenLeft > 0 ? (int)_preFullscreenLeft : (_viewModel != null ? (int)_viewModel.PositionX : 0);
+                    int compactTargetY = wasFullscreenCompact && _preFullscreenTop > 0 ? (int)_preFullscreenTop : (_viewModel != null ? (int)_viewModel.PositionY : 0);
 
-                    // 6. Get desired size - increased padding to ensure footer is always visible
-                    var compactWidth = Math.Max(CompactView.DesiredSize.Width + 60, 200);
-                    var compactHeight = Math.Max(CompactView.DesiredSize.Height + 60, 280);
+                    // WIN32 FIRST: Atomic position/size change!
+                    if (_windowHandle != IntPtr.Zero)
+                    {
+                        bool success = Win32Interop.SetWindowPos(_windowHandle, IntPtr.Zero,
+                            compactTargetX, compactTargetY, compactTargetW, compactTargetH,
+                            Win32Interop.SWP_NOZORDER | Win32Interop.SWP_NOACTIVATE | Win32Interop.SWP_SHOWWINDOW);
 
-                    // 7. Set window to exact size
-                    Width = compactWidth;
-                    Height = compactHeight;
+                        System.Diagnostics.Debug.WriteLine($"✅ SetWindowPos compact: {success}");
+                    }
+
+                    // Sync WPF properties AFTER (bookkeeping only)
+                    Left = compactTargetX;
+                    Top = compactTargetY;
+                    Width = compactTargetW;
+                    Height = compactTargetH;
+                    if (wasFullscreenCompact)
+                    {
+                        WindowStyle = WindowStyle.None;
+                        Topmost = false;
+                    }
+                    SizeToContent = SizeToContent.Manual;
+                    ResizeMode = ResizeMode.NoResize;
                     MinWidth = 180;
-                    MinHeight = 280; // Guarantee space for header + 3 rows + footer
-
-                    // 8. Force layout
-                    InvalidateMeasure();
-                    InvalidateArrange();
-                    UpdateLayout();
+                    MinHeight = 280;
+                    Visibility = Visibility.Visible;
                     break;
 
                 case GroupViewMode.Normal:
-                    // 1. Check if coming from fullscreen
+                    // Calculate target values FIRST
                     bool wasFullscreenNormal = (FullscreenView.Visibility == Visibility.Visible);
+                    int normalTargetX = wasFullscreenNormal && _preFullscreenLeft > 0 ? (int)_preFullscreenLeft : (_viewModel != null ? (int)_viewModel.PositionX : 0);
+                    int normalTargetY = wasFullscreenNormal && _preFullscreenTop > 0 ? (int)_preFullscreenTop : (_viewModel != null ? (int)_viewModel.PositionY : 0);
+                    int normalTargetW = wasFullscreenNormal && _preFullscreenWidth > 0 ? (int)_preFullscreenWidth : (_viewModel != null ? (int)_viewModel.Width : 300);
+                    int normalTargetH = wasFullscreenNormal && _preFullscreenHeight > 0 ? (int)_preFullscreenHeight : (_viewModel != null ? (int)_viewModel.Height : 250);
 
-                    // 2. Restore topmost if coming from fullscreen
-                    if (wasFullscreenNormal)
-                    {
-                        Topmost = false;
-                    }
+                    System.Diagnostics.Debug.WriteLine($"📍 RESTORING Normal to: ({normalTargetX}, {normalTargetY}), size: {normalTargetW}x{normalTargetH}");
 
-                    // 3. Set sizing mode FIRST
-                    SizeToContent = SizeToContent.Manual;
-                    // 4. RESET minimum sizes
-                    MinWidth = 200;
-                    MinHeight = 150;
-
-                    // 5. Restore position/size (AFTER setting sizing mode!)
-                    if (wasFullscreenNormal && _preFullscreenLeft > 0)
-                    {
-                        Left = _preFullscreenLeft;
-                        Top = _preFullscreenTop;
-                        Width = _preFullscreenWidth;
-                        Height = _preFullscreenHeight;
-                    }
-                    else if (_viewModel != null)
-                    {
-                        Left = _viewModel.PositionX;
-                        Top = _viewModel.PositionY;
-                        Width = _viewModel.Width;
-                        Height = _viewModel.Height;
-                    }
-
-                    // 6. Force layout update
-                    UpdateLayout();
-
-                    // 7. Change visibility
+                    // Change ONLY view visibility (cheap, no layout)
                     MinimizedView.Visibility = Visibility.Collapsed;
                     HoverView.Visibility = Visibility.Collapsed;
                     CompactView.Visibility = Visibility.Collapsed;
@@ -866,48 +897,44 @@ public partial class GroupWidget : Window
                     GridView.Visibility = Visibility.Collapsed;
                     FullscreenView.Visibility = Visibility.Collapsed;
 
-                    // 8. Final layout update
-                    InvalidateMeasure();
-                    InvalidateArrange();
-                    UpdateLayout();
+                    // WIN32 FIRST: Atomic position/size change!
+                    if (_windowHandle != IntPtr.Zero)
+                    {
+                        bool success = Win32Interop.SetWindowPos(_windowHandle, IntPtr.Zero,
+                            normalTargetX, normalTargetY, normalTargetW, normalTargetH,
+                            Win32Interop.SWP_NOZORDER | Win32Interop.SWP_NOACTIVATE | Win32Interop.SWP_SHOWWINDOW);
+
+                        System.Diagnostics.Debug.WriteLine($"✅ SetWindowPos normal: {success}");
+                    }
+
+                    // Sync WPF properties AFTER (bookkeeping only)
+                    Left = normalTargetX;
+                    Top = normalTargetY;
+                    Width = normalTargetW;
+                    Height = normalTargetH;
+                    if (wasFullscreenNormal)
+                    {
+                        WindowStyle = WindowStyle.None;
+                        Topmost = false;
+                    }
+                    SizeToContent = SizeToContent.Manual;
+                    ResizeMode = ResizeMode.CanResizeWithGrip;
+                    MinWidth = 200;
+                    MinHeight = 150;
+                    Visibility = Visibility.Visible;
                     break;
 
                 case GroupViewMode.Grid:
-                    // 1. Check if coming from fullscreen
+                    // Calculate target values FIRST
                     bool wasFullscreenGrid = (FullscreenView.Visibility == Visibility.Visible);
+                    int gridTargetX = wasFullscreenGrid && _preFullscreenLeft > 0 ? (int)_preFullscreenLeft : (_viewModel != null ? (int)_viewModel.PositionX : 0);
+                    int gridTargetY = wasFullscreenGrid && _preFullscreenTop > 0 ? (int)_preFullscreenTop : (_viewModel != null ? (int)_viewModel.PositionY : 0);
+                    int gridTargetW = wasFullscreenGrid && _preFullscreenWidth > 0 ? (int)_preFullscreenWidth : (_viewModel != null ? (int)_viewModel.Width : 400);
+                    int gridTargetH = wasFullscreenGrid && _preFullscreenHeight > 0 ? (int)_preFullscreenHeight : (_viewModel != null ? (int)_viewModel.Height : 300);
 
-                    // 2. Restore topmost if coming from fullscreen
-                    if (wasFullscreenGrid)
-                    {
-                        Topmost = false;
-                    }
+                    System.Diagnostics.Debug.WriteLine($"📍 RESTORING Grid to: ({gridTargetX}, {gridTargetY}), size: {gridTargetW}x{gridTargetH}");
 
-                    // 3. Set sizing mode FIRST
-                    SizeToContent = SizeToContent.Manual;
-                    // 4. RESET minimum sizes
-                    MinWidth = 250;
-                    MinHeight = 200;
-
-                    // 5. Restore position/size (AFTER setting sizing mode!)
-                    if (wasFullscreenGrid && _preFullscreenLeft > 0)
-                    {
-                        Left = _preFullscreenLeft;
-                        Top = _preFullscreenTop;
-                        Width = _preFullscreenWidth;
-                        Height = _preFullscreenHeight;
-                    }
-                    else if (_viewModel != null)
-                    {
-                        Left = _viewModel.PositionX;
-                        Top = _viewModel.PositionY;
-                        Width = _viewModel.Width;
-                        Height = _viewModel.Height;
-                    }
-
-                    // 6. Force layout update
-                    UpdateLayout();
-
-                    // 7. Change visibility
+                    // Change ONLY view visibility (cheap, no layout)
                     MinimizedView.Visibility = Visibility.Collapsed;
                     HoverView.Visibility = Visibility.Collapsed;
                     CompactView.Visibility = Visibility.Collapsed;
@@ -915,37 +942,70 @@ public partial class GroupWidget : Window
                     GridView.Visibility = Visibility.Visible;
                     FullscreenView.Visibility = Visibility.Collapsed;
 
-                    // 8. Final layout update
-                    InvalidateMeasure();
-                    InvalidateArrange();
-                    UpdateLayout();
+                    // WIN32 FIRST: Atomic position/size change!
+                    if (_windowHandle != IntPtr.Zero)
+                    {
+                        bool success = Win32Interop.SetWindowPos(_windowHandle, IntPtr.Zero,
+                            gridTargetX, gridTargetY, gridTargetW, gridTargetH,
+                            Win32Interop.SWP_NOZORDER | Win32Interop.SWP_NOACTIVATE | Win32Interop.SWP_SHOWWINDOW);
+
+                        System.Diagnostics.Debug.WriteLine($"✅ SetWindowPos grid: {success}");
+                    }
+
+                    // Sync WPF properties AFTER (bookkeeping only)
+                    Left = gridTargetX;
+                    Top = gridTargetY;
+                    Width = gridTargetW;
+                    Height = gridTargetH;
+                    if (wasFullscreenGrid)
+                    {
+                        WindowStyle = WindowStyle.None;
+                        Topmost = false;
+                    }
+                    SizeToContent = SizeToContent.Manual;
+                    ResizeMode = ResizeMode.CanResizeWithGrip;
+                    MinWidth = 250;
+                    MinHeight = 200;
+                    Visibility = Visibility.Visible;
                     break;
 
                 case GroupViewMode.Fullscreen:
-                    // Position is already saved in OnViewModelPropertyChanged before we get here!
-                    // 1. Set to fullscreen size
-                    SizeToContent = SizeToContent.Manual;
-                    MinWidth = 800;
-                    MinHeight = 600;
-                    // 2. Get screen dimensions (use WPF SystemParameters)
-                    Width = SystemParameters.PrimaryScreenWidth;
-                    Height = SystemParameters.PrimaryScreenHeight;
-                    Left = 0;
-                    Top = 0;
-                    // 3. Change visibility
+                    // Calculate target dimensions FIRST
+                    var screenWidth = (int)SystemParameters.PrimaryScreenWidth;
+                    var screenHeight = (int)SystemParameters.PrimaryScreenHeight;
+
+                    System.Diagnostics.Debug.WriteLine($"🖥️ ENTERING fullscreen: {screenWidth}x{screenHeight}");
+
+                    // Change ONLY view visibility (cheap, no layout)
                     MinimizedView.Visibility = Visibility.Collapsed;
                     HoverView.Visibility = Visibility.Collapsed;
                     CompactView.Visibility = Visibility.Collapsed;
                     NormalView.Visibility = Visibility.Collapsed;
                     GridView.Visibility = Visibility.Collapsed;
                     FullscreenView.Visibility = Visibility.Visible;
-                    // 4. Set window properties for fullscreen
+
+                    // WIN32 FIRST: Atomic position/size/topmost change!
+                    if (_windowHandle != IntPtr.Zero)
+                    {
+                        bool success = Win32Interop.SetWindowPos(_windowHandle, Win32Interop.HWND_TOPMOST,
+                            0, 0, screenWidth, screenHeight,
+                            Win32Interop.SWP_SHOWWINDOW);
+
+                        System.Diagnostics.Debug.WriteLine($"✅ SetWindowPos fullscreen: {success}");
+                    }
+
+                    // Sync WPF properties AFTER (bookkeeping only - no triggers!)
+                    Left = 0;
+                    Top = 0;
+                    Width = screenWidth;
+                    Height = screenHeight;
                     WindowStyle = WindowStyle.None;
                     Topmost = true;
-                    // 5. Final layout update
-                    InvalidateMeasure();
-                    InvalidateArrange();
-                    UpdateLayout();
+                    SizeToContent = SizeToContent.Manual;
+                    ResizeMode = ResizeMode.NoResize;
+                    MinWidth = 800;
+                    MinHeight = 600;
+                    Visibility = Visibility.Visible;
                     break;
 
                 default:
@@ -1017,26 +1077,38 @@ public partial class GroupWidget : Window
 
     private void SetMinimized_Click(object sender, RoutedEventArgs e)
     {
+        // Activate window first to ensure it has focus
+        if (!IsActive) { Activate(); Focus(); }
         _viewModel?.SetMinimizedCommand.Execute(null);
     }
 
     private void SetCompact_Click(object sender, RoutedEventArgs e)
     {
+        // Activate window first to ensure it has focus
+        if (!IsActive) { Activate(); Focus(); }
         _viewModel?.SetCompactCommand.Execute(null);
     }
 
     private void SetNormal_Click(object sender, RoutedEventArgs e)
     {
+        // Activate window first to ensure it has focus
+        if (!IsActive) { Activate(); Focus(); }
         _viewModel?.SetNormalCommand.Execute(null);
     }
 
     private void SetGrid_Click(object sender, RoutedEventArgs e)
     {
+        // Activate window first to ensure it has focus
+        if (!IsActive) { Activate(); Focus(); }
         _viewModel?.SetGridCommand.Execute(null);
     }
 
     private void SetFullscreen_Click(object sender, RoutedEventArgs e)
     {
+        // Activate window first to ensure it has focus (critical for F11 to work!)
+        if (!IsActive) { Activate(); Focus(); }
+
+        // ViewModel's EnterFullscreen() handles saving the previous view mode
         _viewModel?.SetFullscreenCommand.Execute(null);
     }
 
@@ -1044,24 +1116,17 @@ public partial class GroupWidget : Window
     {
         if (_viewModel == null) return;
 
-        // F11 toggles fullscreen
+        // F11 toggles fullscreen (ViewModel handles view mode restoration)
         if (e.Key == Key.F11)
         {
-            if (_viewModel.ViewMode == GroupViewMode.Fullscreen)
-            {
-                _viewModel.SetMinimizedCommand.Execute(null);
-            }
-            else
-            {
-                _viewModel.SetFullscreenCommand.Execute(null);
-            }
+            _viewModel.ToggleFullscreenCommand.Execute(null);
             e.Handled = true;
         }
 
-        // ESC exits fullscreen
+        // ESC exits fullscreen (ViewModel handles view mode restoration)
         if (e.Key == Key.Escape && _viewModel.ViewMode == GroupViewMode.Fullscreen)
         {
-            _viewModel.SetMinimizedCommand.Execute(null);
+            _viewModel.ToggleFullscreenCommand.Execute(null);
             e.Handled = true;
         }
     }
@@ -1078,10 +1143,10 @@ public partial class GroupWidget : Window
             var frameworkElement = sender as FrameworkElement;
             if (frameworkElement?.DataContext is ShortcutItemViewModel shortcut)
             {
-                // If in fullscreen, exit to minimized so launched app is visible
+                // If in fullscreen, exit to previous view mode (ViewModel handles restoration)
                 if (_viewModel?.ViewMode == GroupViewMode.Fullscreen)
                 {
-                    _viewModel.SetMinimizedCommand.Execute(null);
+                    _viewModel.ToggleFullscreenCommand.Execute(null);
                 }
 
                 // RESTORE STICKY MODE: If user temporarily floated this window via Show/Hide All,
@@ -1147,6 +1212,22 @@ public partial class GroupWidget : Window
     {
         try
         {
+            // ACTIVATE WINDOW: Give this window keyboard focus so F11 works!
+            // For Sticky mode, we need to temporarily remove WS_EX_NOACTIVATE
+            if (_viewModel?.DockMode == GroupDockMode.Sticky && _windowHandle != IntPtr.Zero)
+            {
+                // Temporarily remove WS_EX_NOACTIVATE to allow activation
+                int exStyle = Win32Interop.GetWindowLong(_windowHandle, Win32Interop.GWL_EXSTYLE);
+                Win32Interop.SetWindowLong(_windowHandle, Win32Interop.GWL_EXSTYLE, exStyle & ~Win32Interop.WS_EX_NOACTIVATE);
+            }
+
+            // Now activate the window
+            if (!IsActive)
+            {
+                Activate();
+                Focus();
+            }
+
             // RESTORE ALL GROUPS: Check if ANY group has SavedDockModeBeforeFloat set
             if (_viewModel != null)
             {
