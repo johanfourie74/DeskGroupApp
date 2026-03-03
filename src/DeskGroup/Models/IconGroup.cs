@@ -29,9 +29,10 @@ public enum GroupViewMode
 {
     Minimized = 0,
     Hover = 1,
-    Normal = 2,
+    Normal = 2,      // Keep original values!
     Grid = 3,
-    Fullscreen = 4
+    Fullscreen = 4,
+    Compact = 5      // Add new mode at end to avoid breaking saved data
 }
 
 public enum GroupDockMode

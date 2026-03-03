@@ -383,6 +383,12 @@ public partial class GroupViewModel : ObservableObject
         ViewMode = GroupViewMode.Minimized;
     }
 
+    [RelayCommand] private void SetCompact()
+    {
+        if (ViewMode == GroupViewMode.Fullscreen) RestoreFromFullscreen();
+        ViewMode = GroupViewMode.Compact;
+    }
+
     [RelayCommand] private void SetNormal()
     {
         if (ViewMode == GroupViewMode.Fullscreen) RestoreFromFullscreen();

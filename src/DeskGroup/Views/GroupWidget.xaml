@@ -207,6 +207,101 @@
             </Grid>
         </Border>
 
+        <!-- COMPACT VIEW - Fixed small grid (4-6 icons) -->
+        <Border x:Name="CompactView"
+                CornerRadius="8"
+                Background="{Binding TransparentAccentBrush, FallbackValue=#FF0078D4}"
+                BorderBrush="{Binding TransparentBorderBrush, FallbackValue=#FF0078D4}"
+                BorderThickness="2"
+                Padding="10"
+                Visibility="Collapsed"
+                MouseLeftButtonDown="Header_MouseLeftButtonDown"
+                MouseLeftButtonUp="Header_MouseLeftButtonUp"
+                MouseMove="Header_MouseMove"
+                Cursor="SizeAll">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Header (draggable) -->
+                <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
+                    <!-- Group Icon -->
+                    <Image Source="{Binding GroupIcon}"
+                           Width="20"
+                           Height="20"
+                           Margin="0,0,6,0"
+                           VerticalAlignment="Center"/>
+                    <!-- Group Name -->
+                    <TextBlock Text="{Binding Name, FallbackValue='Group'}"
+                               Foreground="White"
+                               FontSize="14"
+                               FontWeight="Bold"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Fixed 2x3 Grid (6 icons max) -->
+                <ItemsControl Grid.Row="1"
+                              ItemsSource="{Binding TopUsedShortcuts}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <UniformGrid Rows="3" Columns="2"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Background="#20FFFFFF"
+                                    CornerRadius="4"
+                                    Padding="4"
+                                    Margin="2"
+                                    Cursor="Hand"
+                                    PreviewMouseLeftButtonDown="Shortcut_Click"
+                                    MouseRightButtonUp="Shortcut_RightClick">
+                                <StackPanel HorizontalAlignment="Center">
+                                    <Image Source="{Binding IconImage}"
+                                           Width="36"
+                                           Height="36"
+                                           Margin="0,0,0,4"/>
+                                    <TextBlock Text="{Binding DisplayName}"
+                                               Foreground="White"
+                                               FontSize="9"
+                                               TextAlignment="Center"
+                                               TextTrimming="CharacterEllipsis"
+                                               MaxWidth="70"/>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- Status Footer -->
+                <Border Grid.Row="2" 
+                        Background="#33000000" 
+                        CornerRadius="4" 
+                        Padding="6,3"
+                        Margin="0,8,0,0"
+                        MouseLeftButtonDown="Footer_MouseLeftButtonDown"
+                        Cursor="Hand">
+                    <Grid>
+                        <TextBlock Text="{Binding ViewMode, StringFormat='View: {0}'}" 
+                                   Foreground="White" 
+                                   FontSize="10" 
+                                   FontWeight="Normal"
+                                   HorizontalAlignment="Left"/>
+                        <TextBlock Foreground="White" 
+                                   FontSize="10" 
+                                   FontWeight="Normal"
+                                   HorizontalAlignment="Right">
+                            <Run Text="Layer: "/>
+                            <Run Text="{Binding DockMode, FallbackValue='Float'}" FontWeight="SemiBold"/>
+                        </TextBlock>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Border>
+
         <!-- NORMAL VIEW - Full icon grid -->
         <Border x:Name="NormalView"
                 CornerRadius="8"
@@ -561,6 +656,11 @@
                 <MenuItem Header="Minimized" Click="SetMinimized_Click">
                     <MenuItem.Icon>
                         <TextBlock Text="⬜" FontSize="12"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="Compact" Click="SetCompact_Click">
+                    <MenuItem.Icon>
+                        <TextBlock Text="⊟" FontSize="12"/>
                     </MenuItem.Icon>
                 </MenuItem>
                 <MenuItem Header="Normal" Click="SetNormal_Click">

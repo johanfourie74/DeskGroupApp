@@ -1,8 +1,8 @@
 # DeskGroup - Development Backlog
 
-**Last Updated:** After BATCH 2 Session + Debug Cleanup  
+**Last Updated:** 2026-03-03 (BATCH 3 Session - Compact Mode + Resize)  
 **Status:** Ready for Next Session  
-**Commit:** Updated with each commit  
+**Commit:** Updated with each commit
 
 ---
 
@@ -254,7 +254,15 @@ Based on new features added in BATCH 2 (Status Footer, Transparency Controls, Ex
 
 ## 📊 SESSION HISTORY
 
-### **BATCH 2 (Current)** ✓ **VERIFIED**
+### **BATCH 3 (Current)** ✓ **IN PROGRESS**
+- ✅ Window Resize for Normal/Grid modes ✓ VERIFIED
+- ✅ Compact View Mode (2x3 grid, fixed size) ✓ VERIFIED
+- ✅ Enum reordering (Compact=5 at end to avoid breaking saved data) ✓
+- ✅ Size persistence for resizable modes ✓
+- ✅ OnSizeChanged handler for resize tracking ✓
+- ✅ Compact view footer visibility fix ✓
+
+### **BATCH 2 (Previous)** ✓ **VERIFIED**
 - ✅ Settings Window Theme Support ✓
 - ✅ Group Transparency Controls ✓
 - ✅ Extended Color Palette (White, Gray, Black) ✓
@@ -290,7 +298,8 @@ Based on new features added in BATCH 2 (Status Footer, Transparency Controls, Ex
 
 #### **Phase 1 Deliverables:**
 **Core Features (Already Done ✓):**
-- ✅ 4 View Modes (Minimized, Hover, Normal, Fullscreen)
+- ✅ 6 View Modes (Minimized, Hover, Compact, Normal, Grid, Fullscreen) ✓ NEW!
+- ✅ Window resize for Normal/Grid modes ✓ NEW!
 - ✅ Sticky/Float dock modes
 - ✅ Drag & drop shortcuts
 - ✅ Custom group colors & icons

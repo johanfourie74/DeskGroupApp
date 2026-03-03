@@ -108,9 +108,13 @@ public partial class GroupWidget : Window
             // Directly set visibility without going through UpdateViewMode
             MinimizedView.Visibility = _viewModel.ViewMode == GroupViewMode.Minimized ? Visibility.Visible : Visibility.Collapsed;
             HoverView.Visibility = _viewModel.ViewMode == GroupViewMode.Hover ? Visibility.Visible : Visibility.Collapsed;
+            CompactView.Visibility = _viewModel.ViewMode == GroupViewMode.Compact ? Visibility.Visible : Visibility.Collapsed;
             NormalView.Visibility = _viewModel.ViewMode == GroupViewMode.Normal ? Visibility.Visible : Visibility.Collapsed;
             GridView.Visibility = _viewModel.ViewMode == GroupViewMode.Grid ? Visibility.Visible : Visibility.Collapsed;
             FullscreenView.Visibility = _viewModel.ViewMode == GroupViewMode.Fullscreen ? Visibility.Visible : Visibility.Collapsed;
+
+            // Apply the view mode to set correct size/resizemode
+            ApplyViewMode(_viewModel.ViewMode);
 
             _isInitializing = false;
 
@@ -316,6 +320,31 @@ public partial class GroupWidget : Window
                 ResizeMode = ResizeMode.NoResize;
                 MinWidth = 200;
                 MinHeight = 100;
+                break;
+
+            case GroupViewMode.Compact:
+                // Fixed size for compact view (2x3 grid)
+                SizeToContent = SizeToContent.Manual;
+                ResizeMode = ResizeMode.NoResize;
+
+                // Measure content to get consistent size (same as UpdateViewMode)
+                if (CompactView != null)
+                {
+                    UpdateLayout(); // Force layout before measuring
+                    CompactView.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                    // Increased padding to ensure footer is always visible (+60 instead of +40)
+                    Width = Math.Max(CompactView.DesiredSize.Width + 60, 200);
+                    Height = Math.Max(CompactView.DesiredSize.Height + 60, 280); // Increased min height
+                }
+                else
+                {
+                    // Fallback if view not yet loaded
+                    Width = 200;
+                    Height = 300;
+                }
+
+                MinWidth = 180;
+                MinHeight = 280; // Guarantee space for header + 3 rows + footer
                 break;
 
             case GroupViewMode.Normal:
@@ -694,6 +723,7 @@ public partial class GroupWidget : Window
                     // 8. Change visibility
                     MinimizedView.Visibility = Visibility.Visible;
                     HoverView.Visibility = Visibility.Collapsed;
+                    CompactView.Visibility = Visibility.Collapsed;
                     NormalView.Visibility = Visibility.Collapsed;
                     GridView.Visibility = Visibility.Collapsed;
                     FullscreenView.Visibility = Visibility.Collapsed;
@@ -726,7 +756,9 @@ public partial class GroupWidget : Window
 
                     // 4. Hide all views
                     MinimizedView.Visibility = Visibility.Collapsed;
+                    CompactView.Visibility = Visibility.Collapsed;
                     NormalView.Visibility = Visibility.Collapsed;
+                    GridView.Visibility = Visibility.Collapsed;
                     FullscreenView.Visibility = Visibility.Collapsed;
 
                     // 5. Show HoverView but measure it off-screen
@@ -742,6 +774,48 @@ public partial class GroupWidget : Window
                     Height = desiredHeight;
                     MinWidth = 200;
                     MinHeight = 60;
+
+                    // 8. Force layout
+                    InvalidateMeasure();
+                    InvalidateArrange();
+                    UpdateLayout();
+                    break;
+
+                case GroupViewMode.Compact:
+                    // 1. Check if coming from fullscreen
+                    bool wasFullscreenCompact = (FullscreenView.Visibility == Visibility.Visible);
+
+                    // 2. Restore position if coming from fullscreen
+                    if (wasFullscreenCompact && _preFullscreenLeft > 0)
+                    {
+                        Left = _preFullscreenLeft;
+                        Top = _preFullscreenTop;
+                    }
+
+                    // 3. Set sizing mode FIRST (fixed size for compact)
+                    SizeToContent = SizeToContent.Manual;
+
+                    // 4. Hide all views
+                    MinimizedView.Visibility = Visibility.Collapsed;
+                    HoverView.Visibility = Visibility.Collapsed;
+                    NormalView.Visibility = Visibility.Collapsed;
+                    GridView.Visibility = Visibility.Collapsed;
+                    FullscreenView.Visibility = Visibility.Collapsed;
+
+                    // 5. Show CompactView and measure it
+                    CompactView.Visibility = Visibility.Visible;
+                    UpdateLayout(); // Force layout before measuring
+                    CompactView.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+
+                    // 6. Get desired size - increased padding to ensure footer is always visible
+                    var compactWidth = Math.Max(CompactView.DesiredSize.Width + 60, 200);
+                    var compactHeight = Math.Max(CompactView.DesiredSize.Height + 60, 280);
+
+                    // 7. Set window to exact size
+                    Width = compactWidth;
+                    Height = compactHeight;
+                    MinWidth = 180;
+                    MinHeight = 280; // Guarantee space for header + 3 rows + footer
 
                     // 8. Force layout
                     InvalidateMeasure();
@@ -787,6 +861,7 @@ public partial class GroupWidget : Window
                     // 7. Change visibility
                     MinimizedView.Visibility = Visibility.Collapsed;
                     HoverView.Visibility = Visibility.Collapsed;
+                    CompactView.Visibility = Visibility.Collapsed;
                     NormalView.Visibility = Visibility.Visible;
                     GridView.Visibility = Visibility.Collapsed;
                     FullscreenView.Visibility = Visibility.Collapsed;
@@ -835,6 +910,7 @@ public partial class GroupWidget : Window
                     // 7. Change visibility
                     MinimizedView.Visibility = Visibility.Collapsed;
                     HoverView.Visibility = Visibility.Collapsed;
+                    CompactView.Visibility = Visibility.Collapsed;
                     NormalView.Visibility = Visibility.Collapsed;
                     GridView.Visibility = Visibility.Visible;
                     FullscreenView.Visibility = Visibility.Collapsed;
@@ -859,6 +935,7 @@ public partial class GroupWidget : Window
                     // 3. Change visibility
                     MinimizedView.Visibility = Visibility.Collapsed;
                     HoverView.Visibility = Visibility.Collapsed;
+                    CompactView.Visibility = Visibility.Collapsed;
                     NormalView.Visibility = Visibility.Collapsed;
                     GridView.Visibility = Visibility.Collapsed;
                     FullscreenView.Visibility = Visibility.Visible;
@@ -881,6 +958,7 @@ public partial class GroupWidget : Window
                     Height = 40;
                     MinimizedView.Visibility = Visibility.Visible;
                     HoverView.Visibility = Visibility.Collapsed;
+                    CompactView.Visibility = Visibility.Collapsed;
                     NormalView.Visibility = Visibility.Collapsed;
                     GridView.Visibility = Visibility.Collapsed;
                     FullscreenView.Visibility = Visibility.Collapsed;
@@ -940,6 +1018,11 @@ public partial class GroupWidget : Window
     private void SetMinimized_Click(object sender, RoutedEventArgs e)
     {
         _viewModel?.SetMinimizedCommand.Execute(null);
+    }
+
+    private void SetCompact_Click(object sender, RoutedEventArgs e)
+    {
+        _viewModel?.SetCompactCommand.Execute(null);
     }
 
     private void SetNormal_Click(object sender, RoutedEventArgs e)
