@@ -77,6 +77,7 @@ public partial class GroupWidget : Window
         KeyDown += OnKeyDown; // Keyboard shortcuts
         PreviewMouseLeftButtonDown += OnAnyMouseClick; // Catch ALL clicks to restore sticky mode
         MouseLeftButtonUp += OnMouseUpSyncPosition; // Sync position after ANY mouse release
+        SizeChanged += OnSizeChanged; // Track window resize
 
         // Subscribe to routed events from child controls
         AddHandler(IconTile.RemoveShortcutEvent, new RoutedEventHandler(OnRemoveShortcutRequested));
@@ -331,7 +332,24 @@ public partial class GroupWidget : Window
                 }
                 MinWidth = 200;
                 MinHeight = 150;
-                ResizeMode = ResizeMode.NoResize;
+                ResizeMode = ResizeMode.CanResizeWithGrip; // Allow user to resize
+                break;
+
+            case GroupViewMode.Grid:
+                SizeToContent = SizeToContent.Manual;
+                if (_viewModel != null)
+                {
+                    Width = _viewModel.Width;
+                    Height = _viewModel.Height;
+                }
+                else
+                {
+                    Width = 400;
+                    Height = 300;
+                }
+                MinWidth = 250;
+                MinHeight = 200;
+                ResizeMode = ResizeMode.CanResizeWithGrip; // Allow user to resize
                 break;
 
             case GroupViewMode.Fullscreen:
@@ -1102,6 +1120,32 @@ public partial class GroupWidget : Window
                 _viewModel.PositionX = currentX;
                 _viewModel.PositionY = currentY;
             }
+        }
+    }
+
+    // ============================================================================================
+    // WINDOW RESIZE HANDLER
+    // ============================================================================================
+
+    /// <summary>
+    /// Sync window size to ViewModel when user resizes the window.
+    /// Only applies to Normal and Grid modes (resizable modes).
+    /// </summary>
+    private void OnSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (_viewModel == null || _isInitializing || _isUpdatingViewMode) return;
+
+        // Only sync size for resizable modes (Normal and Grid)
+        if (_viewModel.ViewMode != GroupViewMode.Normal && _viewModel.ViewMode != GroupViewMode.Grid)
+        {
+            return;
+        }
+
+        // Only update if size actually changed (avoid redundant saves)
+        if (Math.Abs(e.NewSize.Width - _viewModel.Width) > 1 || Math.Abs(e.NewSize.Height - _viewModel.Height) > 1)
+        {
+            _viewModel.Width = Math.Round(e.NewSize.Width);
+            _viewModel.Height = Math.Round(e.NewSize.Height);
         }
     }
 
