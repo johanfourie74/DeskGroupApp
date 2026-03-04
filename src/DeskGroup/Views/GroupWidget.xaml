@@ -155,7 +155,7 @@
                                 IconSize="20"
                                 Height="32"
                                 LayoutOrientation="Horizontal"
-                                Margin="2"
+                                Margin="2,2,8,2"
                                 AccentColor="{Binding DataContext.AccentBrush, RelativeSource={RelativeSource AncestorType=Window}}"
                                 LaunchCommand="{Binding LaunchCommand}"/>
                         </DataTemplate>
@@ -205,7 +205,7 @@
                 Background="{Binding TransparentAccentBrush, FallbackValue=#FF0078D4}"
                 BorderBrush="{Binding TransparentBorderBrush, FallbackValue=#FF0078D4}"
                 BorderThickness="2"
-                Padding="10"
+                Padding="4"
                 Visibility="Collapsed"
                 MouseLeftButtonDown="Header_MouseLeftButtonDown"
                 MouseLeftButtonUp="Header_MouseLeftButtonUp"
@@ -234,12 +234,13 @@
                                VerticalAlignment="Center"/>
                 </StackPanel>
 
-                <!-- Fixed 2x3 Grid (6 icons max) -->
+                <!-- Fixed horizontal rows (max 6 per row, 2 rows max = 12 total, icons only) -->
                 <ItemsControl Grid.Row="1"
-                              ItemsSource="{Binding TopUsedShortcuts}">
+                              ItemsSource="{Binding TopUsedShortcuts}"
+                              Width="204">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
-                            <UniformGrid Rows="3" Columns="2"/>
+                            <WrapPanel Orientation="Horizontal"/>
                         </ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
@@ -247,10 +248,11 @@
                             <controls:IconTile 
                                 Icon="{Binding IconImage}"
                                 DisplayName="{Binding DisplayName}"
-                                IconSize="40"
-                                Width="90"
-                                Height="90"
-                                Margin="4"
+                                IconSize="24"
+                                Width="32"
+                                Height="32"
+                                ShowLabel="False"
+                                Margin="1"
                                 AccentColor="{Binding DataContext.AccentBrush, RelativeSource={RelativeSource AncestorType=Window}}"
                                 LaunchCommand="{Binding LaunchCommand}"/>
                         </DataTemplate>
@@ -289,7 +291,7 @@
                 Background="{Binding TransparentAccentBrush, FallbackValue=#FF0078D4}"
                 BorderBrush="{Binding TransparentBorderBrush, FallbackValue=#FF0078D4}"
                 BorderThickness="2"
-                Padding="10"
+                Padding="4"
                 Visibility="Collapsed">
             <Grid>
                 <Grid.RowDefinitions>
@@ -324,7 +326,8 @@
                 <!-- Shortcuts Grid -->
                 <ScrollViewer Grid.Row="1"
                               VerticalScrollBarVisibility="Auto"
-                              MaxHeight="400">
+                              MaxHeight="400"
+                              Padding="0,0,8,0">
                     <ItemsControl ItemsSource="{Binding AllShortcuts}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
@@ -332,9 +335,9 @@
                                     Icon="{Binding IconImage}"
                                     DisplayName="{Binding DisplayName}"
                                     IconSize="24"
-                                    Height="40"
+                                    Height="32"
                                     LayoutOrientation="Horizontal"
-                                    Margin="2"
+                                    Margin="2,2,2,2"
                                     AccentColor="{Binding DataContext.AccentBrush, RelativeSource={RelativeSource AncestorType=Window}}"
                                     LaunchCommand="{Binding LaunchCommand}"/>
                             </DataTemplate>

@@ -5,11 +5,23 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d"
              d:DesignWidth="72" d:DesignHeight="88"
-             HorizontalAlignment="Stretch"
-             Height="{Binding TileHeight, RelativeSource={RelativeSource Self}, FallbackValue=88}"
-             ToolTip="{Binding DisplayName, RelativeSource={RelativeSource Self}}">
+             HorizontalAlignment="Stretch">
+    <UserControl.Style>
+        <Style TargetType="UserControl">
+            <!-- Default: No tooltip (for views with labels) -->
+            <Setter Property="ToolTip" Value="{x:Null}"/>
+            <Style.Triggers>
+                <!-- Only show tooltip when label is hidden (icon-only views like Compact) -->
+                <DataTrigger Binding="{Binding ShowLabel, RelativeSource={RelativeSource Self}}" Value="False">
+                    <Setter Property="ToolTip" Value="{Binding DisplayName, RelativeSource={RelativeSource Self}}"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Style>
 
     <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+
         <Storyboard x:Key="HoverIn">
             <DoubleAnimation Storyboard.TargetName="HoverBorder"
                              Storyboard.TargetProperty="Opacity"
@@ -51,16 +63,17 @@
         <!-- Content -->
         <StackPanel x:Name="ContentPanel"
                     Orientation="{Binding LayoutOrientation, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                    VerticalAlignment="Center"
-                    Margin="4">
+                    VerticalAlignment="Center">
             <StackPanel.Style>
                 <Style TargetType="StackPanel">
-                    <!-- Default: Centered (for Vertical orientation) -->
+                    <!-- Default: Centered with full margin (for Vertical orientation) -->
                     <Setter Property="HorizontalAlignment" Value="Center"/>
+                    <Setter Property="Margin" Value="4"/>
                     <Style.Triggers>
-                        <!-- Horizontal orientation: Left-aligned -->
+                        <!-- Horizontal orientation: Left-aligned with minimal vertical margin -->
                         <DataTrigger Binding="{Binding LayoutOrientation, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="Horizontal">
                             <Setter Property="HorizontalAlignment" Value="Left"/>
+                            <Setter Property="Margin" Value="4,2,4,2"/>
                         </DataTrigger>
                     </Style.Triggers>
                 </Style>
@@ -70,8 +83,19 @@
             <Border Width="{Binding IconSize, RelativeSource={RelativeSource AncestorType=UserControl}, FallbackValue=48}"
                     Height="{Binding IconSize, RelativeSource={RelativeSource AncestorType=UserControl}, FallbackValue=48}"
                     HorizontalAlignment="Center"
-                    VerticalAlignment="Center"
-                    Margin="0,2,8,2">
+                    VerticalAlignment="Center">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <!-- Default: Symmetric margins (for Vertical orientation) -->
+                        <Setter Property="Margin" Value="0,2,0,2"/>
+                        <Style.Triggers>
+                            <!-- Horizontal orientation: Add right margin between icon and text -->
+                            <DataTrigger Binding="{Binding LayoutOrientation, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="Horizontal">
+                                <Setter Property="Margin" Value="0,2,8,2"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
                 <Image x:Name="IconImage"
                        Source="{Binding Icon, RelativeSource={RelativeSource AncestorType=UserControl}}"
                        Stretch="Uniform"
@@ -86,7 +110,8 @@
                        FontSize="{DynamicResource FontSizeSmall}"
                        TextTrimming="CharacterEllipsis"
                        TextWrapping="NoWrap"
-                       VerticalAlignment="Center">
+                       VerticalAlignment="Center"
+                       Visibility="{Binding ShowLabel, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <TextBlock.Style>
                     <Style TargetType="TextBlock">
                         <!-- Default: Centered with MaxWidth (for Vertical orientation) -->

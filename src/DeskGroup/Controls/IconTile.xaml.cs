@@ -142,6 +142,18 @@ public partial class IconTile : UserControl
         set => SetValue(LayoutOrientationProperty, value);
     }
 
+    // Show Label (for hiding text in icon-only views like Compact)
+
+    public static readonly DependencyProperty ShowLabelProperty =
+        DependencyProperty.Register(nameof(ShowLabel), typeof(bool), typeof(IconTile),
+            new PropertyMetadata(true)); // Default: show label
+
+    public bool ShowLabel
+    {
+        get => (bool)GetValue(ShowLabelProperty);
+        set => SetValue(ShowLabelProperty, value);
+    }
+
     // Launch Command (double-click)
 
     public static readonly DependencyProperty LaunchCommandProperty =

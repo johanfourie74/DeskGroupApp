@@ -352,7 +352,7 @@ public partial class GroupViewModel : ObservableObject
 
     public void RefreshTopUsed()
     {
-        var topItems = _usageTracker.GetTopUsedWithFallback(_model, 10);
+        var topItems = _usageTracker.GetTopUsedWithFallback(_model, 12); // Changed from 10 to 12 for Compact view (2 rows x 6 icons)
         TopUsedShortcuts.Clear();
         foreach (var item in topItems)
         {

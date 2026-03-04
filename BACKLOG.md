@@ -44,6 +44,15 @@ Based on new features added in BATCH 2 (Status Footer, Transparency Controls, Ex
   - Improved spacing and margins
   - Window position/size persistence
 
+- [x] **Compact & Normal View Refinements** ✓ **DONE & VERIFIED**
+  - Compact view: Icons only (32x32 tiles, 24px icons) with tooltips
+  - Normal view: Reduced row height (32px), even margins (2px all sides)
+  - Border padding: 10px → 4px (both views)
+  - Fixed IconTile height (removed FallbackValue=88)
+  - Symmetric icon padding (2px top/bottom)
+  - Dynamic height for 1-2 rows in Compact view
+  - Tooltips conditional on ShowLabel property
+
 - [ ] **Footer Styling Polish**
   - Adjust font sizes for consistency across view modes (PAUSED - awaiting detailed requirements)
   - Refine background opacity/color for better visibility

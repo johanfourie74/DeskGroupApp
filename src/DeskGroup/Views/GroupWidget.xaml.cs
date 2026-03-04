@@ -379,7 +379,7 @@ public partial class GroupWidget : Window
                 break;
 
             case GroupViewMode.Compact:
-                // Fixed size for compact view (2x3 grid)
+                // Dynamic size for compact view (1-2 rows of 32px icons)
                 SizeToContent = SizeToContent.Manual;
                 ResizeMode = ResizeMode.NoResize;
 
@@ -388,19 +388,19 @@ public partial class GroupWidget : Window
                 {
                     UpdateLayout(); // Force layout before measuring
                     CompactView.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-                    // Increased padding to ensure footer is always visible (+60 instead of +40)
-                    Width = Math.Max(CompactView.DesiredSize.Width + 60, 200);
-                    Height = Math.Max(CompactView.DesiredSize.Height + 60, 280); // Increased min height
+                    // Reduced padding for smaller 32px icons (+20 instead of +60)
+                    Width = Math.Max(CompactView.DesiredSize.Width + 20, 200);
+                    Height = Math.Max(CompactView.DesiredSize.Height + 20, 120); // Dynamic height for 1-2 rows
                 }
                 else
                 {
                     // Fallback if view not yet loaded
-                    Width = 200;
-                    Height = 300;
+                    Width = 220;
+                    Height = 140;
                 }
 
                 MinWidth = 180;
-                MinHeight = 280; // Guarantee space for header + 3 rows + footer
+                MinHeight = 120; // Minimum for header + 1 row + footer
                 break;
 
             case GroupViewMode.Normal:
@@ -847,8 +847,8 @@ public partial class GroupWidget : Window
                     CompactView.Visibility = Visibility.Visible;
 
                     CompactView.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-                    int compactTargetW = (int)Math.Max(CompactView.DesiredSize.Width + 60, 200);
-                    int compactTargetH = (int)Math.Max(CompactView.DesiredSize.Height + 60, 280);
+                    int compactTargetW = (int)Math.Max(CompactView.DesiredSize.Width + 20, 200);
+                    int compactTargetH = (int)Math.Max(CompactView.DesiredSize.Height + 20, 120);
                     int compactTargetX = wasFullscreenCompact && _preFullscreenLeft > 0 ? (int)_preFullscreenLeft : (_viewModel != null ? (int)_viewModel.PositionX : 0);
                     int compactTargetY = wasFullscreenCompact && _preFullscreenTop > 0 ? (int)_preFullscreenTop : (_viewModel != null ? (int)_viewModel.PositionY : 0);
 
@@ -875,7 +875,7 @@ public partial class GroupWidget : Window
                     SizeToContent = SizeToContent.Manual;
                     ResizeMode = ResizeMode.NoResize;
                     MinWidth = 180;
-                    MinHeight = 280;
+                    MinHeight = 120;
                     Visibility = Visibility.Visible;
                     break;
 
