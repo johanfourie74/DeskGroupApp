@@ -130,6 +130,18 @@ public partial class IconTile : UserControl
         set => SetValue(AccentColorProperty, value);
     }
 
+    // Layout Orientation (for horizontal vs vertical layout)
+
+    public static readonly DependencyProperty LayoutOrientationProperty =
+        DependencyProperty.Register(nameof(LayoutOrientation), typeof(Orientation), typeof(IconTile),
+            new PropertyMetadata(Orientation.Vertical));
+
+    public Orientation LayoutOrientation
+    {
+        get => (Orientation)GetValue(LayoutOrientationProperty);
+        set => SetValue(LayoutOrientationProperty, value);
+    }
+
     // Launch Command (double-click)
 
     public static readonly DependencyProperty LaunchCommandProperty =

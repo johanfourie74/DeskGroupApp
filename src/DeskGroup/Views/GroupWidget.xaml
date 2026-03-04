@@ -333,7 +333,8 @@
                                     DisplayName="{Binding DisplayName}"
                                     IconSize="32"
                                     TileWidth="200"
-                                    TileHeight="60"
+                                    TileHeight="50"
+                                    LayoutOrientation="Horizontal"
                                     Margin="2"
                                     AccentColor="{Binding DataContext.AccentBrush, RelativeSource={RelativeSource AncestorType=Window}}"
                                     LaunchCommand="{Binding LaunchCommand}"/>

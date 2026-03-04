@@ -49,13 +49,16 @@
                 Opacity="0"/>
 
         <!-- Content -->
-        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
+        <StackPanel Orientation="{Binding LayoutOrientation, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Center"
                     Margin="4">
             <!-- Icon -->
             <Border Width="{Binding IconSize, RelativeSource={RelativeSource AncestorType=UserControl}, FallbackValue=48}"
                     Height="{Binding IconSize, RelativeSource={RelativeSource AncestorType=UserControl}, FallbackValue=48}"
                     HorizontalAlignment="Center"
-                    Margin="0,2,0,4">
+                    VerticalAlignment="Center"
+                    Margin="0,2,8,2">
                 <Image x:Name="IconImage"
                        Source="{Binding Icon, RelativeSource={RelativeSource AncestorType=UserControl}}"
                        Stretch="Uniform"
@@ -68,11 +71,12 @@
                        Foreground="{DynamicResource ForegroundPrimary}"
                        FontFamily="{DynamicResource DefaultFont}"
                        FontSize="{DynamicResource FontSizeSmall}"
-                       TextAlignment="Center"
+                       TextAlignment="Left"
                        TextTrimming="CharacterEllipsis"
                        TextWrapping="NoWrap"
-                       MaxWidth="68"
-                       HorizontalAlignment="Center"/>
+                       MaxWidth="150"
+                       VerticalAlignment="Center"
+                       HorizontalAlignment="Left"/>
         </StackPanel>
 
         <!-- Click overlay (invisible, allows mouse events to pass through for hover) -->
