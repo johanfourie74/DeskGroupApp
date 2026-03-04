@@ -13,13 +13,13 @@
         <Storyboard x:Key="HoverIn">
             <DoubleAnimation Storyboard.TargetName="HoverBorder"
                              Storyboard.TargetProperty="Opacity"
-                             To="1" Duration="0:0:0.15"/>
+                             To="1.0" Duration="0:0:0.15"/>
             <DoubleAnimation Storyboard.TargetName="ScaleTransform"
                              Storyboard.TargetProperty="ScaleX"
-                             To="1.05" Duration="0:0:0.1"/>
+                             To="1.08" Duration="0:0:0.1"/>
             <DoubleAnimation Storyboard.TargetName="ScaleTransform"
                              Storyboard.TargetProperty="ScaleY"
-                             To="1.05" Duration="0:0:0.1"/>
+                             To="1.08" Duration="0:0:0.1"/>
         </Storyboard>
         <Storyboard x:Key="HoverOut">
             <DoubleAnimation Storyboard.TargetName="HoverBorder"
@@ -39,19 +39,12 @@
                         ScaleX="1" ScaleY="1"/>
     </UserControl.RenderTransform>
 
-    <UserControl.Triggers>
-        <EventTrigger RoutedEvent="MouseEnter">
-            <BeginStoryboard Storyboard="{StaticResource HoverIn}"/>
-        </EventTrigger>
-        <EventTrigger RoutedEvent="MouseLeave">
-            <BeginStoryboard Storyboard="{StaticResource HoverOut}"/>
-        </EventTrigger>
-    </UserControl.Triggers>
-
-    <Grid>
-        <!-- Hover background -->
+    <Grid x:Name="RootGrid" MouseEnter="Grid_MouseEnter" MouseLeave="Grid_MouseLeave">
+        <!-- Hover highlight with accent border and background -->
         <Border x:Name="HoverBorder"
                 CornerRadius="6"
+                BorderBrush="{DynamicResource AccentPrimary}"
+                BorderThickness="2"
                 Background="{DynamicResource BackgroundTertiary}"
                 Opacity="0"/>
 
@@ -82,9 +75,10 @@
                        HorizontalAlignment="Center"/>
         </StackPanel>
 
-        <!-- Click overlay (invisible, catches clicks) -->
+        <!-- Click overlay (invisible, allows mouse events to pass through for hover) -->
         <Border Background="Transparent"
-                Cursor="Hand">
+                Cursor="Hand"
+                IsHitTestVisible="True">
             <Border.InputBindings>
                 <MouseBinding Gesture="LeftDoubleClick"
                               Command="{Binding LaunchCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>

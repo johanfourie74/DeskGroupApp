@@ -93,6 +93,16 @@
 - ✅ Styled with semi-transparent dark background
 - ✅ Real-time updates when modes change
 
+#### **9. UI Polish** ✓ **[BATCH 3 START]**
+- ✅ **Settings Window Always On Top** - Added `Topmost="True"` to SettingsWindow.xaml
+- ⚠️ **Icon Hover Effect** - IconTile hover working in preview, NOT in real app
+  - **Root Cause:** GroupWidget.xaml uses Border templates, not IconTile controls
+  - **IconTile.xaml:** Hover animation working perfectly (blue border + scale + background)
+  - **Fix Required:** Replace Border templates in GroupWidget.xaml with IconTile usage
+  - **Files to Update:** GroupWidget.xaml (Normal/Grid/Compact/Hover/Fullscreen views)
+  - **Status:** Code ready, needs integration into main views
+  - **Priority:** Medium (UX polish, not critical functionality)
+
 ---
 
 ## 🐛 **BUGS FIXED THIS SESSION:**

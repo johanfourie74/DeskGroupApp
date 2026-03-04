@@ -2,6 +2,7 @@
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 
 namespace DeskGroup.Controls;
 
@@ -10,6 +11,43 @@ public partial class IconTile : UserControl
     public IconTile()
     {
         InitializeComponent();
+    }
+
+    // Grid mouse event handlers (triggered by XAML)
+    private void Grid_MouseEnter(object sender, MouseEventArgs e)
+    {
+        try
+        {
+            // Start hover-in animation
+            var hoverInStoryboard = (Storyboard?)Resources["HoverIn"];
+            if (hoverInStoryboard != null)
+            {
+                hoverInStoryboard.Begin(this);
+                System.Diagnostics.Debug.WriteLine($"🖱️ HOVER IN: {DisplayName}");
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Grid_MouseEnter ERROR: {ex.Message}");
+        }
+    }
+
+    private void Grid_MouseLeave(object sender, MouseEventArgs e)
+    {
+        try
+        {
+            // Start hover-out animation
+            var hoverOutStoryboard = (Storyboard?)Resources["HoverOut"];
+            if (hoverOutStoryboard != null)
+            {
+                hoverOutStoryboard.Begin(this);
+                System.Diagnostics.Debug.WriteLine($"🖱️ HOVER OUT: {DisplayName}");
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Grid_MouseLeave ERROR: {ex.Message}");
+        }
     }
 
     // Icon Source
