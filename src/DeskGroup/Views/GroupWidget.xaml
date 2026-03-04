@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:controls="clr-namespace:DeskGroup.Controls"
         mc:Ignorable="d"
         Title="{Binding Name}"
         WindowStyle="None"
@@ -148,24 +149,15 @@
                               ItemsSource="{Binding TopUsedShortcuts}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Border Background="#20FFFFFF"
-                                    CornerRadius="4"
-                                    Padding="6"
-                                    Margin="0,2"
-                                    Cursor="Hand"
-                                    PreviewMouseLeftButtonDown="Shortcut_Click"
-                                    MouseRightButtonUp="Shortcut_RightClick">
-                                <StackPanel Orientation="Horizontal">
-                                    <Image Source="{Binding IconImage}"
-                                           Width="20" 
-                                           Height="20"
-                                           Margin="0,0,6,0"/>
-                                    <TextBlock Text="{Binding DisplayName}"
-                                               Foreground="White"
-                                               FontSize="12"
-                                               VerticalAlignment="Center"/>
-                                </StackPanel>
-                            </Border>
+                            <controls:IconTile 
+                                Icon="{Binding IconImage}"
+                                DisplayName="{Binding DisplayName}"
+                                IconSize="32"
+                                TileWidth="100"
+                                TileHeight="80"
+                                Margin="4,2"
+                                AccentColor="{Binding DataContext.AccentBrush, RelativeSource={RelativeSource AncestorType=Window}}"
+                                LaunchCommand="{Binding LaunchCommand}"/>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
@@ -252,26 +244,15 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Border Background="#20FFFFFF"
-                                    CornerRadius="4"
-                                    Padding="4"
-                                    Margin="2"
-                                    Cursor="Hand"
-                                    PreviewMouseLeftButtonDown="Shortcut_Click"
-                                    MouseRightButtonUp="Shortcut_RightClick">
-                                <StackPanel HorizontalAlignment="Center">
-                                    <Image Source="{Binding IconImage}"
-                                           Width="36"
-                                           Height="36"
-                                           Margin="0,0,0,4"/>
-                                    <TextBlock Text="{Binding DisplayName}"
-                                               Foreground="White"
-                                               FontSize="9"
-                                               TextAlignment="Center"
-                                               TextTrimming="CharacterEllipsis"
-                                               MaxWidth="70"/>
-                                </StackPanel>
-                            </Border>
+                            <controls:IconTile 
+                                Icon="{Binding IconImage}"
+                                DisplayName="{Binding DisplayName}"
+                                IconSize="40"
+                                TileWidth="90"
+                                TileHeight="90"
+                                Margin="4"
+                                AccentColor="{Binding DataContext.AccentBrush, RelativeSource={RelativeSource AncestorType=Window}}"
+                                LaunchCommand="{Binding LaunchCommand}"/>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
@@ -347,23 +328,15 @@
                     <ItemsControl ItemsSource="{Binding AllShortcuts}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Border Background="#20FFFFFF"
-                                        CornerRadius="4"
-                                        Padding="8"
-                                        Margin="2"
-                                        Cursor="Hand"
-                                        PreviewMouseLeftButtonDown="Shortcut_Click"
-                                        MouseRightButtonUp="Shortcut_RightClick">
-                                    <StackPanel Orientation="Horizontal">
-                                        <Image Source="{Binding IconImage}"
-                                               Width="24" 
-                                               Height="24"
-                                               Margin="0,0,8,0"/>
-                                        <TextBlock Text="{Binding DisplayName}"
-                                                   Foreground="White"
-                                                   VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                </Border>
+                                <controls:IconTile 
+                                    Icon="{Binding IconImage}"
+                                    DisplayName="{Binding DisplayName}"
+                                    IconSize="32"
+                                    TileWidth="200"
+                                    TileHeight="60"
+                                    Margin="2"
+                                    AccentColor="{Binding DataContext.AccentBrush, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    LaunchCommand="{Binding LaunchCommand}"/>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
@@ -457,32 +430,15 @@
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Border Background="#20FFFFFF"
-                                        BorderBrush="#40FFFFFF"
-                                        BorderThickness="1"
-                                        CornerRadius="4"
-                                        Width="80"
-                                        Height="80"
-                                        Margin="4"
-                                        Cursor="Hand"
-                                        MouseLeftButtonDown="Shortcut_Click"
-                                        MouseRightButtonUp="Shortcut_RightClick">
-                                    <StackPanel HorizontalAlignment="Center"
-                                                VerticalAlignment="Center">
-                                        <Image Source="{Binding IconImage}" 
-                                               Width="32" 
-                                               Height="32"
-                                               Margin="0,0,0,4"/>
-                                        <TextBlock Text="{Binding DisplayName}"
-                                                   Foreground="White"
-                                                   FontSize="10"
-                                                   TextWrapping="Wrap"
-                                                   TextAlignment="Center"
-                                                   MaxWidth="70"
-                                                   MaxHeight="28"
-                                                   TextTrimming="CharacterEllipsis"/>
-                                    </StackPanel>
-                                </Border>
+                                <controls:IconTile 
+                                    Icon="{Binding IconImage}"
+                                    DisplayName="{Binding DisplayName}"
+                                    IconSize="48"
+                                    TileWidth="90"
+                                    TileHeight="100"
+                                    Margin="4"
+                                    AccentColor="{Binding DataContext.AccentBrush, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    LaunchCommand="{Binding LaunchCommand}"/>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
@@ -573,29 +529,15 @@
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Button Background="#20FFFFFF"
-                                        BorderBrush="#40FFFFFF"
-                                        BorderThickness="1"
-                                        Width="120"
-                                        Height="120"
-                                        Margin="8"
-                                        Cursor="Hand"
-                                        Padding="8"
-                                        Click="Shortcut_Click"
-                                        MouseRightButtonUp="Shortcut_RightClick">
-                                    <StackPanel HorizontalAlignment="Center">
-                                        <Image Source="{Binding IconImage}" 
-                                               Width="48" 
-                                               Height="48"
-                                               Margin="0,0,0,8"/>
-                                        <TextBlock Text="{Binding DisplayName}"
-                                                   Foreground="White"
-                                                   FontSize="12"
-                                                   TextWrapping="Wrap"
-                                                   TextAlignment="Center"
-                                                   MaxWidth="100"/>
-                                    </StackPanel>
-                                </Button>
+                                <controls:IconTile 
+                                    Icon="{Binding IconImage}"
+                                    DisplayName="{Binding DisplayName}"
+                                    IconSize="64"
+                                    TileWidth="130"
+                                    TileHeight="130"
+                                    Margin="8"
+                                    AccentColor="{Binding DataContext.AccentBrush, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    LaunchCommand="{Binding LaunchCommand}"/>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>

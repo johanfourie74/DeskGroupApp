@@ -19,6 +19,43 @@ public partial class SettingsWindow : Window
         InitializeComponent();
         _viewModel = viewModel;
         DataContext = _viewModel;
+
+        // Restore window position if previously saved
+        Loaded += SettingsWindow_Loaded;
+        Closing += SettingsWindow_Closing;
+    }
+
+    private void SettingsWindow_Loaded(object sender, RoutedEventArgs e)
+    {
+        var settings = _viewModel.Settings;
+
+        // Restore position if valid
+        if (!double.IsNaN(settings.SettingsWindowLeft) && !double.IsNaN(settings.SettingsWindowTop))
+        {
+            Left = settings.SettingsWindowLeft;
+            Top = settings.SettingsWindowTop;
+            Width = settings.SettingsWindowWidth;
+            Height = settings.SettingsWindowHeight;
+
+            // Ensure window is on screen
+            var workingArea = SystemParameters.WorkArea;
+            if (Left < workingArea.Left || Left > workingArea.Right - Width)
+                WindowStartupLocation = WindowStartupLocation.CenterScreen;
+            if (Top < workingArea.Top || Top > workingArea.Bottom - Height)
+                WindowStartupLocation = WindowStartupLocation.CenterScreen;
+        }
+    }
+
+    private void SettingsWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
+    {
+        // Save window position
+        var settings = _viewModel.Settings;
+        settings.SettingsWindowLeft = Left;
+        settings.SettingsWindowTop = Top;
+        settings.SettingsWindowWidth = Width;
+        settings.SettingsWindowHeight = Height;
+
+        // ViewModel will auto-save via debounce
     }
 
     /// <summary>
@@ -66,6 +103,21 @@ public partial class SettingsWindow : Window
     private void CloseButton_Click(object sender, RoutedEventArgs e)
     {
         Close();
+    }
+
+    private void TransparencySlider_MouseWheel(object sender, System.Windows.Input.MouseWheelEventArgs e)
+    {
+        var slider = (System.Windows.Controls.Slider)sender;
+
+        // Scroll up = increase, scroll down = decrease
+        double change = e.Delta > 0 ? 0.05 : -0.05;
+        double newValue = slider.Value + change;
+
+        // Clamp to min/max
+        newValue = Math.Max(slider.Minimum, Math.Min(slider.Maximum, newValue));
+        slider.Value = newValue;
+
+        e.Handled = true;
     }
 
     /// <summary>

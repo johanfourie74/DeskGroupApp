@@ -25,6 +25,12 @@ public class AppSettings
     public bool IsFirstRun { get; set; } = true;
     public string LastAppVersion { get; set; } = "1.0.0";
     public int AutoSaveDebounceMs { get; set; } = 2000;
+
+    // Settings Window Position
+    public double SettingsWindowLeft { get; set; } = double.NaN;
+    public double SettingsWindowTop { get; set; } = double.NaN;
+    public double SettingsWindowWidth { get; set; } = 520;
+    public double SettingsWindowHeight { get; set; } = 600;
 }
 
 public enum ThemeMode

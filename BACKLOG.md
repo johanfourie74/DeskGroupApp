@@ -1,6 +1,6 @@
 # DeskGroup - Development Backlog
 
-**Last Updated:** 2026-03-03 (BATCH 3 Session - Compact Mode + Resize)  
+**Last Updated:** 2026-03-03 (BATCH 3 Session - UI Polish)  
 **Status:** Ready for Next Session  
 **Commit:** Updated with each commit
 
@@ -24,26 +24,36 @@
 Based on new features added in BATCH 2 (Status Footer, Transparency Controls, Extended Colors)
 
 #### **Specific Tasks:**
+- [x] **Icon Hover Effect** ✓ **DONE & VERIFIED**
+  - Integrated IconTile into all view modes (Hover, Compact, Normal, Grid, Fullscreen)
+  - Added AccentColor property (uses group color, not standard blue)
+  - Hover opacity set to 30% for subtle effect
+  - Mouse event handlers working reliably
+
+- [x] **All Dialogs Always On Top** ✓ **DONE & VERIFIED**
+  - SettingsWindow, UngroupedIconsDialog, ColorPickerDialog, InputDialog
+  - All dialogs now appear above floating group windows
+
+- [x] **Transparency Control UX** ✓ **DONE & VERIFIED**
+  - Added visual tick marks at 0%, 25%, 50%, 75%, 100%
+  - Mouse wheel support for adjusting slider
+  - Large change step set to 25%
+
+- [x] **Settings Window Polish** ✓ **DONE & VERIFIED**
+  - Added visual separators between sections
+  - Improved spacing and margins
+  - Window position/size persistence
+
 - [ ] **Footer Styling Polish**
-  - Adjust font sizes for consistency across view modes
+  - Adjust font sizes for consistency across view modes (PAUSED - awaiting detailed requirements)
   - Refine background opacity/color for better visibility
   - Consider adding subtle separator between left/right text
   - Test readability in both light and dark themes
-  
-- [ ] **Transparency Control UX**
-  - Add visual preview of opacity changes
-  - Consider adding preset buttons (25%, 50%, 75%, 100%)
-  - Add tooltip showing current percentage value
-  
+
 - [ ] **Color Picker Enhancement**
   - Verify new colors (White, Light Gray, Dark Gray, Black) work well in both themes
   - Consider adding color name tooltips
   - Test contrast/visibility with transparency settings
-  
-- [ ] **Settings Window Polish**
-  - Ensure consistent spacing and alignment
-  - Add descriptive labels/tooltips for all settings
-  - Consider grouping related settings (Appearance, Behavior, etc.)
 
 ---
 
@@ -244,10 +254,11 @@ Based on new features added in BATCH 2 (Status Footer, Transparency Controls, Ex
 - [ ] Window flicker during rapid view mode switches (minimize → hover → minimize)
 - [ ] Drag threshold can be too sensitive on high-DPI displays
 - [ ] Occasional position desync after monitor disconnect/reconnect
+- [ ] **Normal view icon alignment** - Icons are centered instead of left-aligned with text on right (horizontal layout needed)
 
 ### **Low Priority**
 - [ ] Minor visual glitches in fullscreen mode on secondary monitors
-- [ ] Settings window doesn't remember size/position
+- ~~[ ] Settings window doesn't remember size/position~~ ✓ **FIXED IN BATCH 3**
 - [ ] Hover timer can fire even when mouse leaves during drag
 
 ---
@@ -261,6 +272,11 @@ Based on new features added in BATCH 2 (Status Footer, Transparency Controls, Ex
 - ✅ Size persistence for resizable modes ✓
 - ✅ OnSizeChanged handler for resize tracking ✓
 - ✅ Compact view footer visibility fix ✓
+- ✅ Settings Window Always On Top ✓ VERIFIED
+- ✅ All Dialogs Always On Top (Ungrouped Icons, Color Picker, Input Dialog) ✓ VERIFIED
+- ✅ Icon Hover Effect (IconTile integration, accent color binding, 30% opacity) ✓ VERIFIED
+- ✅ Transparency Slider Enhancements (tick marks, mouse wheel support) ✓ VERIFIED
+- ✅ Settings Window Layout Polish (separators, spacing, position persistence) ✓ VERIFIED
 
 ### **BATCH 2 (Previous)** ✓ **VERIFIED**
 - ✅ Settings Window Theme Support ✓
@@ -311,11 +327,13 @@ Based on new features added in BATCH 2 (Status Footer, Transparency Controls, Ex
 - ✅ Usage tracking (top 10 most-used)
 
 **Polish Tasks (In Progress):**
-- [ ] Footer styling refinement
-- [ ] Transparency UX improvements (preset buttons)
-- [ ] Settings window organization
-- [ ] Color picker tooltips
-- [ ] Settings persistence (window size/position)
+- [ ] Footer styling refinement (paused - awaiting detailed requirements)
+- [x] Transparency UX improvements (tick marks + mouse wheel) ✓ **DONE**
+- [x] Settings window organization (separators + spacing) ✓ **DONE**
+- [ ] Color picker tooltips (optional enhancement)
+- [x] Settings persistence (window size/position) ✓ **DONE**
+- [x] Icon hover effect (integrated into all views) ✓ **DONE**
+- [x] All dialogs topmost ✓ **DONE**
 
 **Quality Gates:**
 - [ ] Build successful on clean machine

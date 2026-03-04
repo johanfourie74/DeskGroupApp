@@ -13,7 +13,7 @@
         <Storyboard x:Key="HoverIn">
             <DoubleAnimation Storyboard.TargetName="HoverBorder"
                              Storyboard.TargetProperty="Opacity"
-                             To="1.0" Duration="0:0:0.15"/>
+                             To="0.3" Duration="0:0:0.15"/>
             <DoubleAnimation Storyboard.TargetName="ScaleTransform"
                              Storyboard.TargetProperty="ScaleX"
                              To="1.08" Duration="0:0:0.1"/>
@@ -40,10 +40,10 @@
     </UserControl.RenderTransform>
 
     <Grid x:Name="RootGrid" MouseEnter="Grid_MouseEnter" MouseLeave="Grid_MouseLeave">
-        <!-- Hover highlight with accent border and background -->
+        <!-- Hover highlight with accent border (uses group color if provided) -->
         <Border x:Name="HoverBorder"
                 CornerRadius="6"
-                BorderBrush="{DynamicResource AccentPrimary}"
+                BorderBrush="{Binding AccentColor, RelativeSource={RelativeSource AncestorType=UserControl}, FallbackValue={StaticResource AccentPrimary}}"
                 BorderThickness="2"
                 Background="{DynamicResource BackgroundTertiary}"
                 Opacity="0"/>

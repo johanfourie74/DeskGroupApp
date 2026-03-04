@@ -23,6 +23,7 @@ public class ColorPickerDialog : Window
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
         WindowStyle = WindowStyle.ToolWindow;
         ResizeMode = ResizeMode.NoResize;
+        Topmost = true; // Always on top
 
         SelectedColor = currentColor;
 

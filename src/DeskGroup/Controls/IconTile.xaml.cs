@@ -118,6 +118,18 @@ public partial class IconTile : UserControl
         set => SetValue(TileHeightProperty, value);
     }
 
+    // Accent Color (for hover border)
+
+    public static readonly DependencyProperty AccentColorProperty =
+        DependencyProperty.Register(nameof(AccentColor), typeof(System.Windows.Media.Brush), typeof(IconTile),
+            new PropertyMetadata(null));
+
+    public System.Windows.Media.Brush? AccentColor
+    {
+        get => (System.Windows.Media.Brush?)GetValue(AccentColorProperty);
+        set => SetValue(AccentColorProperty, value);
+    }
+
     // Launch Command (double-click)
 
     public static readonly DependencyProperty LaunchCommandProperty =

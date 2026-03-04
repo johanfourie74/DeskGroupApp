@@ -1451,6 +1451,7 @@ public class InputDialog : Window
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
         WindowStyle = WindowStyle.ToolWindow;
         ResizeMode = ResizeMode.NoResize;
+        Topmost = true; // Always on top
 
         var grid = new System.Windows.Controls.Grid();
         grid.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = System.Windows.GridLength.Auto });

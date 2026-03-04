@@ -45,6 +45,9 @@ public partial class SettingsViewModel : ObservableObject
     public List<GroupDockMode> DockModes { get; } = new() { GroupDockMode.Sticky, GroupDockMode.Float };
     public List<IconSizeMode> IconSizeModes { get; } = new() { IconSizeMode.System, IconSizeMode.Custom };
 
+    // Expose settings for window position persistence
+    public AppSettings Settings => _settings;
+
     public SettingsViewModel(AppSettings settings, PersistenceService persistenceService, StartupService startupService)
     {
         _settings = settings; _persistenceService = persistenceService; _startupService = startupService;

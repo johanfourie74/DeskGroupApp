@@ -11,7 +11,8 @@
         WindowStyle="None"
         ResizeMode="CanResizeWithGrip"
         AllowsTransparency="True"
-        Background="Transparent">
+        Background="Transparent"
+        Topmost="True">
 
     <Window.Resources>
         <!-- Row style for each ungrouped icon -->

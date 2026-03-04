@@ -93,15 +93,32 @@
 - ✅ Styled with semi-transparent dark background
 - ✅ Real-time updates when modes change
 
-#### **9. UI Polish** ✓ **[BATCH 3 START]**
-- ✅ **Settings Window Always On Top** - Added `Topmost="True"` to SettingsWindow.xaml
-- ⚠️ **Icon Hover Effect** - IconTile hover working in preview, NOT in real app
-  - **Root Cause:** GroupWidget.xaml uses Border templates, not IconTile controls
-  - **IconTile.xaml:** Hover animation working perfectly (blue border + scale + background)
-  - **Fix Required:** Replace Border templates in GroupWidget.xaml with IconTile usage
-  - **Files to Update:** GroupWidget.xaml (Normal/Grid/Compact/Hover/Fullscreen views)
-  - **Status:** Code ready, needs integration into main views
-  - **Priority:** Medium (UX polish, not critical functionality)
+#### **9. UI Polish - BATCH 3** ✅ **[IN PROGRESS]**
+- ✅ **Settings Window Always On Top** - Added `Topmost="True"` to SettingsWindow.xaml ✓ VERIFIED
+- ✅ **All Dialogs Always On Top** - UngroupedIconsDialog, ColorPickerDialog, InputDialog ✓ VERIFIED
+- ✅ **Icon Hover Effect** - IconTile integrated into all view modes ✓ VERIFIED
+  - Replaced Border templates with IconTile control in Hover, Compact, Normal, Grid, Fullscreen
+  - Added AccentColor property to IconTile (uses group accent color, not standard blue)
+  - Hover opacity set to 30% for subtle effect
+  - Blue border + scale animation (1.08x) + background highlight
+  - Grid-level mouse event handlers for reliable hover detection
+- ✅ **Transparency Slider Enhancements** ✓ VERIFIED
+  - Added visual tick marks at 0%, 25%, 50%, 75%, 100%
+  - Mouse wheel support (scroll up = increase, scroll down = decrease)
+  - Large change step set to 25% (matches tick marks)
+- ✅ **Settings Window Layout Polish** ✓ VERIFIED
+  - Added visual separators between sections (subtle gray lines)
+  - Increased section header margins (20px top, 12px bottom)
+  - Better visual hierarchy and spacing
+- ✅ **Settings Window Position Persistence** ✓ VERIFIED
+  - Saves/restores window position and size
+  - Validates position is on-screen before restoring
+  - Stored in AppSettings (SettingsWindowLeft/Top/Width/Height)
+- ⚠️ **Normal View Icon Alignment** - Known issue, to fix next
+  - Icons are centered (IconTile design)
+  - Desired: Icons left-aligned with text on right (horizontal layout)
+  - Options: Add HorizontalAlignment property or create IconTileHorizontal variant
+  - Priority: Medium (UX polish)
 
 ---
 
