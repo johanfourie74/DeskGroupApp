@@ -152,10 +152,10 @@
                             <controls:IconTile 
                                 Icon="{Binding IconImage}"
                                 DisplayName="{Binding DisplayName}"
-                                IconSize="32"
-                                TileWidth="100"
-                                TileHeight="80"
-                                Margin="4,2"
+                                IconSize="20"
+                                Height="32"
+                                LayoutOrientation="Horizontal"
+                                Margin="2"
                                 AccentColor="{Binding DataContext.AccentBrush, RelativeSource={RelativeSource AncestorType=Window}}"
                                 LaunchCommand="{Binding LaunchCommand}"/>
                         </DataTemplate>
@@ -248,8 +248,8 @@
                                 Icon="{Binding IconImage}"
                                 DisplayName="{Binding DisplayName}"
                                 IconSize="40"
-                                TileWidth="90"
-                                TileHeight="90"
+                                Width="90"
+                                Height="90"
                                 Margin="4"
                                 AccentColor="{Binding DataContext.AccentBrush, RelativeSource={RelativeSource AncestorType=Window}}"
                                 LaunchCommand="{Binding LaunchCommand}"/>
@@ -331,9 +331,8 @@
                                 <controls:IconTile 
                                     Icon="{Binding IconImage}"
                                     DisplayName="{Binding DisplayName}"
-                                    IconSize="32"
-                                    TileWidth="200"
-                                    TileHeight="50"
+                                    IconSize="24"
+                                    Height="40"
                                     LayoutOrientation="Horizontal"
                                     Margin="2"
                                     AccentColor="{Binding DataContext.AccentBrush, RelativeSource={RelativeSource AncestorType=Window}}"
@@ -435,8 +434,8 @@
                                     Icon="{Binding IconImage}"
                                     DisplayName="{Binding DisplayName}"
                                     IconSize="48"
-                                    TileWidth="90"
-                                    TileHeight="100"
+                                    Width="90"
+                                    Height="100"
                                     Margin="4"
                                     AccentColor="{Binding DataContext.AccentBrush, RelativeSource={RelativeSource AncestorType=Window}}"
                                     LaunchCommand="{Binding LaunchCommand}"/>
@@ -534,8 +533,8 @@
                                     Icon="{Binding IconImage}"
                                     DisplayName="{Binding DisplayName}"
                                     IconSize="64"
-                                    TileWidth="130"
-                                    TileHeight="130"
+                                    Width="130"
+                                    Height="130"
                                     Margin="8"
                                     AccentColor="{Binding DataContext.AccentBrush, RelativeSource={RelativeSource AncestorType=Window}}"
                                     LaunchCommand="{Binding LaunchCommand}"/>

@@ -93,7 +93,7 @@
 - ✅ Styled with semi-transparent dark background
 - ✅ Real-time updates when modes change
 
-#### **9. UI Polish - BATCH 3** ✅ **[IN PROGRESS]**
+#### **9. UI Polish - BATCH 3** ✅ **[MAJOR MILESTONE COMPLETE]**
 - ✅ **Settings Window Always On Top** - Added `Topmost="True"` to SettingsWindow.xaml ✓ VERIFIED
 - ✅ **All Dialogs Always On Top** - UngroupedIconsDialog, ColorPickerDialog, InputDialog ✓ VERIFIED
 - ✅ **Icon Hover Effect** - IconTile integrated into all view modes ✓ VERIFIED
@@ -102,10 +102,18 @@
   - Hover opacity set to 30% for subtle effect
   - Blue border + scale animation (1.08x) + background highlight
   - Grid-level mouse event handlers for reliable hover detection
+  - **WORKING IN ALL VIEWS!** ✓
+- ✅ **Layout Orientation Support** - IconTile supports horizontal and vertical layouts ✓ VERIFIED
+  - **Horizontal layout:** Icon left, text right (used in Normal & Hover views)
+  - **Vertical layout:** Icon above text, centered (used in Grid, Compact, Fullscreen)
+  - Dynamic alignment based on LayoutOrientation property
+  - Text stretches to fill width in horizontal mode
+  - Text MaxWidth=68 in vertical mode for compact display
 - ✅ **Transparency Slider Enhancements** ✓ VERIFIED
   - Added visual tick marks at 0%, 25%, 50%, 75%, 100%
   - Mouse wheel support (scroll up = increase, scroll down = decrease)
   - Large change step set to 25% (matches tick marks)
+  - Smooth scrolling experience
 - ✅ **Settings Window Layout Polish** ✓ VERIFIED
   - Added visual separators between sections (subtle gray lines)
   - Increased section header margins (20px top, 12px bottom)
@@ -114,11 +122,7 @@
   - Saves/restores window position and size
   - Validates position is on-screen before restoring
   - Stored in AppSettings (SettingsWindowLeft/Top/Width/Height)
-- ⚠️ **Normal View Icon Alignment** - Known issue, to fix next
-  - Icons are centered (IconTile design)
-  - Desired: Icons left-aligned with text on right (horizontal layout)
-  - Options: Add HorizontalAlignment property or create IconTileHorizontal variant
-  - Priority: Medium (UX polish)
+  - Remembers size across sessions
 
 ---
 

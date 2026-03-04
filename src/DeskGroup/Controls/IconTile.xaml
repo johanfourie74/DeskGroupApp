@@ -5,7 +5,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d"
              d:DesignWidth="72" d:DesignHeight="88"
-             Width="{Binding TileWidth, RelativeSource={RelativeSource Self}, FallbackValue=72}"
+             HorizontalAlignment="Stretch"
              Height="{Binding TileHeight, RelativeSource={RelativeSource Self}, FallbackValue=88}"
              ToolTip="{Binding DisplayName, RelativeSource={RelativeSource Self}}">
 
@@ -49,10 +49,23 @@
                 Opacity="0"/>
 
         <!-- Content -->
-        <StackPanel Orientation="{Binding LayoutOrientation, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                    HorizontalAlignment="Left"
+        <StackPanel x:Name="ContentPanel"
+                    Orientation="{Binding LayoutOrientation, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     VerticalAlignment="Center"
                     Margin="4">
+            <StackPanel.Style>
+                <Style TargetType="StackPanel">
+                    <!-- Default: Centered (for Vertical orientation) -->
+                    <Setter Property="HorizontalAlignment" Value="Center"/>
+                    <Style.Triggers>
+                        <!-- Horizontal orientation: Left-aligned -->
+                        <DataTrigger Binding="{Binding LayoutOrientation, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="Horizontal">
+                            <Setter Property="HorizontalAlignment" Value="Left"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </StackPanel.Style>
+
             <!-- Icon -->
             <Border Width="{Binding IconSize, RelativeSource={RelativeSource AncestorType=UserControl}, FallbackValue=48}"
                     Height="{Binding IconSize, RelativeSource={RelativeSource AncestorType=UserControl}, FallbackValue=48}"
@@ -71,12 +84,26 @@
                        Foreground="{DynamicResource ForegroundPrimary}"
                        FontFamily="{DynamicResource DefaultFont}"
                        FontSize="{DynamicResource FontSizeSmall}"
-                       TextAlignment="Left"
                        TextTrimming="CharacterEllipsis"
                        TextWrapping="NoWrap"
-                       MaxWidth="150"
-                       VerticalAlignment="Center"
-                       HorizontalAlignment="Left"/>
+                       VerticalAlignment="Center">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <!-- Default: Centered with MaxWidth (for Vertical orientation) -->
+                        <Setter Property="TextAlignment" Value="Center"/>
+                        <Setter Property="HorizontalAlignment" Value="Center"/>
+                        <Setter Property="MaxWidth" Value="68"/>
+                        <Style.Triggers>
+                            <!-- Horizontal orientation: Left-aligned, no MaxWidth (stretch to fill) -->
+                            <DataTrigger Binding="{Binding LayoutOrientation, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="Horizontal">
+                                <Setter Property="TextAlignment" Value="Left"/>
+                                <Setter Property="HorizontalAlignment" Value="Stretch"/>
+                                <Setter Property="MaxWidth" Value="1000"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
         </StackPanel>
 
         <!-- Click overlay (invisible, allows mouse events to pass through for hover) -->

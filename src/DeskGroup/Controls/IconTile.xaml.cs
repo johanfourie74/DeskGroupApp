@@ -98,7 +98,7 @@ public partial class IconTile : UserControl
 
     public static readonly DependencyProperty TileWidthProperty =
         DependencyProperty.Register(nameof(TileWidth), typeof(double), typeof(IconTile),
-            new PropertyMetadata(72.0));
+            new PropertyMetadata(double.NaN)); // Changed from 72.0 to NaN (means "not set")
 
     public double TileWidth
     {

@@ -254,7 +254,6 @@ Based on new features added in BATCH 2 (Status Footer, Transparency Controls, Ex
 - [ ] Window flicker during rapid view mode switches (minimize → hover → minimize)
 - [ ] Drag threshold can be too sensitive on high-DPI displays
 - [ ] Occasional position desync after monitor disconnect/reconnect
-- [ ] **Normal view icon alignment** - Icons are centered instead of left-aligned with text on right (horizontal layout needed)
 
 ### **Low Priority**
 - [ ] Minor visual glitches in fullscreen mode on secondary monitors
@@ -265,7 +264,7 @@ Based on new features added in BATCH 2 (Status Footer, Transparency Controls, Ex
 
 ## 📊 SESSION HISTORY
 
-### **BATCH 3 (Current)** ✓ **IN PROGRESS**
+### **BATCH 3 (Current)** ✅ **[MAJOR UI POLISH COMPLETE]**
 - ✅ Window Resize for Normal/Grid modes ✓ VERIFIED
 - ✅ Compact View Mode (2x3 grid, fixed size) ✓ VERIFIED
 - ✅ Enum reordering (Compact=5 at end to avoid breaking saved data) ✓
@@ -275,6 +274,7 @@ Based on new features added in BATCH 2 (Status Footer, Transparency Controls, Ex
 - ✅ Settings Window Always On Top ✓ VERIFIED
 - ✅ All Dialogs Always On Top (Ungrouped Icons, Color Picker, Input Dialog) ✓ VERIFIED
 - ✅ Icon Hover Effect (IconTile integration, accent color binding, 30% opacity) ✓ VERIFIED
+- ✅ Layout Orientation Support (Horizontal for Normal/Hover, Vertical for Grid/Compact/Fullscreen) ✓ VERIFIED
 - ✅ Transparency Slider Enhancements (tick marks, mouse wheel support) ✓ VERIFIED
 - ✅ Settings Window Layout Polish (separators, spacing, position persistence) ✓ VERIFIED
 
