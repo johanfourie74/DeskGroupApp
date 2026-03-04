@@ -53,15 +53,27 @@ Based on new features added in BATCH 2 (Status Footer, Transparency Controls, Ex
   - Dynamic height for 1-2 rows in Compact view
   - Tooltips conditional on ShowLabel property
 
-- [ ] **Footer Styling Polish**
-  - Adjust font sizes for consistency across view modes (PAUSED - awaiting detailed requirements)
+- [ ] **Footer Styling Polish** ⏳ **AWAITING REQUIREMENTS**
+  - User will provide specific requirements after break
+  - Adjust font sizes for consistency across view modes
   - Refine background opacity/color for better visibility
   - Consider adding subtle separator between left/right text
   - Test readability in both light and dark themes
 
-- [ ] **Color Picker Enhancement**
+- [ ] **About Dialog** 🆕 **NEXT PRIORITY**
+  - Display version info
+  - Contact us information
+  - Accessible from tray menu or Help menu
+
+- [ ] **Help Dialog (F1)** 🆕 **NEXT PRIORITY**
+  - How to use guide
+  - Keyboard shortcut: F1
+  - Accessible from tray menu or Help menu
+  - Quick reference for all features
+
+- [ ] **Color Picker Enhancement** ⏸️ **PAUSED - AFTER FOOTER CHANGES**
   - Verify new colors (White, Light Gray, Dark Gray, Black) work well in both themes
-  - Consider adding color name tooltips
+  - Overall color picker refinement to be addressed after footer polish
   - Test contrast/visibility with transparency settings
 
 ---
@@ -405,11 +417,13 @@ Based on new features added in BATCH 2 (Status Footer, Transparency Controls, Ex
 ## 📋 IMMEDIATE NEXT STEPS (PHASE 1 COMPLETION)
 
 ### **Session 1-2: UI Polish** ✨
-- [ ] Footer styling (all view modes)
-- [ ] Transparency preset buttons (25%, 50%, 75%, 100%)
-- [ ] Settings window layout & grouping
-- [ ] Color picker tooltips
-- [ ] Test in both themes
+- [ ] Footer styling (all view modes) - **AWAITING USER REQUIREMENTS**
+- [ ] Add About dialog (version + contact info)
+- [ ] Add Help dialog with F1 shortcut (how to use guide)
+- ~~[ ] Transparency preset buttons~~ - **SCRAPPED**
+- [x] Settings window layout & grouping ✓ **DONE**
+- ~~[ ] Color picker tooltips~~ - **DEFERRED to after footer work**
+- [x] Test in both themes ✓ **DONE**
 
 ### **Session 3-4: Quality & Testing** 🧪
 - [ ] Remove/hide test menu items
@@ -439,11 +453,12 @@ Based on new features added in BATCH 2 (Status Footer, Transparency Controls, Ex
 ## 🎯 QUICK WINS FOR PHASE 1 (Low Effort, High Impact)
 
 **Can be done in 1-2 hours each:**
-- [ ] Preset opacity buttons (25%, 50%, 75%, 100%)
-- [ ] Settings window position persistence
-- [ ] Tooltips for color picker colors
+- [ ] **About Dialog** - Version info + contact us (NEXT UP)
+- [ ] **Help Dialog (F1)** - How to use guide + keyboard shortcuts (NEXT UP)
 - [ ] Remove test menu items
-- [ ] Add "About" dialog with version info
+- ~~[ ] Preset opacity buttons (25%, 50%, 75%, 100%)~~ **SCRAPPED - Keeping slider as-is**
+- ~~[ ] Settings window position persistence~~ ✓ **DONE**
+- ~~[ ] Tooltips for color picker colors~~ **DEFERRED - After footer + color picker overall work**
 
 ---
 
