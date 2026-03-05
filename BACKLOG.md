@@ -1,8 +1,8 @@
 # DeskGroup - Development Backlog
 
-**Last Updated:** 2026-03-03 (BATCH 3 Session - UI Polish)  
+**Last Updated:** 2025-01-09 (Hover Jump Fix - WndProc Solution)  
 **Status:** Ready for Next Session  
-**Commit:** Updated with each commit
+**Commit:** Hover jump fixed using WM_WINDOWPOSCHANGING interception
 
 ---
 
@@ -52,6 +52,14 @@ Based on new features added in BATCH 2 (Status Footer, Transparency Controls, Ex
   - Symmetric icon padding (2px top/bottom)
   - Dynamic height for 1-2 rows in Compact view
   - Tooltips conditional on ShowLabel property
+
+- [x] **Hover Jump Fix** ✓ **DONE & VERIFIED** 🎉
+  - **FIXED using WndProc WM_WINDOWPOSCHANGING interception**
+  - Intercepts window position changes at Win32 level BEFORE rendering
+  - Overrides incorrect (0,0) position before any frame is painted
+  - No more flash/jump when expanding Minimized → Hover
+  - Documented in `FIX_HOVER_JUMP_WNDPROC_SOLUTION.md` for reuse
+  - **8 rounds of debugging, finally solved!**
 
 - [ ] **Footer Styling Polish** ⏳ **AWAITING REQUIREMENTS**
   - User will provide specific requirements after break

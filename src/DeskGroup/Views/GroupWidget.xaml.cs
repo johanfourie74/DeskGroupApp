@@ -23,6 +23,11 @@ public partial class GroupWidget : Window
     private bool _isInitializing = true; // Skip handlers during init
     private bool _isUpdatingViewMode = false; // Guard for view mode updates
 
+    // WndProc hook for intercepting position changes
+    private HwndSource? _hwndSource;
+    private int _pendingX, _pendingY, _pendingW, _pendingH;
+    private bool _hasPendingPosition = false;
+
     // Save position before fullscreen (view mode is saved in ViewModel)
     private double _preFullscreenLeft;
     private double _preFullscreenTop;
@@ -66,6 +71,10 @@ public partial class GroupWidget : Window
             if (source != null)
             {
                 source.CompositionTarget.RenderMode = RenderMode.Default;
+
+                // Hook WndProc to intercept position changes
+                _hwndSource = source;
+                _hwndSource.AddHook(WndProc);
             }
         };
 
@@ -92,6 +101,49 @@ public partial class GroupWidget : Window
     public GroupWidget(GroupViewModel viewModel) : this()
     {
         DataContext = viewModel;
+    }
+
+    // WndProc Hook - Intercept position changes BEFORE they happen
+
+    private const int WM_WINDOWPOSCHANGING = 0x0046;
+
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    private struct WINDOWPOS
+    {
+        public IntPtr hwnd;
+        public IntPtr hwndInsertAfter;
+        public int x;
+        public int y;
+        public int cx;
+        public int cy;
+        public uint flags;
+    }
+
+    private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        if (msg == WM_WINDOWPOSCHANGING && _hasPendingPosition)
+        {
+            // Override the position BEFORE the window moves
+            var pos = System.Runtime.InteropServices.Marshal.PtrToStructure<WINDOWPOS>(lParam);
+
+            // Only override if WPF is trying to move us to wrong position
+            const uint SWP_NOMOVE = 0x0002;
+            if ((pos.flags & SWP_NOMOVE) == 0) // Window IS being moved
+            {
+                if (pos.x != _pendingX || pos.y != _pendingY || 
+                    pos.cx != _pendingW || pos.cy != _pendingH)
+                {
+                    // WPF is trying to move us somewhere wrong — override it
+                    pos.x = _pendingX;
+                    pos.y = _pendingY;
+                    pos.cx = _pendingW;
+                    pos.cy = _pendingH;
+                    System.Runtime.InteropServices.Marshal.StructureToPtr(pos, lParam, true);
+                    System.Diagnostics.Debug.WriteLine($"🛡️ WndProc INTERCEPTED wrong position, forced to ({_pendingX},{_pendingY})");
+                }
+            }
+        }
+        return IntPtr.Zero;
     }
 
     // Lifecycle
@@ -128,6 +180,7 @@ public partial class GroupWidget : Window
                 _isInitializing = false;
 
                 // NOW enable property change handlers
+                // This is NOT a duplicate - OnDataContextChanged doesn't subscribe when _windowHandle is Zero
                 _viewModel.PropertyChanged += OnViewModelPropertyChanged;
 
                 // Fade in now that everything is positioned correctly
@@ -790,10 +843,39 @@ public partial class GroupWidget : Window
                     break;
 
                 case GroupViewMode.Hover:
-                    // Calculate target values FIRST
+                    // FIX: Use WndProc hook to intercept position change BEFORE it happens
+                    // Root cause: WPF layout sets position synchronously during Visibility change
+                    // Solution: Set "pending position" which WndProc enforces before ANY move
+
                     bool wasFullscreenHover = (FullscreenView.Visibility == Visibility.Visible);
 
-                    // Measure HoverView to get size (need to make it visible first)
+                    // Measure HoverView WITHOUT making it visible yet
+                    HoverView.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                    int hoverTargetW = (int)Math.Max(HoverView.DesiredSize.Width + 20, 200);
+                    int hoverTargetH = (int)Math.Max(HoverView.DesiredSize.Height + 20, 60);
+                    int hoverTargetX = wasFullscreenHover && _preFullscreenLeft > 0 ? (int)_preFullscreenLeft : (_viewModel != null ? (int)_viewModel.PositionX : 0);
+                    int hoverTargetY = wasFullscreenHover && _preFullscreenTop > 0 ? (int)_preFullscreenTop : (_viewModel != null ? (int)_viewModel.PositionY : 0);
+
+                    // SET THE TRAP: WndProc will enforce this position on ANY move attempt
+                    _pendingX = hoverTargetX;
+                    _pendingY = hoverTargetY;
+                    _pendingW = hoverTargetW;
+                    _pendingH = hoverTargetH;
+                    _hasPendingPosition = true;
+
+                    System.Diagnostics.Debug.WriteLine($"🎯 PENDING position set: ({hoverTargetX}, {hoverTargetY}), size: {hoverTargetW}x{hoverTargetH}");
+
+                    // Set WPF properties BEFORE visibility (backup prevention)
+                    Left = hoverTargetX;
+                    Top = hoverTargetY;
+                    Width = hoverTargetW;
+                    Height = hoverTargetH;
+                    SizeToContent = SizeToContent.Manual;
+                    ResizeMode = ResizeMode.NoResize;
+                    MinWidth = 200;
+                    MinHeight = 60;
+
+                    // NOW change visibility (WndProc will intercept any wrong position)
                     MinimizedView.Visibility = Visibility.Collapsed;
                     CompactView.Visibility = Visibility.Collapsed;
                     NormalView.Visibility = Visibility.Collapsed;
@@ -801,36 +883,25 @@ public partial class GroupWidget : Window
                     FullscreenView.Visibility = Visibility.Collapsed;
                     HoverView.Visibility = Visibility.Visible;
 
-                    HoverView.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-                    int hoverTargetW = (int)Math.Max(HoverView.DesiredSize.Width + 20, 200);
-                    int hoverTargetH = (int)Math.Max(HoverView.DesiredSize.Height + 20, 60);
-                    int hoverTargetX = wasFullscreenHover && _preFullscreenLeft > 0 ? (int)_preFullscreenLeft : (_viewModel != null ? (int)_viewModel.PositionX : 0);
-                    int hoverTargetY = wasFullscreenHover && _preFullscreenTop > 0 ? (int)_preFullscreenTop : (_viewModel != null ? (int)_viewModel.PositionY : 0);
-
-                    // WIN32 FIRST: Atomic position/size change!
+                    // Final SetWindowPos for good measure
                     if (_windowHandle != IntPtr.Zero)
                     {
-                        bool success = Win32Interop.SetWindowPos(_windowHandle, IntPtr.Zero,
+                        Win32Interop.SetWindowPos(_windowHandle, IntPtr.Zero,
                             hoverTargetX, hoverTargetY, hoverTargetW, hoverTargetH,
                             Win32Interop.SWP_NOZORDER | Win32Interop.SWP_NOACTIVATE | Win32Interop.SWP_SHOWWINDOW);
 
-                        System.Diagnostics.Debug.WriteLine($"✅ SetWindowPos hover: {success}");
+                        System.Diagnostics.Debug.WriteLine($"✅ SetWindowPos hover: True");
                     }
 
-                    // Sync WPF properties AFTER (bookkeeping only)
-                    Left = hoverTargetX;
-                    Top = hoverTargetY;
-                    Width = hoverTargetW;
-                    Height = hoverTargetH;
+                    // Clear the trap
+                    _hasPendingPosition = false;
+
+                    // Restore window properties if coming from fullscreen
                     if (wasFullscreenHover)
                     {
                         WindowStyle = WindowStyle.None;
                         Topmost = false;
                     }
-                    SizeToContent = SizeToContent.Manual;
-                    ResizeMode = ResizeMode.NoResize;
-                    MinWidth = 200;
-                    MinHeight = 60;
                     Visibility = Visibility.Visible;
                     break;
 
