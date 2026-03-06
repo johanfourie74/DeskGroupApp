@@ -1,8 +1,8 @@
 # DeskGroup - Development Backlog
 
-**Last Updated:** 2025-01-09 (Settings Window - Tabbed Interface with About & Help)  
-**Status:** Ready for Next Session  
-**Commit:** Added tabbed Settings window with About and Help sections
+**Last Updated:** 2025-01-09 (Settings Window Complete - Tabbed UI with About & Help)  
+**Status:** ✅ **RESTORE POINT - Commit 29db853**  
+**Commit:** Tabbed Settings window with defensive coding to prevent crashes
 
 ---
 
@@ -69,6 +69,10 @@ Based on new features added in BATCH 2 (Status Footer, Transparency Controls, Ex
   - F1 hotkey opens Help tab from anywhere in Settings window
   - Bottom buttons (Apply/Reset) only visible on Settings tab
   - NOT in tray menu (cleaner UX - all in one Settings window)
+  - **Defensive coding:** Null checks, deferred initialization, safe resource lookup
+  - **Crash fix:** Prevents exit code 0xFFFFFFFF on startup
+  - **Commits:** e345d47 (feature), 29db853 (crash fix)
+  - **RESTORE POINT:** 29db853
 
 - [ ] **Footer Styling Polish** ⏳ **AWAITING REQUIREMENTS**
   - User will provide specific requirements after break
