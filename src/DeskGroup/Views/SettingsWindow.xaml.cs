@@ -23,7 +23,163 @@ public partial class SettingsWindow : Window
         // Restore window position if previously saved
         Loaded += SettingsWindow_Loaded;
         Closing += SettingsWindow_Closing;
+
+        // Enable F1 hotkey for Help
+        KeyDown += SettingsWindow_KeyDown;
+
+        // Set app version dynamically
+        SetVersionInfo();
     }
+
+    private void SettingsWindow_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        // F1 = Show Help tab
+        if (e.Key == System.Windows.Input.Key.F1)
+        {
+            ShowHelpTab();
+            e.Handled = true;
+        }
+    }
+
+    private void SetVersionInfo()
+    {
+        var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+        VersionText.Text = $"Version {version?.Major}.{version?.Minor}.{version?.Build}";
+        CopyrightText.Text = $"© {DateTime.Now.Year} Johan Fourie. All rights reserved.";
+    }
+
+    // ====================================================================
+    // TAB SWITCHING
+    // ====================================================================
+
+    private void SettingsTab_Click(object sender, RoutedEventArgs e)
+    {
+        ShowSettingsTab();
+    }
+
+    private void AboutTab_Click(object sender, RoutedEventArgs e)
+    {
+        ShowAboutTab();
+    }
+
+    private void HelpTab_Click(object sender, RoutedEventArgs e)
+    {
+        ShowHelpTab();
+    }
+
+    private void ShowSettingsTab()
+    {
+        // Update header
+        HeaderTitle.Text = "Settings";
+        HeaderSubtitle.Text = "Customize DeskGroup appearance and behavior";
+
+        // Show Settings panel, hide others
+        SettingsPanel.Visibility = Visibility.Visible;
+        AboutPanel.Visibility = Visibility.Collapsed;
+        HelpPanel.Visibility = Visibility.Collapsed;
+
+        // Update tab button styles (highlight active tab)
+        SettingsTabButton.Background = (System.Windows.Media.Brush)FindResource("AccentBrush");
+        SettingsTabButton.FontWeight = FontWeights.SemiBold;
+        AboutTabButton.ClearValue(BackgroundProperty);
+        AboutTabButton.FontWeight = FontWeights.Normal;
+        HelpTabButton.ClearValue(BackgroundProperty);
+        HelpTabButton.FontWeight = FontWeights.Normal;
+
+        // Show bottom buttons (Apply/Reset)
+        BottomButtonBar.Visibility = Visibility.Visible;
+    }
+
+    private void ShowAboutTab()
+    {
+        // Update header
+        HeaderTitle.Text = "About";
+        HeaderSubtitle.Text = "Application information and credits";
+
+        // Show About panel, hide others
+        SettingsPanel.Visibility = Visibility.Collapsed;
+        AboutPanel.Visibility = Visibility.Visible;
+        HelpPanel.Visibility = Visibility.Collapsed;
+
+        // Update tab button styles
+        SettingsTabButton.ClearValue(BackgroundProperty);
+        SettingsTabButton.FontWeight = FontWeights.Normal;
+        AboutTabButton.Background = (System.Windows.Media.Brush)FindResource("AccentBrush");
+        AboutTabButton.FontWeight = FontWeights.SemiBold;
+        HelpTabButton.ClearValue(BackgroundProperty);
+        HelpTabButton.FontWeight = FontWeights.Normal;
+
+        // Hide bottom buttons (not needed on About)
+        BottomButtonBar.Visibility = Visibility.Collapsed;
+    }
+
+    private void ShowHelpTab()
+    {
+        // Update header
+        HeaderTitle.Text = "Help";
+        HeaderSubtitle.Text = "Quick reference and keyboard shortcuts";
+
+        // Show Help panel, hide others
+        SettingsPanel.Visibility = Visibility.Collapsed;
+        AboutPanel.Visibility = Visibility.Collapsed;
+        HelpPanel.Visibility = Visibility.Visible;
+
+        // Update tab button styles
+        SettingsTabButton.ClearValue(BackgroundProperty);
+        SettingsTabButton.FontWeight = FontWeights.Normal;
+        AboutTabButton.ClearValue(BackgroundProperty);
+        AboutTabButton.FontWeight = FontWeights.Normal;
+        HelpTabButton.Background = (System.Windows.Media.Brush)FindResource("AccentBrush");
+        HelpTabButton.FontWeight = FontWeights.SemiBold;
+
+        // Hide bottom buttons (not needed on Help)
+        BottomButtonBar.Visibility = Visibility.Collapsed;
+    }
+
+    // ====================================================================
+    // ABOUT TAB ACTIONS
+    // ====================================================================
+
+    private void GitHub_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "https://github.com/johanfourie74/DeskGroup",
+                UseShellExecute = true
+            });
+        }
+        catch
+        {
+            // Silent fail if browser won't open
+        }
+    }
+
+    private void Contact_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "mailto:johan@example.com?subject=DeskGroup Feedback",
+                UseShellExecute = true
+            });
+        }
+        catch
+        {
+            MessageBox.Show(
+                "Could not open default email client.\n\n" +
+                "Please send feedback to: johan@example.com",
+                "DeskGroup Contact",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+        }
+    }
+
+    // ====================================================================
+    // WINDOW LIFECYCLE
+    // ====================================================================
 
     private void SettingsWindow_Loaded(object sender, RoutedEventArgs e)
     {

@@ -62,11 +62,12 @@
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>   <!-- Title header -->
+                <RowDefinition Height="Auto"/>   <!-- Tab menu bar -->
                 <RowDefinition Height="*"/>      <!-- Scrollable content -->
                 <RowDefinition Height="Auto"/>   <!-- Bottom buttons -->
             </Grid.RowDefinitions>
 
-            <!-- Title Header (prevents scrollbar from overlapping rounded corner) -->
+            <!-- Title Header (dynamic title based on active tab) -->
             <Border Grid.Row="0"
                     Background="{DynamicResource BackgroundSecondary}"
                     BorderBrush="{DynamicResource BorderSubtle}"
@@ -74,12 +75,14 @@
                     CornerRadius="10,10,0,0"
                     Padding="24,16">
                 <StackPanel>
-                    <TextBlock Text="Settings"
+                    <TextBlock x:Name="HeaderTitle"
+                               Text="Settings"
                                FontFamily="{DynamicResource DefaultFont}"
                                FontSize="24"
                                FontWeight="Bold"
                                Foreground="{DynamicResource ForegroundPrimary}"/>
-                    <TextBlock Text="Customize DeskGroup appearance and behavior"
+                    <TextBlock x:Name="HeaderSubtitle"
+                               Text="Customize DeskGroup appearance and behavior"
                                FontFamily="{DynamicResource DefaultFont}"
                                FontSize="{DynamicResource FontSizeSmall}"
                                Foreground="{DynamicResource ForegroundSecondary}"
@@ -87,11 +90,42 @@
                 </StackPanel>
             </Border>
 
-        <!-- Scrollable settings content -->
-        <ScrollViewer Grid.Row="1"
+            <!-- Tab Menu Bar -->
+            <Border Grid.Row="1"
+                    Background="{DynamicResource BackgroundSecondary}"
+                    BorderBrush="{DynamicResource BorderSubtle}"
+                    BorderThickness="0,0,0,1"
+                    Padding="24,8">
+                <StackPanel Orientation="Horizontal">
+                    <Button x:Name="SettingsTabButton"
+                            Content="Settings"
+                            Click="SettingsTab_Click"
+                            Style="{DynamicResource DefaultButton}"
+                            Padding="16,6"
+                            Margin="0,0,8,0"
+                            FontWeight="SemiBold"
+                            Background="{DynamicResource AccentBrush}"/>
+                    <Button x:Name="AboutTabButton"
+                            Content="About"
+                            Click="AboutTab_Click"
+                            Style="{DynamicResource DefaultButton}"
+                            Padding="16,6"
+                            Margin="0,0,8,0"/>
+                    <Button x:Name="HelpTabButton"
+                            Content="Help (F1)"
+                            Click="HelpTab_Click"
+                            Style="{DynamicResource DefaultButton}"
+                            Padding="16,6"/>
+                </StackPanel>
+            </Border>
+
+        <!-- Scrollable content (Settings Panel) -->
+        <ScrollViewer x:Name="SettingsPanel"
+                      Grid.Row="2"
                       VerticalScrollBarVisibility="Auto"
                       HorizontalScrollBarVisibility="Disabled"
-                      Padding="24,8,24,8">
+                      Padding="24,8,24,8"
+                      Visibility="Visible">
 
             <StackPanel>
 
@@ -298,15 +332,216 @@
                 </DockPanel>
                 <TextBlock Text="Allow groups to be placed on any connected monitor."
                            Style="{StaticResource SettingDesc}"/>
-
                 <!-- Bottom spacer -->
                 <Border Height="16"/>
 
             </StackPanel>
         </ScrollViewer>
 
-        <!-- Bottom button bar -->
-        <Border Grid.Row="2"
+        <!-- About Panel -->
+        <ScrollViewer x:Name="AboutPanel"
+                      Grid.Row="2"
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled"
+                      Padding="24,24,24,24"
+                      Visibility="Collapsed">
+            <StackPanel MaxWidth="450">
+                <!-- App Info -->
+                <TextBlock Text="DeskGroup"
+                           FontFamily="{DynamicResource DefaultFont}"
+                           FontSize="32"
+                           FontWeight="Bold"
+                           Foreground="{DynamicResource ForegroundPrimary}"
+                           HorizontalAlignment="Center"
+                           Margin="0,16,0,8"/>
+
+                <TextBlock x:Name="VersionText"
+                           Text="Version 1.0.0"
+                           FontFamily="{DynamicResource DefaultFont}"
+                           FontSize="{DynamicResource FontSizeNormal}"
+                           Foreground="{DynamicResource ForegroundSecondary}"
+                           HorizontalAlignment="Center"
+                           Margin="0,0,0,24"/>
+
+                <!-- Description -->
+                <TextBlock Text="DeskGroup helps you organize your desktop shortcuts into collapsible groups, keeping your desktop clean and your workflow efficient."
+                           FontFamily="{DynamicResource DefaultFont}"
+                           FontSize="{DynamicResource FontSizeNormal}"
+                           Foreground="{DynamicResource ForegroundPrimary}"
+                           TextWrapping="Wrap"
+                           HorizontalAlignment="Center"
+                           TextAlignment="Center"
+                           Margin="0,0,0,32"/>
+
+                <!-- Separator -->
+                <Border Height="1"
+                        Background="{DynamicResource BorderSubtle}"
+                        Margin="0,0,0,24"/>
+
+                <!-- Author -->
+                <TextBlock Text="Created by"
+                           FontFamily="{DynamicResource DefaultFont}"
+                           FontSize="{DynamicResource FontSizeSmall}"
+                           Foreground="{DynamicResource ForegroundSecondary}"
+                           HorizontalAlignment="Center"
+                           Margin="0,0,0,4"/>
+
+                <TextBlock Text="Johan Fourie"
+                           FontFamily="{DynamicResource DefaultFont}"
+                           FontSize="{DynamicResource FontSizeLarge}"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource ForegroundPrimary}"
+                           HorizontalAlignment="Center"
+                           Margin="0,0,0,24"/>
+
+                <!-- Links -->
+                <StackPanel Orientation="Horizontal"
+                            HorizontalAlignment="Center"
+                            Margin="0,0,0,16">
+                    <Button Content="🌐 GitHub"
+                            Click="GitHub_Click"
+                            Style="{DynamicResource DefaultButton}"
+                            Padding="12,6"
+                            Margin="0,0,8,0"/>
+                    <Button Content="📧 Contact"
+                            Click="Contact_Click"
+                            Style="{DynamicResource DefaultButton}"
+                            Padding="12,6"/>
+                </StackPanel>
+
+                <!-- Copyright -->
+                <TextBlock x:Name="CopyrightText"
+                           Text="© 2025 Johan Fourie. All rights reserved."
+                           FontFamily="{DynamicResource DefaultFont}"
+                           FontSize="{DynamicResource FontSizeSmall}"
+                           Foreground="{DynamicResource ForegroundSecondary}"
+                           HorizontalAlignment="Center"
+                           Margin="0,16,0,0"/>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Help Panel -->
+        <ScrollViewer x:Name="HelpPanel"
+                      Grid.Row="2"
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled"
+                      Padding="24,24,24,24"
+                      Visibility="Collapsed">
+            <StackPanel MaxWidth="550">
+                <!-- Quick Start -->
+                <TextBlock Text="Quick Start"
+                           Style="{StaticResource SectionHeader}"/>
+
+                <TextBlock TextWrapping="Wrap"
+                           FontFamily="{DynamicResource DefaultFont}"
+                           FontSize="{DynamicResource FontSizeNormal}"
+                           Foreground="{DynamicResource ForegroundPrimary}"
+                           Margin="0,0,0,16">
+                    <Run Text="1. Create a group:"/>
+                    <Run Text=" Right-click tray icon → New Group" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run Text="2. Add shortcuts:"/>
+                    <Run Text=" Drag desktop icons onto the group or use the context menu" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run Text="3. Customize:"/>
+                    <Run Text=" Right-click group → Change name, icon, or color" Foreground="{DynamicResource ForegroundSecondary}"/>
+                </TextBlock>
+
+                <!-- View Modes -->
+                <Border Style="{StaticResource SectionSeparator}"/>
+                <TextBlock Text="View Modes"
+                           Style="{StaticResource SectionHeader}"/>
+
+                <TextBlock TextWrapping="Wrap"
+                           FontFamily="{DynamicResource DefaultFont}"
+                           FontSize="{DynamicResource FontSizeNormal}"
+                           Foreground="{DynamicResource ForegroundPrimary}"
+                           Margin="0,0,0,16">
+                    <Run FontWeight="SemiBold" Text="Minimized:"/>
+                    <Run Text=" Compact pill showing group name and icon count" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run FontWeight="SemiBold" Text="Hover:"/>
+                    <Run Text=" Auto-expands when you hover over minimized group" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run FontWeight="SemiBold" Text="Compact:"/>
+                    <Run Text=" Icons only in a 1-2 row grid (hover for tooltips)" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run FontWeight="SemiBold" Text="Normal:"/>
+                    <Run Text=" Icons with labels in a vertical list" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run FontWeight="SemiBold" Text="Grid:"/>
+                    <Run Text=" Icons with labels in a multi-column grid" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run FontWeight="SemiBold" Text="Fullscreen:"/>
+                    <Run Text=" Full-screen grid view (press F11 or ESC to exit)" Foreground="{DynamicResource ForegroundSecondary}"/>
+                </TextBlock>
+
+                <!-- Dock Modes -->
+                <Border Style="{StaticResource SectionSeparator}"/>
+                <TextBlock Text="Dock Modes"
+                           Style="{StaticResource SectionHeader}"/>
+
+                <TextBlock TextWrapping="Wrap"
+                           FontFamily="{DynamicResource DefaultFont}"
+                           FontSize="{DynamicResource FontSizeNormal}"
+                           Foreground="{DynamicResource ForegroundPrimary}"
+                           Margin="0,0,0,16">
+                    <Run FontWeight="SemiBold" Text="Sticky:"/>
+                    <Run Text=" Group stays behind windows (like desktop gadgets)" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run FontWeight="SemiBold" Text="Float:"/>
+                    <Run Text=" Group stays above all windows" Foreground="{DynamicResource ForegroundSecondary}"/>
+                </TextBlock>
+
+                <!-- Keyboard Shortcuts -->
+                <Border Style="{StaticResource SectionSeparator}"/>
+                <TextBlock Text="Keyboard Shortcuts"
+                           Style="{StaticResource SectionHeader}"/>
+
+                <TextBlock TextWrapping="Wrap"
+                           FontFamily="{DynamicResource DefaultFont}"
+                           FontSize="{DynamicResource FontSizeNormal}"
+                           Foreground="{DynamicResource ForegroundPrimary}"
+                           Margin="0,0,0,16">
+                    <Run FontWeight="SemiBold" Text="F1:"/>
+                    <Run Text=" Show this help dialog" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run FontWeight="SemiBold" Text="F11:"/>
+                    <Run Text=" Toggle fullscreen mode (when group is active)" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run FontWeight="SemiBold" Text="ESC:"/>
+                    <Run Text=" Exit fullscreen mode" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run FontWeight="SemiBold" Text="Ctrl+Alt+G:"/>
+                    <Run Text=" Show/Hide all groups (configurable in Settings)" Foreground="{DynamicResource ForegroundSecondary}"/>
+                </TextBlock>
+
+                <!-- Tips -->
+                <Border Style="{StaticResource SectionSeparator}"/>
+                <TextBlock Text="Tips &amp; Tricks"
+                           Style="{StaticResource SectionHeader}"/>
+
+                <TextBlock TextWrapping="Wrap"
+                           FontFamily="{DynamicResource DefaultFont}"
+                           FontSize="{DynamicResource FontSizeNormal}"
+                           Foreground="{DynamicResource ForegroundPrimary}"
+                           Margin="0,0,0,16">
+                    <Run Text="• Drag the header to move a group" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run Text="• Pin a group to prevent moving" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run Text="• Enable Snap to Grid for organized layouts" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run Text="• Adjust transparency to blend with wallpaper" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run Text="• Right-click anywhere on a group for context menu" Foreground="{DynamicResource ForegroundSecondary}"/>
+                </TextBlock>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Bottom button bar (only visible on Settings tab) -->
+        <Border x:Name="BottomButtonBar"
+                Grid.Row="3"
                 BorderBrush="{DynamicResource BorderSubtle}"
                 BorderThickness="0,1,0,0"
                 Padding="24,12">

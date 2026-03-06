@@ -1,8 +1,8 @@
 # DeskGroup - Development Backlog
 
-**Last Updated:** 2025-01-09 (Hover Jump Fix - WndProc Solution)  
+**Last Updated:** 2025-01-09 (Settings Window - Tabbed Interface with About & Help)  
 **Status:** Ready for Next Session  
-**Commit:** Hover jump fixed using WM_WINDOWPOSCHANGING interception
+**Commit:** Added tabbed Settings window with About and Help sections
 
 ---
 
@@ -60,6 +60,15 @@ Based on new features added in BATCH 2 (Status Footer, Transparency Controls, Ex
   - No more flash/jump when expanding Minimized → Hover
   - Documented in `FIX_HOVER_JUMP_WNDPROC_SOLUTION.md` for reuse
   - **8 rounds of debugging, finally solved!**
+
+- [x] **Settings Window Tabs (About & Help)** ✓ **DONE & VERIFIED** 🎉
+  - **Tabbed interface:** Settings | About | Help (F1)
+  - Dynamic header title/subtitle based on active tab
+  - About tab: Version info, author, GitHub/Contact links
+  - Help tab: Quick start, view modes, dock modes, keyboard shortcuts, tips
+  - F1 hotkey opens Help tab from anywhere in Settings window
+  - Bottom buttons (Apply/Reset) only visible on Settings tab
+  - NOT in tray menu (cleaner UX - all in one Settings window)
 
 - [ ] **Footer Styling Polish** ⏳ **AWAITING REQUIREMENTS**
   - User will provide specific requirements after break
