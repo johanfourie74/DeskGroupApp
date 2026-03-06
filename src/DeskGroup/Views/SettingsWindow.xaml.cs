@@ -27,8 +27,8 @@ public partial class SettingsWindow : Window
         // Enable F1 hotkey for Help
         KeyDown += SettingsWindow_KeyDown;
 
-        // Set app version dynamically
-        SetVersionInfo();
+        // Set app version dynamically (after window loads)
+        Loaded += (s, e) => SetVersionInfo();
     }
 
     private void SettingsWindow_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
@@ -43,9 +43,30 @@ public partial class SettingsWindow : Window
 
     private void SetVersionInfo()
     {
-        var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
-        VersionText.Text = $"Version {version?.Major}.{version?.Minor}.{version?.Build}";
-        CopyrightText.Text = $"© {DateTime.Now.Year} Johan Fourie. All rights reserved.";
+        try
+        {
+            // Safely get version
+            var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+            if (version != null && VersionText != null)
+            {
+                VersionText.Text = $"Version {version.Major}.{version.Minor}.{version.Build}";
+            }
+            else if (VersionText != null)
+            {
+                VersionText.Text = "Version 1.0.0";
+            }
+
+            // Safely set copyright
+            if (CopyrightText != null)
+            {
+                CopyrightText.Text = $"© {DateTime.Now.Year} Johan Fourie. All rights reserved.";
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"SetVersionInfo failed: {ex.Message}");
+            // Silent fail - not critical
+        }
     }
 
     // ====================================================================
@@ -79,7 +100,21 @@ public partial class SettingsWindow : Window
         HelpPanel.Visibility = Visibility.Collapsed;
 
         // Update tab button styles (highlight active tab)
-        SettingsTabButton.Background = (System.Windows.Media.Brush)FindResource("AccentBrush");
+        try
+        {
+            var accentBrush = TryFindResource("AccentBrush") as System.Windows.Media.Brush;
+            if (accentBrush != null)
+            {
+                SettingsTabButton.Background = accentBrush;
+            }
+        }
+        catch
+        {
+            // Fallback to light blue if resource not found
+            SettingsTabButton.Background = new System.Windows.Media.SolidColorBrush(
+                System.Windows.Media.Color.FromRgb(0, 120, 212));
+        }
+
         SettingsTabButton.FontWeight = FontWeights.SemiBold;
         AboutTabButton.ClearValue(BackgroundProperty);
         AboutTabButton.FontWeight = FontWeights.Normal;
@@ -104,7 +139,21 @@ public partial class SettingsWindow : Window
         // Update tab button styles
         SettingsTabButton.ClearValue(BackgroundProperty);
         SettingsTabButton.FontWeight = FontWeights.Normal;
-        AboutTabButton.Background = (System.Windows.Media.Brush)FindResource("AccentBrush");
+
+        try
+        {
+            var accentBrush = TryFindResource("AccentBrush") as System.Windows.Media.Brush;
+            if (accentBrush != null)
+            {
+                AboutTabButton.Background = accentBrush;
+            }
+        }
+        catch
+        {
+            AboutTabButton.Background = new System.Windows.Media.SolidColorBrush(
+                System.Windows.Media.Color.FromRgb(0, 120, 212));
+        }
+
         AboutTabButton.FontWeight = FontWeights.SemiBold;
         HelpTabButton.ClearValue(BackgroundProperty);
         HelpTabButton.FontWeight = FontWeights.Normal;
@@ -129,7 +178,21 @@ public partial class SettingsWindow : Window
         SettingsTabButton.FontWeight = FontWeights.Normal;
         AboutTabButton.ClearValue(BackgroundProperty);
         AboutTabButton.FontWeight = FontWeights.Normal;
-        HelpTabButton.Background = (System.Windows.Media.Brush)FindResource("AccentBrush");
+
+        try
+        {
+            var accentBrush = TryFindResource("AccentBrush") as System.Windows.Media.Brush;
+            if (accentBrush != null)
+            {
+                HelpTabButton.Background = accentBrush;
+            }
+        }
+        catch
+        {
+            HelpTabButton.Background = new System.Windows.Media.SolidColorBrush(
+                System.Windows.Media.Color.FromRgb(0, 120, 212));
+        }
+
         HelpTabButton.FontWeight = FontWeights.SemiBold;
 
         // Hide bottom buttons (not needed on Help)
