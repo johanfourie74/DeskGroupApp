@@ -1,8 +1,8 @@
 # DeskGroup - Development Backlog
 
-**Last Updated:** 2025-01-09 (Settings Window Complete - Tabbed UI with About & Help)  
-**Status:** ✅ **RESTORE POINT - Commit 29db853**  
-**Commit:** Tabbed Settings window with defensive coding to prevent crashes
+**Last Updated:** 2025-01-10 (v1.0 Release Prep Complete)  
+**Status:** ✅ **READY FOR FINAL USER TEST BEFORE RELEASE**  
+**Commit:** All Day 1 + Day 2 fixes applied — awaiting user sign-off before v1.0.0 tag
 
 ---
 
@@ -74,28 +74,29 @@ Based on new features added in BATCH 2 (Status Footer, Transparency Controls, Ex
   - **Commits:** e345d47 (feature), 29db853 (crash fix)
   - **RESTORE POINT:** 29db853
 
-- [ ] **Footer Styling Polish** ⏳ **AWAITING REQUIREMENTS**
-  - User will provide specific requirements after break
-  - Adjust font sizes for consistency across view modes
-  - Refine background opacity/color for better visibility
-  - Consider adding subtle separator between left/right text
-  - Test readability in both light and dark themes
+- [x] **Footer Styling Polish** ✓ **DONE & VERIFIED** 🎉
+  - Unified background opacity `#28000000` across all 6 view modes
+  - Added subtle 1px top separator (`#30FFFFFF`) for visual anchoring
+  - Added `Cursor=Hand` to all footers (was only on Compact)
+  - Standardised font: 10px small views, 11px fullscreen (was 9/10/12 mixed)
+  - Standardised `Foreground #CCFFFFFF` everywhere (was White/#CC mixed)
+  - Consistent padding/margin across all views
+  - Compact footer structure standardised to Run/SemiBold pattern
 
-- [ ] **About Dialog** 🆕 **NEXT PRIORITY**
-  - Display version info
-  - Contact us information
-  - Accessible from tray menu or Help menu
+- [x] **About Dialog** ✓ **DONE & VERIFIED** (Settings → About tab)
+  - Version info dynamically loaded from assembly
+  - Copyright, GitHub link, Contact (→ GitHub Issues)
+  - Accessible from Settings window About tab
 
-- [ ] **Help Dialog (F1)** 🆕 **NEXT PRIORITY**
-  - How to use guide
-  - Keyboard shortcut: F1
-  - Accessible from tray menu or Help menu
-  - Quick reference for all features
+- [x] **Help Dialog (F1)** ✓ **DONE & VERIFIED** (Settings → Help tab)
+  - Quick start, view modes, dock modes, keyboard shortcuts, tips
+  - F1 hotkey opens Help tab from anywhere in Settings
+  - Accessible from Settings window Help tab
 
-- [ ] **Color Picker Enhancement** ⏸️ **PAUSED - AFTER FOOTER CHANGES**
-  - Verify new colors (White, Light Gray, Dark Gray, Black) work well in both themes
-  - Overall color picker refinement to be addressed after footer polish
-  - Test contrast/visibility with transparency settings
+- [x] **Color Picker Enhancement** ✓ **DONE** (v1.0 scope)
+  - Removed White, Gray, Black presets (did not render correctly)
+  - Palette now shows 22 Windows 11 accent colours only
+  - Custom hex input still available for any colour
 
 ---
 
@@ -306,7 +307,18 @@ Based on new features added in BATCH 2 (Status Footer, Transparency Controls, Ex
 
 ## 📊 SESSION HISTORY
 
-### **BATCH 3 (Current)** ✅ **[MAJOR UI POLISH COMPLETE]**
+### **v1.0 Release Prep Session** ✅ **[RELEASE READY - AWAITING USER SIGN-OFF]**
+- ✅ Fixed NaN JSON serialization in PersistenceService → 45/45 tests pass
+- ✅ Fixed CS8602 nullable dereference warning in GroupWidget.xaml.cs
+- ✅ Filled LICENSE.txt placeholders (2025 Johan Fourie)
+- ✅ Updated README: .NET 6 → .NET 10, correct clone URL
+- ✅ Replaced placeholder contact email with GitHub Issues link
+- ✅ Footer polish across all 6 view modes (opacity, separator, font, cursor, padding)
+- ✅ Removed White/Gray/Black from color picker (rendering issues)
+- ✅ Build: 0 errors, 0 warnings (Release config)
+- ✅ All 45 unit tests passing
+
+### **BATCH 3 (Previous)** ✅ **[MAJOR UI POLISH COMPLETE]**
 - ✅ Window Resize for Normal/Grid modes ✓ VERIFIED
 - ✅ Compact View Mode (2x3 grid, fixed size) ✓ VERIFIED
 - ✅ Enum reordering (Compact=5 at end to avoid breaking saved data) ✓
@@ -346,13 +358,15 @@ Based on new features added in BATCH 2 (Status Footer, Transparency Controls, Ex
 
 #### **Release Criteria (Must Have):**
 - [x] All BATCH 2 features verified ✓
-- [ ] UI Polish completed (current priority #1)
-- [ ] All critical bugs fixed
-- [ ] Settings window polished
-- [ ] User documentation (README, basic guide)
-- [ ] Installer tested on clean Windows 10/11
-- [ ] No memory leaks in 24-hour test
-- [ ] Test menu items removed or hidden
+- [x] UI Polish completed ✓ (footer, color picker, settings window)
+- [x] All critical bugs fixed ✓ (NaN serialization, CS8602 warning, hover jump)
+- [x] Settings window polished ✓ (tabbed UI, About, Help, F1, position persistence)
+- [x] User documentation ✓ (README updated: .NET 10, correct clone URL, features)
+- [x] LICENSE.txt filled in ✓ (2025 Johan Fourie)
+- [x] All 45 unit tests passing ✓
+- [ ] Installer tested on clean Windows 10/11 *(post user sign-off)*
+- [ ] No memory leaks in 24-hour test *(post user sign-off)*
+- [ ] Test menu items removed or hidden *(deferred to v1.1)*
 
 #### **Phase 1 Deliverables:**
 **Core Features (Already Done ✓):**
@@ -369,7 +383,7 @@ Based on new features added in BATCH 2 (Status Footer, Transparency Controls, Ex
 - ✅ Usage tracking (top 10 most-used)
 
 **Polish Tasks (In Progress):**
-- [ ] Footer styling refinement (paused - awaiting detailed requirements)
+- [x] Footer styling refinement ✓ **DONE** (all 6 view modes polished)
 - [x] Transparency UX improvements (tick marks + mouse wheel) ✓ **DONE**
 - [x] Settings window organization (separators + spacing) ✓ **DONE**
 - [ ] Color picker tooltips (optional enhancement)
@@ -485,4 +499,4 @@ Based on new features added in BATCH 2 (Status Footer, Transparency Controls, Ex
 
 **END OF BACKLOG** 📋
 
-**Next Session:** UI Polish (Footer + Transparency + Settings) 🎨
+**Next Session:** User final test → v1.0.0 tag → GitHub Release 🚀
