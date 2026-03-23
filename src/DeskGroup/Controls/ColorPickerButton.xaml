@@ -8,13 +8,9 @@
              Width="32" Height="32">
 
     <UserControl.Resources>
-        <!-- Preset color palette (Windows 11 accent colors + neutrals) -->
+        <!-- Preset color palette (Windows 11 accent colors) -->
         <x:Array x:Key="PresetColors" Type="sys:String"
                  xmlns:sys="clr-namespace:System;assembly=mscorlib">
-            <!-- Neutrals (White, Gray, Black) -->
-            <sys:String>#FFFFFF</sys:String>
-            <sys:String>#808080</sys:String>
-            <sys:String>#000000</sys:String>
             <!-- Windows 11 Accent Colors -->
             <sys:String>#0078D4</sys:String>
             <sys:String>#0099BC</sys:String>
