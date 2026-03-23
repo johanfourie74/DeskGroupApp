@@ -225,15 +225,15 @@ public partial class SettingsWindow : Window
         {
             System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
             {
-                FileName = "mailto:johan@example.com?subject=DeskGroup Feedback",
+                FileName = "https://github.com/johanfourie74/DeskGroup/issues",
                 UseShellExecute = true
             });
         }
         catch
         {
             MessageBox.Show(
-                "Could not open default email client.\n\n" +
-                "Please send feedback to: johan@example.com",
+                "Could not open browser.\n\n" +
+                "Please visit: https://github.com/johanfourie74/DeskGroup/issues",
                 "DeskGroup Contact",
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);

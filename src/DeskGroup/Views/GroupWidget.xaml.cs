@@ -376,6 +376,7 @@ public partial class GroupWidget : Window
 
                     // CRITICAL: Use ViewModel position (already synced before toggle), NOT Window.Left/Top!
                     // Window.Left/Top might be stale if WPF hasn't updated yet from ViewModel changes
+                    if (_viewModel == null) break;
                     var targetX = (int)Math.Round(_viewModel.PositionX);
                     var targetY = (int)Math.Round(_viewModel.PositionY);
                     Win32Interop.SetWindowPos(_windowHandle, Win32Interop.HWND_BOTTOM,

@@ -49,7 +49,7 @@ Clean up your cluttered desktop while keeping all your shortcuts instantly acces
 ## System Requirements
 
 - **OS:** Windows 10 (1903+) or Windows 11
-- **Runtime:** .NET 6.0 (included in self-contained builds)
+- **Runtime:** .NET 10 (included in self-contained builds)
 - **RAM:** ~30 MB
 - **Disk:** ~60 MB (self-contained) / ~5 MB (framework-dependent)
 
@@ -111,13 +111,13 @@ Access via **tray icon > Settings** or right-click any group widget.
 ## Building from Source
 
 ### Prerequisites
-- [.NET 6 SDK](https://dotnet.microsoft.com/download/dotnet/6.0) or later
+- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
 - [Visual Studio 2022](https://visualstudio.microsoft.com/) (recommended) or VS Code
 - Windows 10/11
 
 ### Build
 ```bash
-git clone https://github.com/yourusername/DeskGroup.git
+git clone https://github.com/johanfourie74/DeskGroup.git
 cd DeskGroup
 dotnet restore src/DeskGroup/DeskGroup.csproj
 dotnet build src/DeskGroup/DeskGroup.csproj --configuration Release
