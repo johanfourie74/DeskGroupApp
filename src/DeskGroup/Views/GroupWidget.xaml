@@ -72,10 +72,13 @@
 
                 <!-- Footer with status indicators -->
                 <Border Grid.Row="1"
-                        Background="#20000000"
+                        Background="#28000000"
+                        BorderBrush="#30FFFFFF"
+                        BorderThickness="0,1,0,0"
                         CornerRadius="4"
-                        Padding="4,2"
-                        Margin="0,4,0,0"
+                        Padding="6,3"
+                        Margin="0,6,0,0"
+                        Cursor="Hand"
                         MouseLeftButtonDown="Footer_MouseLeftButtonDown">
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -87,7 +90,7 @@
                         <TextBlock Grid.Column="0"
                                    HorizontalAlignment="Left"
                                    Foreground="#CCFFFFFF"
-                                   FontSize="9"
+                                   FontSize="10"
                                    VerticalAlignment="Center">
                             <Run Text="View: "/>
                             <Run Text="{Binding ViewMode, FallbackValue='Minimized'}" FontWeight="SemiBold"/>
@@ -97,7 +100,7 @@
                         <TextBlock Grid.Column="1"
                                    HorizontalAlignment="Right"
                                    Foreground="#CCFFFFFF"
-                                   FontSize="9"
+                                   FontSize="10"
                                    VerticalAlignment="Center">
                             <Run Text="Layer: "/>
                             <Run Text="{Binding DockMode, FallbackValue='Float'}" FontWeight="SemiBold"/>
@@ -164,10 +167,13 @@
 
                 <!-- Footer with status indicators -->
                 <Border Grid.Row="2"
-                        Background="#20000000"
+                        Background="#28000000"
+                        BorderBrush="#30FFFFFF"
+                        BorderThickness="0,1,0,0"
                         CornerRadius="4"
-                        Padding="6,4"
-                        Margin="0,8,0,0"
+                        Padding="6,3"
+                        Margin="0,6,0,0"
+                        Cursor="Hand"
                         MouseLeftButtonDown="Footer_MouseLeftButtonDown">
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -259,24 +265,38 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
 
-                <!-- Status Footer -->
-                <Border Grid.Row="2" 
-                        Background="#33000000" 
-                        CornerRadius="4" 
+                <!-- Footer with status indicators -->
+                <Border Grid.Row="2"
+                        Background="#28000000"
+                        BorderBrush="#30FFFFFF"
+                        BorderThickness="0,1,0,0"
+                        CornerRadius="4"
                         Padding="6,3"
-                        Margin="0,8,0,0"
-                        MouseLeftButtonDown="Footer_MouseLeftButtonDown"
-                        Cursor="Hand">
+                        Margin="0,6,0,0"
+                        Cursor="Hand"
+                        MouseLeftButtonDown="Footer_MouseLeftButtonDown">
                     <Grid>
-                        <TextBlock Text="{Binding ViewMode, StringFormat='View: {0}'}" 
-                                   Foreground="White" 
-                                   FontSize="10" 
-                                   FontWeight="Normal"
-                                   HorizontalAlignment="Left"/>
-                        <TextBlock Foreground="White" 
-                                   FontSize="10" 
-                                   FontWeight="Normal"
-                                   HorizontalAlignment="Right">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Left: View Mode -->
+                        <TextBlock Grid.Column="0"
+                                   HorizontalAlignment="Left"
+                                   Foreground="#CCFFFFFF"
+                                   FontSize="10"
+                                   VerticalAlignment="Center">
+                            <Run Text="View: "/>
+                            <Run Text="{Binding ViewMode, FallbackValue='Compact'}" FontWeight="SemiBold"/>
+                        </TextBlock>
+
+                        <!-- Right: Dock Mode -->
+                        <TextBlock Grid.Column="1"
+                                   HorizontalAlignment="Right"
+                                   Foreground="#CCFFFFFF"
+                                   FontSize="10"
+                                   VerticalAlignment="Center">
                             <Run Text="Layer: "/>
                             <Run Text="{Binding DockMode, FallbackValue='Float'}" FontWeight="SemiBold"/>
                         </TextBlock>
@@ -347,10 +367,13 @@
 
                 <!-- Footer with status indicators -->
                 <Border Grid.Row="2"
-                        Background="#20000000"
+                        Background="#28000000"
+                        BorderBrush="#30FFFFFF"
+                        BorderThickness="0,1,0,0"
                         CornerRadius="4"
-                        Padding="6,4"
-                        Margin="0,8,0,0"
+                        Padding="6,3"
+                        Margin="0,6,0,0"
+                        Cursor="Hand"
                         MouseLeftButtonDown="Footer_MouseLeftButtonDown">
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -449,10 +472,13 @@
 
                 <!-- Footer with status indicators -->
                 <Border Grid.Row="2"
-                        Background="#20000000"
+                        Background="#28000000"
+                        BorderBrush="#30FFFFFF"
+                        BorderThickness="0,1,0,0"
                         CornerRadius="4"
-                        Padding="6,4"
-                        Margin="0,8,0,0"
+                        Padding="6,3"
+                        Margin="0,6,0,0"
+                        Cursor="Hand"
                         MouseLeftButtonDown="Footer_MouseLeftButtonDown">
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -467,7 +493,7 @@
                                    FontSize="10"
                                    VerticalAlignment="Center">
                             <Run Text="View: "/>
-                            <Run Text="{Binding ViewMode, FallbackValue='Normal'}" FontWeight="SemiBold"/>
+                            <Run Text="{Binding ViewMode, FallbackValue='Grid'}" FontWeight="SemiBold"/>
                         </TextBlock>
 
                         <!-- Right: Dock Mode -->
@@ -556,10 +582,13 @@
 
                 <!-- Footer with status indicators -->
                 <Border Grid.Row="3"
-                        Background="#20000000"
+                        Background="#28000000"
+                        BorderBrush="#30FFFFFF"
+                        BorderThickness="0,1,0,0"
                         CornerRadius="4"
-                        Padding="8,4"
-                        Margin="0,12,0,0"
+                        Padding="8,5"
+                        Margin="0,10,0,0"
+                        Cursor="Hand"
                         MouseLeftButtonDown="Footer_MouseLeftButtonDown">
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -571,7 +600,7 @@
                         <TextBlock Grid.Column="0"
                                    HorizontalAlignment="Left"
                                    Foreground="#CCFFFFFF"
-                                   FontSize="12"
+                                   FontSize="11"
                                    VerticalAlignment="Center">
                             <Run Text="View: "/>
                             <Run Text="{Binding ViewMode, FallbackValue='Fullscreen'}" FontWeight="SemiBold"/>
@@ -581,7 +610,7 @@
                         <TextBlock Grid.Column="1"
                                    HorizontalAlignment="Right"
                                    Foreground="#CCFFFFFF"
-                                   FontSize="12"
+                                   FontSize="11"
                                    VerticalAlignment="Center">
                             <Run Text="Layer: "/>
                             <Run Text="{Binding DockMode, FallbackValue='Float'}" FontWeight="SemiBold"/>
