@@ -41,6 +41,9 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private bool _watchForUngroupedIcons;
     [ObservableProperty] private bool _allowMultiMonitor;
     [ObservableProperty] private bool _showDebugMenu;
+    [ObservableProperty] private bool _desktopShortcutInstalled;
+    [ObservableProperty] private bool _pinnedToStart;
+    [ObservableProperty] private bool _pinnedToTaskbar;
 
     public List<Models.ThemeMode> ThemeModes { get; } = new() { Models.ThemeMode.Light, Models.ThemeMode.Dark, Models.ThemeMode.System };
     public List<GroupDockMode> DockModes { get; } = new() { GroupDockMode.Sticky, GroupDockMode.Float };
@@ -63,6 +66,9 @@ public partial class SettingsViewModel : ObservableObject
         WatchForUngroupedIcons = settings.WatchForUngroupedIcons;
         AllowMultiMonitor = settings.AllowMultiMonitor;
         ShowDebugMenu = settings.ShowDebugMenu;
+        DesktopShortcutInstalled = settings.DesktopShortcutInstalled;
+        PinnedToStart = settings.PinnedToStart;
+        PinnedToTaskbar = settings.PinnedToTaskbar;
     }
 
     [RelayCommand]
@@ -113,6 +119,11 @@ public partial class SettingsViewModel : ObservableObject
             _settings.ToggleAllHotkey != ToggleAllHotkey ||
             _settings.FullscreenToggleHotkey != FullscreenToggleHotkey;
 
+        // Capture shortcut states before overwriting
+        bool wasDesktopShortcut = _settings.DesktopShortcutInstalled;
+        bool wasStart = _settings.PinnedToStart;
+        bool wasTaskbar = _settings.PinnedToTaskbar;
+
         _settings.Theme = Theme; 
         _settings.GroupBackgroundOpacity = GroupBackgroundOpacity;
         _settings.DefaultDockMode = DefaultDockMode;
@@ -124,10 +135,20 @@ public partial class SettingsViewModel : ObservableObject
         _settings.WatchForUngroupedIcons = WatchForUngroupedIcons;
         _settings.AllowMultiMonitor = AllowMultiMonitor;
         _settings.ShowDebugMenu = ShowDebugMenu;
+        _settings.DesktopShortcutInstalled = DesktopShortcutInstalled;
+        _settings.PinnedToStart = PinnedToStart;
+        _settings.PinnedToTaskbar = PinnedToTaskbar;
         _startupService.SyncWithSetting(StartWithWindows);
         await _persistenceService.SaveSettingsImmediateAsync(_settings);
 
-        // Notify user if hotkeys changed
+        // Handle shortcut/pin changes
+        if (wasDesktopShortcut != DesktopShortcutInstalled)
+        {
+            if (DesktopShortcutInstalled) Helpers.ShortcutInstallHelper.InstallDesktopShortcut();
+            else Helpers.ShortcutInstallHelper.RemoveDesktopShortcut();
+        }
+        if (!wasStart && PinnedToStart) HandlePinToStart();
+        if (!wasTaskbar && PinnedToTaskbar) HandlePinToTaskbar();
         if (hotkeysChanged)
         {
             var dialog = new DeskGroup.Views.HotkeyWarningDialog(
@@ -153,6 +174,36 @@ public partial class SettingsViewModel : ObservableObject
                 RestartApplication();
             }
         }
+    }
+
+    private void HandlePinToStart()
+    {
+        var result = Helpers.ShortcutInstallHelper.PinToStartMenu();
+        if (result == Helpers.ShortcutInstallHelper.PinResult.Success) return;
+        MessageBox.Show(
+            "Automatic Start menu pinning isn't supported on Windows 11.\n\n" +
+            "To pin DeskGroup manually:\n" +
+            "1. Find the DeskGroup shortcut on your desktop\n" +
+            "2. Right-click it and choose 'Pin to Start'\n\n" +
+            "Your preference has been saved.",
+            "Pin to Start — Manual Action Needed",
+            MessageBoxButton.OK,
+            MessageBoxImage.Information);
+    }
+
+    private void HandlePinToTaskbar()
+    {
+        var result = Helpers.ShortcutInstallHelper.PinToTaskbar();
+        if (result == Helpers.ShortcutInstallHelper.PinResult.Success) return;
+        MessageBox.Show(
+            "Automatic taskbar pinning isn't supported on Windows 11.\n\n" +
+            "To pin DeskGroup manually:\n" +
+            "1. Find the DeskGroup shortcut on your desktop\n" +
+            "2. Right-click it and choose 'Pin to taskbar'\n\n" +
+            "Your preference has been saved.",
+            "Pin to Taskbar — Manual Action Needed",
+            MessageBoxButton.OK,
+            MessageBoxImage.Information);
     }
 
     private void RestartApplication()

@@ -1,0 +1,148 @@
+<Window x:Class="DeskGroup.Views.FirstRunSetupDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Welcome to DeskGroup"
+        Width="460"
+        SizeToContent="Height"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent">
+
+    <Border Background="{DynamicResource BackgroundPrimary}"
+            BorderBrush="{DynamicResource BorderBrush}"
+            BorderThickness="1"
+            CornerRadius="10"
+            MouseLeftButtonDown="Border_MouseLeftButtonDown">
+        <StackPanel Margin="32,28,32,24">
+
+            <!-- App icon -->
+            <Image Source="/Assets/dg_icon.png"
+                   Width="56" Height="56"
+                   HorizontalAlignment="Center"
+                   Margin="0,0,0,12"/>
+
+            <!-- Title -->
+            <TextBlock Text="Welcome to DeskGroup!"
+                       FontFamily="{DynamicResource DefaultFont}"
+                       FontSize="22"
+                       FontWeight="Bold"
+                       Foreground="{DynamicResource ForegroundPrimary}"
+                       HorizontalAlignment="Center"
+                       Margin="0,0,0,8"/>
+
+            <!-- Subtitle -->
+            <TextBlock Text="Set up quick access for DeskGroup. You can change these options at any time in Settings → Startup &amp; Behavior."
+                       FontFamily="{DynamicResource DefaultFont}"
+                       FontSize="{DynamicResource FontSizeNormal}"
+                       Foreground="{DynamicResource ForegroundSecondary}"
+                       TextWrapping="Wrap"
+                       TextAlignment="Center"
+                       HorizontalAlignment="Center"
+                       Margin="0,0,0,24"/>
+
+            <!-- Separator -->
+            <Border Height="1" Background="{DynamicResource BorderSubtle}" Margin="0,0,0,20"/>
+
+            <!-- Desktop Shortcut -->
+            <DockPanel Margin="0,0,0,4">
+                <CheckBox x:Name="ChkDesktop"
+                          IsChecked="True"
+                          VerticalAlignment="Top"
+                          DockPanel.Dock="Left"
+                          Margin="0,3,12,0"/>
+                <StackPanel>
+                    <TextBlock Text="Add a desktop shortcut"
+                               FontFamily="{DynamicResource DefaultFont}"
+                               FontSize="{DynamicResource FontSizeNormal}"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource ForegroundPrimary}"/>
+                    <TextBlock Text="Creates a DeskGroup.lnk shortcut on your desktop for quick access."
+                               FontFamily="{DynamicResource DefaultFont}"
+                               FontSize="{DynamicResource FontSizeSmall}"
+                               Foreground="{DynamicResource ForegroundSecondary}"
+                               TextWrapping="Wrap"
+                               Margin="0,2,0,0"/>
+                </StackPanel>
+            </DockPanel>
+
+            <!-- Separator -->
+            <Border Height="1" Background="{DynamicResource BorderSubtle}" Margin="0,14,0,14"/>
+
+            <!-- Pin to Start -->
+            <DockPanel Margin="0,0,0,4">
+                <CheckBox x:Name="ChkStart"
+                          IsChecked="False"
+                          VerticalAlignment="Top"
+                          DockPanel.Dock="Left"
+                          Margin="0,3,12,0"/>
+                <StackPanel>
+                    <TextBlock Text="Pin to Start menu"
+                               FontFamily="{DynamicResource DefaultFont}"
+                               FontSize="{DynamicResource FontSizeNormal}"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource ForegroundPrimary}"/>
+                    <TextBlock Text="Pins DeskGroup to your Windows Start menu. Requires the desktop shortcut above. On Windows 11 a manual step may be needed."
+                               FontFamily="{DynamicResource DefaultFont}"
+                               FontSize="{DynamicResource FontSizeSmall}"
+                               Foreground="{DynamicResource ForegroundSecondary}"
+                               TextWrapping="Wrap"
+                               Margin="0,2,0,0"/>
+                </StackPanel>
+            </DockPanel>
+
+            <!-- Separator -->
+            <Border Height="1" Background="{DynamicResource BorderSubtle}" Margin="0,14,0,14"/>
+
+            <!-- Pin to Taskbar -->
+            <DockPanel Margin="0,0,0,4">
+                <CheckBox x:Name="ChkTaskbar"
+                          IsChecked="False"
+                          VerticalAlignment="Top"
+                          DockPanel.Dock="Left"
+                          Margin="0,3,12,0"/>
+                <StackPanel>
+                    <TextBlock Text="Pin to taskbar"
+                               FontFamily="{DynamicResource DefaultFont}"
+                               FontSize="{DynamicResource FontSizeNormal}"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource ForegroundPrimary}"/>
+                    <TextBlock Text="Pins DeskGroup to your Windows taskbar. Requires the desktop shortcut above. On Windows 11 a manual step may be needed."
+                               FontFamily="{DynamicResource DefaultFont}"
+                               FontSize="{DynamicResource FontSizeSmall}"
+                               Foreground="{DynamicResource ForegroundSecondary}"
+                               TextWrapping="Wrap"
+                               Margin="0,2,0,0"/>
+                </StackPanel>
+            </DockPanel>
+
+            <!-- Separator -->
+            <Border Height="1" Background="{DynamicResource BorderSubtle}" Margin="0,20,0,20"/>
+
+            <!-- Get Started button -->
+            <Button Content="Get Started  &#x2192;"
+                    Click="GetStarted_Click"
+                    Style="{DynamicResource DefaultButton}"
+                    Background="{DynamicResource AccentBrush}"
+                    Foreground="White"
+                    FontFamily="{DynamicResource DefaultFont}"
+                    FontSize="{DynamicResource FontSizeNormal}"
+                    FontWeight="SemiBold"
+                    Padding="28,10"
+                    HorizontalAlignment="Center"
+                    Cursor="Hand"/>
+
+            <!-- Footer note -->
+            <TextBlock Text="You can change these options later in Settings → Startup &amp; Behavior"
+                       FontFamily="{DynamicResource DefaultFont}"
+                       FontSize="{DynamicResource FontSizeSmall}"
+                       Foreground="{DynamicResource ForegroundSecondary}"
+                       HorizontalAlignment="Center"
+                       TextAlignment="Center"
+                       Margin="0,10,0,0"/>
+
+        </StackPanel>
+    </Border>
+
+</Window>

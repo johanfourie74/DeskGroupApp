@@ -23,6 +23,9 @@ public class AppSettings
     public bool IsPortableMode { get; set; } = false;
     public bool AllowMultiMonitor { get; set; } = true;
     public bool IsFirstRun { get; set; } = true;
+    public bool DesktopShortcutInstalled { get; set; } = false;
+    public bool PinnedToStart { get; set; } = false;
+    public bool PinnedToTaskbar { get; set; } = false;
     public string LastAppVersion { get; set; } = "1.0.0";
     public int AutoSaveDebounceMs { get; set; } = 2000;
     public bool ShowDebugMenu { get; set; } = false;

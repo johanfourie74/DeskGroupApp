@@ -35,6 +35,7 @@ public partial class MainViewModel : ObservableObject
 
     public ObservableCollection<GroupViewModel> Groups { get; } = new();
     public AppSettings Settings => _settings;
+    public bool WasFirstRun { get; private set; }
 
     public event EventHandler<DeskGroup.Models.ThemeMode>? ThemeChanged;
     public event EventHandler<List<string>>? UngroupedIconsDetected;
@@ -86,6 +87,7 @@ public partial class MainViewModel : ObservableObject
 
         if (_settings.IsFirstRun)
         {
+            WasFirstRun = true;
             _suppressHotkeyWarnings = true;
             _settings.IsFirstRun = false;
             await _persistenceService.SaveSettingsImmediateAsync(_settings);

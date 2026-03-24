@@ -198,8 +198,17 @@ public partial class App : Application
 
         System.Diagnostics.Debug.WriteLine("STARTUP: All windows created, showing balloon tip");
 
+        // Show first-run setup dialog
+        if (_mainViewModel.WasFirstRun)
+        {
+            var setupDialog = new FirstRunSetupDialog(
+                _mainViewModel.Settings,
+                new Services.PersistenceService());
+            setupDialog.ShowDialog();
+        }
+
         // Show first-run hint if applicable
-        if (_mainViewModel.Settings.IsFirstRun)
+        if (_mainViewModel.WasFirstRun)
         {
             _trayIcon?.ShowBalloonTip(
                 "Welcome to DeskGroup! 🎉",

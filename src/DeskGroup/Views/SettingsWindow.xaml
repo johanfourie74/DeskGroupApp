@@ -333,6 +333,36 @@
                 <TextBlock Text="Allow groups to be placed on any connected monitor."
                            Style="{StaticResource SettingDesc}"/>
 
+                <!-- Desktop shortcut -->
+                <DockPanel Style="{StaticResource SettingRow}">
+                    <TextBlock Text="Desktop shortcut" Style="{StaticResource SettingLabel}"
+                               DockPanel.Dock="Left" Width="160"/>
+                    <CheckBox IsChecked="{Binding DesktopShortcutInstalled}"
+                              VerticalAlignment="Center"/>
+                </DockPanel>
+                <TextBlock Text="Create or remove the DeskGroup shortcut on your desktop."
+                           Style="{StaticResource SettingDesc}"/>
+
+                <!-- Pin to Start menu -->
+                <DockPanel Style="{StaticResource SettingRow}">
+                    <TextBlock Text="Pin to Start menu" Style="{StaticResource SettingLabel}"
+                               DockPanel.Dock="Left" Width="160"/>
+                    <CheckBox IsChecked="{Binding PinnedToStart}"
+                              VerticalAlignment="Center"/>
+                </DockPanel>
+                <TextBlock Text="Track whether DeskGroup is pinned to Start. Enabling this attempts to pin it automatically (Windows 11 may require a manual step)."
+                           Style="{StaticResource SettingDesc}"/>
+
+                <!-- Pin to taskbar -->
+                <DockPanel Style="{StaticResource SettingRow}">
+                    <TextBlock Text="Pin to taskbar" Style="{StaticResource SettingLabel}"
+                               DockPanel.Dock="Left" Width="160"/>
+                    <CheckBox IsChecked="{Binding PinnedToTaskbar}"
+                              VerticalAlignment="Center"/>
+                </DockPanel>
+                <TextBlock Text="Track whether DeskGroup is pinned to the taskbar. Enabling this attempts to pin it automatically (Windows 11 may require a manual step)."
+                           Style="{StaticResource SettingDesc}"/>
+
                 <!-- ====================================================================== -->
                 <!-- DEVELOPER -->
                 <!-- ====================================================================== -->
