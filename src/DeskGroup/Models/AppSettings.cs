@@ -8,8 +8,8 @@ public class AppSettings
     public ThemeMode Theme { get; set; } = ThemeMode.System;
     public WindowThemeStyle WindowStyle { get; set; } = WindowThemeStyle.Default;
     public double GroupBackgroundOpacity { get; set; } = 1.0;
-    public GroupDockMode DefaultDockMode { get; set; } = GroupDockMode.Float;
-    public bool DefaultSnapToGrid { get; set; } = true;
+    public GroupDockMode DefaultDockMode { get; set; } = GroupDockMode.Sticky;
+    public bool DefaultSnapToGrid { get; set; } = false;
     public int SnapGridSize { get; set; } = 20;
     public bool HideGroupedIcons { get; set; } = true;
     public IconSizeMode IconSizeMode { get; set; } = IconSizeMode.System;
@@ -25,6 +25,7 @@ public class AppSettings
     public bool IsFirstRun { get; set; } = true;
     public string LastAppVersion { get; set; } = "1.0.0";
     public int AutoSaveDebounceMs { get; set; } = 2000;
+    public bool ShowDebugMenu { get; set; } = false;
 
     // Settings Window Position
     public double SettingsWindowLeft { get; set; } = double.NaN;

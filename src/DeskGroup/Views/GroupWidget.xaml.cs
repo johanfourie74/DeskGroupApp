@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
+using System.Windows.Media;
 using DeskGroup.Controls;
 using DeskGroup.Helpers;
 using DeskGroup.Models;
@@ -44,6 +45,24 @@ public partial class GroupWidget : Window
     public static void SetLastTempFloatTime()
     {
         _lastTempFloatTime = DateTime.Now;
+    }
+
+    // DPI helpers — SetWindowPos takes physical pixels; WPF Left/Top are logical (DIPs)
+    private double DpiScaleX => (PresentationSource.FromVisual(this)?.CompositionTarget?.TransformToDevice.M11) ?? 1.0;
+    private double DpiScaleY => (PresentationSource.FromVisual(this)?.CompositionTarget?.TransformToDevice.M22) ?? 1.0;
+
+    private bool SetWindowPosInDips(IntPtr insertAfter, int dipX, int dipY, int dipW, int dipH, uint flags)
+        => Win32Interop.SetWindowPos(_windowHandle, insertAfter,
+            (int)(dipX * DpiScaleX), (int)(dipY * DpiScaleY),
+            (int)(dipW * DpiScaleX), (int)(dipH * DpiScaleY), flags);
+
+    private void SetPendingPositionInDips(int dipX, int dipY, int dipW, int dipH)
+    {
+        _pendingX = (int)(dipX * DpiScaleX);
+        _pendingY = (int)(dipY * DpiScaleY);
+        _pendingW = (int)(dipW * DpiScaleX);
+        _pendingH = (int)(dipH * DpiScaleY);
+        _hasPendingPosition = true;
     }
 
     /// <summary>
@@ -379,7 +398,7 @@ public partial class GroupWidget : Window
                     if (_viewModel == null) break;
                     var targetX = (int)Math.Round(_viewModel.PositionX);
                     var targetY = (int)Math.Round(_viewModel.PositionY);
-                    Win32Interop.SetWindowPos(_windowHandle, Win32Interop.HWND_BOTTOM,
+                    SetWindowPosInDips(Win32Interop.HWND_BOTTOM,
                         targetX, targetY, 
                         (int)Width, (int)Height,
                         Win32Interop.SWP_SHOWWINDOW | Win32Interop.SWP_NOACTIVATE);
@@ -817,7 +836,7 @@ public partial class GroupWidget : Window
                     // WIN32 FIRST: Atomic position/size change!
                     if (_windowHandle != IntPtr.Zero)
                     {
-                        bool success = Win32Interop.SetWindowPos(_windowHandle, IntPtr.Zero,
+                        bool success = SetWindowPosInDips(IntPtr.Zero,
                             targetX, targetY, targetWidth, targetHeight,
                             Win32Interop.SWP_NOZORDER | Win32Interop.SWP_NOACTIVATE | Win32Interop.SWP_SHOWWINDOW);
 
@@ -858,11 +877,7 @@ public partial class GroupWidget : Window
                     int hoverTargetY = wasFullscreenHover && _preFullscreenTop > 0 ? (int)_preFullscreenTop : (_viewModel != null ? (int)_viewModel.PositionY : 0);
 
                     // SET THE TRAP: WndProc will enforce this position on ANY move attempt
-                    _pendingX = hoverTargetX;
-                    _pendingY = hoverTargetY;
-                    _pendingW = hoverTargetW;
-                    _pendingH = hoverTargetH;
-                    _hasPendingPosition = true;
+                    SetPendingPositionInDips(hoverTargetX, hoverTargetY, hoverTargetW, hoverTargetH);
 
                     System.Diagnostics.Debug.WriteLine($"🎯 PENDING position set: ({hoverTargetX}, {hoverTargetY}), size: {hoverTargetW}x{hoverTargetH}");
 
@@ -887,7 +902,7 @@ public partial class GroupWidget : Window
                     // Final SetWindowPos for good measure
                     if (_windowHandle != IntPtr.Zero)
                     {
-                        Win32Interop.SetWindowPos(_windowHandle, IntPtr.Zero,
+                        SetWindowPosInDips(IntPtr.Zero,
                             hoverTargetX, hoverTargetY, hoverTargetW, hoverTargetH,
                             Win32Interop.SWP_NOZORDER | Win32Interop.SWP_NOACTIVATE | Win32Interop.SWP_SHOWWINDOW);
 
@@ -927,7 +942,7 @@ public partial class GroupWidget : Window
                     // WIN32 FIRST: Atomic position/size change!
                     if (_windowHandle != IntPtr.Zero)
                     {
-                        bool success = Win32Interop.SetWindowPos(_windowHandle, IntPtr.Zero,
+                        bool success = SetWindowPosInDips(IntPtr.Zero,
                             compactTargetX, compactTargetY, compactTargetW, compactTargetH,
                             Win32Interop.SWP_NOZORDER | Win32Interop.SWP_NOACTIVATE | Win32Interop.SWP_SHOWWINDOW);
 
@@ -972,7 +987,7 @@ public partial class GroupWidget : Window
                     // WIN32 FIRST: Atomic position/size change!
                     if (_windowHandle != IntPtr.Zero)
                     {
-                        bool success = Win32Interop.SetWindowPos(_windowHandle, IntPtr.Zero,
+                        bool success = SetWindowPosInDips(IntPtr.Zero,
                             normalTargetX, normalTargetY, normalTargetW, normalTargetH,
                             Win32Interop.SWP_NOZORDER | Win32Interop.SWP_NOACTIVATE | Win32Interop.SWP_SHOWWINDOW);
 
@@ -1017,7 +1032,7 @@ public partial class GroupWidget : Window
                     // WIN32 FIRST: Atomic position/size change!
                     if (_windowHandle != IntPtr.Zero)
                     {
-                        bool success = Win32Interop.SetWindowPos(_windowHandle, IntPtr.Zero,
+                        bool success = SetWindowPosInDips(IntPtr.Zero,
                             gridTargetX, gridTargetY, gridTargetW, gridTargetH,
                             Win32Interop.SWP_NOZORDER | Win32Interop.SWP_NOACTIVATE | Win32Interop.SWP_SHOWWINDOW);
 
@@ -1048,23 +1063,25 @@ public partial class GroupWidget : Window
 
                     System.Diagnostics.Debug.WriteLine($"🖥️ ENTERING fullscreen: {screenWidth}x{screenHeight}");
 
-                    // Change ONLY view visibility (cheap, no layout)
+                    // Collapse all non-fullscreen views first
                     MinimizedView.Visibility = Visibility.Collapsed;
                     HoverView.Visibility = Visibility.Collapsed;
                     CompactView.Visibility = Visibility.Collapsed;
                     NormalView.Visibility = Visibility.Collapsed;
                     GridView.Visibility = Visibility.Collapsed;
-                    FullscreenView.Visibility = Visibility.Visible;
 
-                    // WIN32 FIRST: Atomic position/size/topmost change!
+                    // WIN32 FIRST: Resize/reposition BEFORE content becomes visible (Fix #9 — no size flash)
                     if (_windowHandle != IntPtr.Zero)
                     {
-                        bool success = Win32Interop.SetWindowPos(_windowHandle, Win32Interop.HWND_TOPMOST,
+                        bool success = SetWindowPosInDips(Win32Interop.HWND_TOPMOST,
                             0, 0, screenWidth, screenHeight,
                             Win32Interop.SWP_SHOWWINDOW);
 
                         System.Diagnostics.Debug.WriteLine($"✅ SetWindowPos fullscreen: {success}");
                     }
+
+                    // Show fullscreen content AFTER window is already at the correct size
+                    FullscreenView.Visibility = Visibility.Visible;
 
                     // Sync WPF properties AFTER (bookkeeping only - no triggers!)
                     Left = 0;
@@ -1440,25 +1457,15 @@ public partial class GroupWidget : Window
             // Stop hover timer to prevent collapse during drag
             _hoverLeaveTimer?.Stop();
 
-            // Save current position BEFORE locking size
-            var posBeforeLock = new Point(Left, Top);
-
             // Lock size to prevent jumping (especially for Hover view)
             SizeToContent = SizeToContent.Manual;
             Width = _preDragWidth;
             Height = _preDragHeight;
-
-            // Force layout
-            UpdateLayout();
-
-            // Restore position (size lock might have shifted it)
-            Left = posBeforeLock.X;
-            Top = posBeforeLock.Y;
         }
 
-        // Calculate position from original baseline + current mouse delta
-        Left = _dragStartWindowPosition.X + deltaX;
-        Top = _dragStartWindowPosition.Y + deltaY;
+        // Calculate position from original baseline + DPI-adjusted delta
+        Left = _dragStartWindowPosition.X + deltaX / DpiScaleX;
+        Top = _dragStartWindowPosition.Y + deltaY / DpiScaleY;
     }
 
     private void Header_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
@@ -1498,6 +1505,70 @@ public partial class GroupWidget : Window
         _isDragging = false;
         _dragStarted = false;
         e.Handled = true;
+    }
+
+    // ============================================================================================
+    // ICON DRAG AND DROP (internal reorder + drag-out remove) — Fix #5
+    // ============================================================================================
+
+    private void OnIconDropInternal(object sender, DragEventArgs e)
+    {
+        if (_viewModel == null) return;
+        if (!e.Data.GetDataPresent("DeskGroupShortcut")) { e.Handled = true; return; }
+
+        var source = e.Data.GetData("DeskGroupShortcut") as ShortcutItemViewModel;
+        if (source == null) { e.Handled = true; return; }
+
+        var dropPoint = e.GetPosition(this);
+        var target = FindShortcutViewModelAtPoint(dropPoint);
+
+        if (target != null && !ReferenceEquals(source, target))
+            _viewModel.MoveShortcut(source, target);
+
+        e.Effects = DragDropEffects.Move;
+        e.Handled = true;
+    }
+
+    private ShortcutItemViewModel? FindShortcutViewModelAtPoint(Point point)
+    {
+        var result = VisualTreeHelper.HitTest(this, point);
+        if (result == null) return null;
+
+        var element = result.VisualHit as DependencyObject;
+        while (element != null)
+        {
+            if (element is FrameworkElement fe && fe.DataContext is ShortcutItemViewModel vm)
+                return vm;
+            element = VisualTreeHelper.GetParent(element);
+        }
+        return null;
+    }
+
+    public void RemoveShortcutByViewModel(ShortcutItemViewModel vm)
+    {
+        _viewModel?.RemoveShortcutCommand.Execute(vm);
+    }
+
+    // ============================================================================================
+    // SHOW / HIDE ALL HANDLERS — Fix #8
+    // ============================================================================================
+
+    private MainViewModel? GetMainViewModel()
+    {
+        var app = Application.Current as App;
+        if (app == null) return null;
+        var proxy = app.Resources["AppDataProxy"] as DeskGroup.Helpers.BindingProxy;
+        return proxy?.Data as MainViewModel;
+    }
+
+    private void MenuShowAllGroups_Click(object sender, RoutedEventArgs e)
+    {
+        GetMainViewModel()?.ShowAllGroupsCommand.Execute(null);
+    }
+
+    private void MenuHideAllGroups_Click(object sender, RoutedEventArgs e)
+    {
+        GetMainViewModel()?.HideAllGroupsCommand.Execute(null);
     }
 }
 

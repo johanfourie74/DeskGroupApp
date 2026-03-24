@@ -3,6 +3,8 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using DeskGroup.ViewModels;
+using DeskGroup.Views;
 
 namespace DeskGroup.Controls;
 
@@ -47,6 +49,41 @@ public partial class IconTile : UserControl
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Grid_MouseLeave ERROR: {ex.Message}");
+        }
+    }
+
+    // Drag and drop
+
+    private Point _mouseDownPos;
+
+    protected override void OnPreviewMouseLeftButtonDown(MouseButtonEventArgs e)
+    {
+        base.OnPreviewMouseLeftButtonDown(e);
+        _mouseDownPos = e.GetPosition(this);
+    }
+
+    protected override void OnPreviewMouseMove(MouseEventArgs e)
+    {
+        base.OnPreviewMouseMove(e);
+        if (e.LeftButton != MouseButtonState.Pressed) return;
+        if (Mouse.Captured != null) return; // parent window is being dragged
+
+        var pos = e.GetPosition(this);
+        if (Math.Abs(pos.X - _mouseDownPos.X) > SystemParameters.MinimumHorizontalDragDistance ||
+            Math.Abs(pos.Y - _mouseDownPos.Y) > SystemParameters.MinimumVerticalDragDistance)
+        {
+            if (DataContext is ShortcutItemViewModel vm)
+            {
+                var result = DragDrop.DoDragDrop(this, new DataObject("DeskGroupShortcut", vm),
+                    DragDropEffects.Move | DragDropEffects.None);
+
+                if (result == DragDropEffects.None)
+                {
+                    // Dropped outside any group — remove from this group
+                    var widget = Window.GetWindow(this) as GroupWidget;
+                    widget?.RemoveShortcutByViewModel(vm);
+                }
+            }
         }
     }
 

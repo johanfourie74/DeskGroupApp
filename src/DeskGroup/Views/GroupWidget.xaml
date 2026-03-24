@@ -348,7 +348,9 @@
                               VerticalScrollBarVisibility="Auto"
                               MaxHeight="400"
                               Padding="0,0,8,0">
-                    <ItemsControl ItemsSource="{Binding AllShortcuts}">
+                    <ItemsControl ItemsSource="{Binding AllShortcuts}"
+                                  AllowDrop="True"
+                                  Drop="OnIconDropInternal">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <controls:IconTile 
@@ -448,7 +450,9 @@
                               VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled"
                               MaxHeight="500">
-                    <ItemsControl ItemsSource="{Binding AllShortcuts}">
+                    <ItemsControl ItemsSource="{Binding AllShortcuts}"
+                                  AllowDrop="True"
+                                  Drop="OnIconDropInternal">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
                                 <WrapPanel Orientation="Horizontal"/>
@@ -550,7 +554,9 @@
                 <ScrollViewer Grid.Row="1"
                               VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled">
-                    <ItemsControl ItemsSource="{Binding AllShortcuts}">
+                    <ItemsControl ItemsSource="{Binding AllShortcuts}"
+                                  AllowDrop="True"
+                                  Drop="OnIconDropInternal">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
                                 <WrapPanel Orientation="Horizontal"/>
@@ -708,6 +714,20 @@
                       Click="MenuRename_Click">
                 <MenuItem.Icon>
                     <TextBlock Text="✏️" FontSize="12"/>
+                </MenuItem.Icon>
+            </MenuItem>
+
+            <Separator/>
+
+            <!-- Show / Hide All -->
+            <MenuItem Header="Show All Groups" Click="MenuShowAllGroups_Click">
+                <MenuItem.Icon>
+                    <TextBlock Text="👁️" FontSize="12"/>
+                </MenuItem.Icon>
+            </MenuItem>
+            <MenuItem Header="Hide All Groups" Click="MenuHideAllGroups_Click">
+                <MenuItem.Icon>
+                    <TextBlock Text="🙈" FontSize="12"/>
                 </MenuItem.Icon>
             </MenuItem>
 

@@ -40,6 +40,7 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private string _fullscreenToggleHotkey = string.Empty;
     [ObservableProperty] private bool _watchForUngroupedIcons;
     [ObservableProperty] private bool _allowMultiMonitor;
+    [ObservableProperty] private bool _showDebugMenu;
 
     public List<Models.ThemeMode> ThemeModes { get; } = new() { Models.ThemeMode.Light, Models.ThemeMode.Dark, Models.ThemeMode.System };
     public List<GroupDockMode> DockModes { get; } = new() { GroupDockMode.Sticky, GroupDockMode.Float };
@@ -61,6 +62,7 @@ public partial class SettingsViewModel : ObservableObject
         FullscreenToggleHotkey = settings.FullscreenToggleHotkey;
         WatchForUngroupedIcons = settings.WatchForUngroupedIcons;
         AllowMultiMonitor = settings.AllowMultiMonitor;
+        ShowDebugMenu = settings.ShowDebugMenu;
     }
 
     [RelayCommand]
@@ -121,6 +123,7 @@ public partial class SettingsViewModel : ObservableObject
         _settings.FullscreenToggleHotkey = FullscreenToggleHotkey;
         _settings.WatchForUngroupedIcons = WatchForUngroupedIcons;
         _settings.AllowMultiMonitor = AllowMultiMonitor;
+        _settings.ShowDebugMenu = ShowDebugMenu;
         _startupService.SyncWithSetting(StartWithWindows);
         await _persistenceService.SaveSettingsImmediateAsync(_settings);
 
@@ -255,5 +258,6 @@ public partial class SettingsViewModel : ObservableObject
         StartMinimizedToTray = d.StartMinimizedToTray; ToggleAllHotkey = d.ToggleAllHotkey;
         FullscreenToggleHotkey = d.FullscreenToggleHotkey; WatchForUngroupedIcons = d.WatchForUngroupedIcons;
         AllowMultiMonitor = d.AllowMultiMonitor;
+        ShowDebugMenu = d.ShowDebugMenu;
     }
 }

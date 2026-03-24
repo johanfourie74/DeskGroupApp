@@ -63,7 +63,7 @@ public partial class GroupViewModel : ObservableObject
             LoadGroupIcon();
         }
     }
-    [ObservableProperty] private GroupViewMode _viewMode = GroupViewMode.Minimized;
+    [ObservableProperty] private GroupViewMode _viewMode = GroupViewMode.Normal;
     [ObservableProperty] private GroupDockMode _dockMode = GroupDockMode.Sticky;
 
     partial void OnDockModeChanged(GroupDockMode value)
@@ -91,7 +91,7 @@ public partial class GroupViewModel : ObservableObject
     }
 
     [ObservableProperty] private bool _isPinned;
-    [ObservableProperty] private bool _snapToGrid = true;
+    [ObservableProperty] private bool _snapToGrid = false;
     [ObservableProperty] private double _positionX = 100;
     [ObservableProperty] private double _positionY = 100;
     [ObservableProperty] private double _width = 300;
@@ -493,6 +493,20 @@ public partial class GroupViewModel : ObservableObject
         }
         _model.Shortcuts.Remove(model);
         AllShortcuts.Remove(shortcutVm);
+        RefreshTopUsed();
+    }
+
+    public void MoveShortcut(ShortcutItemViewModel source, ShortcutItemViewModel target)
+    {
+        int si = AllShortcuts.IndexOf(source);
+        int ti = AllShortcuts.IndexOf(target);
+        if (si < 0 || ti < 0 || si == ti) return;
+        AllShortcuts.Move(si, ti);
+        var srcModel = source.Model;
+        _model.Shortcuts.Remove(srcModel);
+        _model.Shortcuts.Insert(ti, srcModel);
+        for (int i = 0; i < _model.Shortcuts.Count; i++)
+            _model.Shortcuts[i].SortOrder = i;
         RefreshTopUsed();
     }
 

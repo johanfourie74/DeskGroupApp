@@ -492,17 +492,20 @@ public partial class App : Application
 
         menu.Items.Add(new System.Windows.Controls.Separator());
 
-        // DEBUG: Force all groups to visible float mode
-        var forceVisible = new System.Windows.Controls.MenuItem { Header = "🔧 DEBUG: Force All Visible (Float+Normal)" };
-        forceVisible.Click += (s, e) => ForceAllGroupsVisible();
-        menu.Items.Add(forceVisible);
+        if (_mainViewModel?.Settings.ShowDebugMenu == true)
+        {
+            // DEBUG: Force all groups to visible float mode
+            var forceVisible = new System.Windows.Controls.MenuItem { Header = "🔧 DEBUG: Force All Visible (Float+Normal)" };
+            forceVisible.Click += (s, e) => ForceAllGroupsVisible();
+            menu.Items.Add(forceVisible);
 
-        // DEBUG: Show test window
-        var testWindow = new System.Windows.Controls.MenuItem { Header = "🧪 DEBUG: Show Test Window" };
-        testWindow.Click += (s, e) => ShowTestWindow();
-        menu.Items.Add(testWindow);
+            // DEBUG: Show test window
+            var testWindow = new System.Windows.Controls.MenuItem { Header = "🧪 DEBUG: Show Test Window" };
+            testWindow.Click += (s, e) => ShowTestWindow();
+            menu.Items.Add(testWindow);
 
-        menu.Items.Add(new System.Windows.Controls.Separator());
+            menu.Items.Add(new System.Windows.Controls.Separator());
+        }
 
         // Create New Group
         var newGroup = new System.Windows.Controls.MenuItem { Header = "New Group" };
@@ -883,6 +886,10 @@ public partial class App : Application
 
             // Re-apply UI theme
             ApplyTheme(_mainViewModel.Settings.Theme);
+
+            // Rebuild tray menu so debug item visibility reflects new setting
+            if (_trayIcon != null)
+                _trayIcon.ContextMenu = BuildTrayContextMenu();
         };
 
         _settingsWindow.Closed += (s, e) => _settingsWindow = null;

@@ -28,6 +28,7 @@ public partial class MainViewModel : ObservableObject
 
     private AppSettings _settings = new();
     private List<IconGroup> _groupModels = new();
+    private bool _suppressHotkeyWarnings;
 
     [ObservableProperty] private bool _allGroupsVisible = true;
     [ObservableProperty] private bool _isLoaded;
@@ -85,6 +86,7 @@ public partial class MainViewModel : ObservableObject
 
         if (_settings.IsFirstRun)
         {
+            _suppressHotkeyWarnings = true;
             _settings.IsFirstRun = false;
             await _persistenceService.SaveSettingsImmediateAsync(_settings);
         }
@@ -112,6 +114,7 @@ public partial class MainViewModel : ObservableObject
         // Show user-friendly warning on UI thread
         Application.Current?.Dispatcher.Invoke(() =>
         {
+            if (_suppressHotkeyWarnings) return;
             System.Diagnostics.Debug.WriteLine($"🔥 About to show HotkeyWarningDialog...");
 
             var message =
@@ -208,7 +211,7 @@ public partial class MainViewModel : ObservableObject
                 SortOrder = groupIndex,
                 PositionX = baseX + offsetX,
                 PositionY = baseY + offsetY,
-                ViewMode = GroupViewMode.Minimized // Start minimized for better visibility
+                ViewMode = GroupViewMode.Normal
             };
 
             System.Diagnostics.Debug.WriteLine($"CreateGroup: {model.Name} at ({model.PositionX}, {model.PositionY}), DockMode: {model.DockMode}");

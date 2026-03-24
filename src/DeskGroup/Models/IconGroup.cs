@@ -12,9 +12,9 @@ public class IconGroup
     public List<ShortcutItem> Shortcuts { get; set; } = new();
     public List<OriginalIconState> OriginalIconStates { get; set; } = new();
     public GroupViewMode ViewMode { get; set; } = GroupViewMode.Normal;
-    public GroupDockMode DockMode { get; set; } = GroupDockMode.Float;
+    public GroupDockMode DockMode { get; set; } = GroupDockMode.Sticky;
     public bool IsPinned { get; set; } = false;
-    public bool SnapToGrid { get; set; } = true;
+    public bool SnapToGrid { get; set; } = false;
     public double PositionX { get; set; } = 100;
     public double PositionY { get; set; } = 100;
     public double Width { get; set; } = 300;

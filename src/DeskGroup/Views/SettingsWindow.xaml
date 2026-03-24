@@ -332,6 +332,23 @@
                 </DockPanel>
                 <TextBlock Text="Allow groups to be placed on any connected monitor."
                            Style="{StaticResource SettingDesc}"/>
+
+                <!-- ====================================================================== -->
+                <!-- DEVELOPER -->
+                <!-- ====================================================================== -->
+                <Border Style="{StaticResource SectionSeparator}"/>
+                <TextBlock Text="Developer" Style="{StaticResource SectionHeader}"/>
+
+                <!-- Show debug menu -->
+                <DockPanel Style="{StaticResource SettingRow}">
+                    <TextBlock Text="Show debug menu" Style="{StaticResource SettingLabel}"
+                               DockPanel.Dock="Left" Width="160"/>
+                    <CheckBox IsChecked="{Binding ShowDebugMenu}"
+                              VerticalAlignment="Center"/>
+                </DockPanel>
+                <TextBlock Text="Shows diagnostic items in the tray right-click menu. Restart the tray menu (open Settings → Apply) to refresh."
+                           Style="{StaticResource SettingDesc}"/>
+
                 <!-- Bottom spacer -->
                 <Border Height="16"/>
 
@@ -527,6 +544,12 @@
                            Foreground="{DynamicResource ForegroundPrimary}"
                            Margin="0,0,0,16">
                     <Run Text="• Drag the header to move a group" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run Text="• Drag an icon within a group to reorder it" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run Text="• Drag an icon off a group to remove it" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run Text="• Right-click group → Show All / Hide All to toggle all groups at once" Foreground="{DynamicResource ForegroundSecondary}"/>
                     <LineBreak/>
                     <Run Text="• Pin a group to prevent moving" Foreground="{DynamicResource ForegroundSecondary}"/>
                     <LineBreak/>
