@@ -203,6 +203,7 @@ public partial class GroupWidget : Window
                 // NOW enable property change handlers
                 // This is NOT a duplicate - OnDataContextChanged doesn't subscribe when _windowHandle is Zero
                 _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+                _viewModel.AllShortcuts.CollectionChanged += OnShortcutsCollectionChanged;
 
                 // Fade in now that everything is positioned correctly
                 Opacity = 1.0;
@@ -215,6 +216,7 @@ public partial class GroupWidget : Window
         if (_viewModel != null)
         {
             _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+            _viewModel.AllShortcuts.CollectionChanged -= OnShortcutsCollectionChanged;
         }
 
         // Detach from desktop if needed
@@ -282,6 +284,7 @@ public partial class GroupWidget : Window
         if (e.OldValue is GroupViewModel oldVm)
         {
             oldVm.PropertyChanged -= OnViewModelPropertyChanged;
+            oldVm.AllShortcuts.CollectionChanged -= OnShortcutsCollectionChanged;
         }
 
         _viewModel = e.NewValue as GroupViewModel;
@@ -289,6 +292,7 @@ public partial class GroupWidget : Window
         if (_viewModel != null && _windowHandle != IntPtr.Zero)
         {
             _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+            _viewModel.AllShortcuts.CollectionChanged += OnShortcutsCollectionChanged;
             ApplyDockMode(_viewModel.DockMode);
             ApplyViewMode(_viewModel.ViewMode);
         }
@@ -581,6 +585,42 @@ public partial class GroupWidget : Window
         _hoverLeaveTimer.Start();
     }
 
+    private void OnShortcutsCollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+    {
+        if (_isInitializing || _isUpdatingViewMode) return;
+
+        if (_viewModel?.ViewMode == GroupViewMode.Compact)
+            Dispatcher.BeginInvoke(RefreshCompactSize, System.Windows.Threading.DispatcherPriority.ContextIdle);
+        else if (_viewModel?.ViewMode == GroupViewMode.Hover)
+            Dispatcher.BeginInvoke(RefreshHoverSize, System.Windows.Threading.DispatcherPriority.ContextIdle);
+    }
+
+    private void RefreshCompactSize()
+    {
+        if (_viewModel?.ViewMode != GroupViewMode.Compact || _windowHandle == IntPtr.Zero) return;
+
+        CompactView.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        int newW = (int)Math.Max(CompactView.DesiredSize.Width + 20, 200);
+        int newH = (int)Math.Max(CompactView.DesiredSize.Height + 20, 120);
+        Width = newW;
+        Height = newH;
+        SetWindowPosInDips(IntPtr.Zero, 0, 0, newW, newH,
+            Win32Interop.SWP_NOZORDER | Win32Interop.SWP_NOACTIVATE | Win32Interop.SWP_NOMOVE);
+    }
+
+    private void RefreshHoverSize()
+    {
+        if (_viewModel?.ViewMode != GroupViewMode.Hover || _windowHandle == IntPtr.Zero) return;
+
+        HoverView.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        int newW = (int)Math.Max(HoverView.DesiredSize.Width + 20, 200);
+        int newH = (int)Math.Max(HoverView.DesiredSize.Height + 20, 60);
+        Width = newW;
+        Height = newH;
+        SetWindowPosInDips(IntPtr.Zero, 0, 0, newW, newH,
+            Win32Interop.SWP_NOZORDER | Win32Interop.SWP_NOACTIVATE | Win32Interop.SWP_NOMOVE);
+    }
+
     // Drag and Drop
 
     private void OnDragEnter(object sender, DragEventArgs e)
@@ -864,35 +904,20 @@ public partial class GroupWidget : Window
                     break;
 
                 case GroupViewMode.Hover:
-                    // FIX: Use WndProc hook to intercept position change BEFORE it happens
-                    // Root cause: WPF layout sets position synchronously during Visibility change
-                    // Solution: Set "pending position" which WndProc enforces before ANY move
-
                     bool wasFullscreenHover = (FullscreenView.Visibility == Visibility.Visible);
-
-                    // Measure HoverView WITHOUT making it visible yet
-                    HoverView.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-                    int hoverTargetW = (int)Math.Max(HoverView.DesiredSize.Width + 20, 200);
-                    int hoverTargetH = (int)Math.Max(HoverView.DesiredSize.Height + 20, 60);
                     int hoverTargetX = wasFullscreenHover && _preFullscreenLeft > 0 ? (int)_preFullscreenLeft : (_viewModel != null ? (int)_viewModel.PositionX : 0);
                     int hoverTargetY = wasFullscreenHover && _preFullscreenTop > 0 ? (int)_preFullscreenTop : (_viewModel != null ? (int)_viewModel.PositionY : 0);
 
-                    // SET THE TRAP: WndProc will enforce this position on ANY move attempt
-                    SetPendingPositionInDips(hoverTargetX, hoverTargetY, hoverTargetW, hoverTargetH);
-
-                    System.Diagnostics.Debug.WriteLine($"🎯 PENDING position set: ({hoverTargetX}, {hoverTargetY}), size: {hoverTargetW}x{hoverTargetH}");
-
-                    // Set WPF properties BEFORE visibility (backup prevention)
+                    // Lock position via WndProc trap (prevents window jumping during visibility change)
+                    SetPendingPositionInDips(hoverTargetX, hoverTargetY, 200, 60);
                     Left = hoverTargetX;
                     Top = hoverTargetY;
-                    Width = hoverTargetW;
-                    Height = hoverTargetH;
                     SizeToContent = SizeToContent.Manual;
                     ResizeMode = ResizeMode.NoResize;
                     MinWidth = 200;
                     MinHeight = 60;
 
-                    // NOW change visibility (WndProc will intercept any wrong position)
+                    // Show HoverView FIRST — element must be visible before Measure() returns real size
                     MinimizedView.Visibility = Visibility.Collapsed;
                     CompactView.Visibility = Visibility.Collapsed;
                     NormalView.Visibility = Visibility.Collapsed;
@@ -900,20 +925,26 @@ public partial class GroupWidget : Window
                     FullscreenView.Visibility = Visibility.Collapsed;
                     HoverView.Visibility = Visibility.Visible;
 
-                    // Final SetWindowPos for good measure
+                    // Clear WndProc trap; position is now locked
+                    _hasPendingPosition = false;
+
+                    // Measure actual content size now that HoverView is visible
+                    HoverView.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                    int hoverTargetW = (int)Math.Max(HoverView.DesiredSize.Width + 20, 200);
+                    int hoverTargetH = (int)Math.Max(HoverView.DesiredSize.Height + 20, 60);
+
+                    System.Diagnostics.Debug.WriteLine($"🎯 Hover measured: {hoverTargetW}x{hoverTargetH} at ({hoverTargetX},{hoverTargetY})");
+
+                    // Apply correct size (SWP_NOMOVE keeps position, only changes size)
+                    Width = hoverTargetW;
+                    Height = hoverTargetH;
                     if (_windowHandle != IntPtr.Zero)
                     {
                         SetWindowPosInDips(IntPtr.Zero,
                             hoverTargetX, hoverTargetY, hoverTargetW, hoverTargetH,
                             Win32Interop.SWP_NOZORDER | Win32Interop.SWP_NOACTIVATE | Win32Interop.SWP_SHOWWINDOW);
-
-                        System.Diagnostics.Debug.WriteLine($"✅ SetWindowPos hover: True");
                     }
 
-                    // Clear the trap
-                    _hasPendingPosition = false;
-
-                    // Restore window properties if coming from fullscreen
                     if (wasFullscreenHover)
                     {
                         WindowStyle = WindowStyle.None;

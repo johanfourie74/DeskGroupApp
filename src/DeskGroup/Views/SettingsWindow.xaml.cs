@@ -324,6 +324,11 @@ public partial class SettingsWindow : Window
         Close();
     }
 
+    private void SettingsHeader_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        try { DragMove(); } catch { }
+    }
+
     private void TransparencySlider_MouseWheel(object sender, System.Windows.Input.MouseWheelEventArgs e)
     {
         var slider = (System.Windows.Controls.Slider)sender;

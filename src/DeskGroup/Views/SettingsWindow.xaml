@@ -73,21 +73,54 @@
                     BorderBrush="{DynamicResource BorderSubtle}"
                     BorderThickness="0,0,0,1"
                     CornerRadius="10,10,0,0"
-                    Padding="24,16">
-                <StackPanel>
-                    <TextBlock x:Name="HeaderTitle"
-                               Text="Settings"
-                               FontFamily="{DynamicResource DefaultFont}"
-                               FontSize="24"
-                               FontWeight="Bold"
-                               Foreground="{DynamicResource ForegroundPrimary}"/>
-                    <TextBlock x:Name="HeaderSubtitle"
-                               Text="Customize DeskGroup appearance and behavior"
-                               FontFamily="{DynamicResource DefaultFont}"
-                               FontSize="{DynamicResource FontSizeSmall}"
-                               Foreground="{DynamicResource ForegroundSecondary}"
-                               Margin="0,4,0,0"/>
-                </StackPanel>
+                    Padding="24,16,0,16">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0"
+                                MouseLeftButtonDown="SettingsHeader_MouseLeftButtonDown"
+                                Cursor="SizeAll">
+                        <TextBlock x:Name="HeaderTitle"
+                                   Text="Settings"
+                                   FontFamily="{DynamicResource DefaultFont}"
+                                   FontSize="24"
+                                   FontWeight="Bold"
+                                   Foreground="{DynamicResource ForegroundPrimary}"/>
+                        <TextBlock x:Name="HeaderSubtitle"
+                                   Text="Customize DeskGroup appearance and behavior"
+                                   FontFamily="{DynamicResource DefaultFont}"
+                                   FontSize="{DynamicResource FontSizeSmall}"
+                                   Foreground="{DynamicResource ForegroundSecondary}"
+                                   Margin="0,4,0,0"/>
+                    </StackPanel>
+                    <Button Grid.Column="1"
+                            Width="44"
+                            Click="CloseButton_Click"
+                            VerticalAlignment="Stretch"
+                            Cursor="Hand"
+                            Focusable="False">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Bd"
+                                        Background="#C42B1C"
+                                        CornerRadius="0,9,0,0">
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bd" Property="Background" Value="#E81123"/>
+                                    </Trigger>
+                                    <Trigger Property="IsPressed" Value="True">
+                                        <Setter TargetName="Bd" Property="Background" Value="#F1707A"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                        <TextBlock Text="✕" Foreground="White" FontSize="16"/>
+                    </Button>
+                </Grid>
             </Border>
 
             <!-- Tab Menu Bar -->
