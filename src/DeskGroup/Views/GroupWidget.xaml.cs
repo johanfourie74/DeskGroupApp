@@ -158,7 +158,9 @@ public partial class GroupWidget : Window
                     pos.cx = _pendingW;
                     pos.cy = _pendingH;
                     System.Runtime.InteropServices.Marshal.StructureToPtr(pos, lParam, true);
+#if DEBUG
                     System.Diagnostics.Debug.WriteLine($"🛡️ WndProc INTERCEPTED wrong position, forced to ({_pendingX},{_pendingY})");
+#endif
                 }
             }
         }
@@ -559,24 +561,23 @@ public partial class GroupWidget : Window
 
     private void StartHoverLeaveTimer()
     {
-        _hoverLeaveTimer?.Stop();
-        _hoverLeaveTimer = new System.Windows.Threading.DispatcherTimer
+        if (_hoverLeaveTimer == null)
         {
-            Interval = TimeSpan.FromMilliseconds(300)
-        };
-        _hoverLeaveTimer.Tick += (s, args) =>
+            _hoverLeaveTimer = new System.Windows.Threading.DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(300)
+            };
+            _hoverLeaveTimer.Tick += (s, args) =>
+            {
+                _hoverLeaveTimer!.Stop();
+                if (!IsMouseOver && _viewModel?.ViewMode == GroupViewMode.Hover)
+                    _viewModel.ViewMode = GroupViewMode.Minimized;
+            };
+        }
+        else
         {
             _hoverLeaveTimer.Stop();
-
-            // Collapse if mouse is outside AND we're in hover mode
-            if (!IsMouseOver && _viewModel != null)
-            {
-                if (_viewModel.ViewMode == GroupViewMode.Hover)
-                {
-                    _viewModel.ViewMode = GroupViewMode.Minimized;
-                }
-            }
-        };
+        }
         _hoverLeaveTimer.Start();
     }
 
@@ -1098,22 +1099,18 @@ public partial class GroupWidget : Window
                     break;
 
                 default:
-                    // Default to minimized (match the new sizes!)
-                    SizeToContent = SizeToContent.Manual;
-                    MinWidth = 200;  // Match Border MinWidth
-                    MinHeight = 40;
-                    UpdateLayout();
-                    Width = 220;     // Fits icon + name + count
-                    Height = 40;
                     MinimizedView.Visibility = Visibility.Visible;
                     HoverView.Visibility = Visibility.Collapsed;
                     CompactView.Visibility = Visibility.Collapsed;
                     NormalView.Visibility = Visibility.Collapsed;
                     GridView.Visibility = Visibility.Collapsed;
                     FullscreenView.Visibility = Visibility.Collapsed;
-                    InvalidateMeasure();
-                    InvalidateArrange();
-                    UpdateLayout();
+                    SizeToContent = SizeToContent.Manual;
+                    ResizeMode = ResizeMode.NoResize;
+                    MinWidth = 200;
+                    MinHeight = 40;
+                    Width = 220;
+                    Height = 40;
                     break;
             }
         }

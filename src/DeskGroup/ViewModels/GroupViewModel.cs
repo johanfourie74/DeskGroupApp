@@ -71,16 +71,11 @@ public partial class GroupViewModel : ObservableObject
         if (_isInitializing) return;
 
         // CRITICAL: Don't save temporary Float mode from Show All!
+        // PropertyChanged is already raised by the source generator after this partial runs.
         if (SavedDockModeBeforeFloat.HasValue)
-        {
-            // Still notify UI so ApplyDockMode gets called!
-            OnPropertyChanged(nameof(DockMode));
             return; // Skip JSON save
-        }
 
-        // PERMANENT change: Sync position BEFORE save and trigger save
         SyncToModel();
-        OnPropertyChanged(nameof(DockMode)); // Trigger save via MainViewModel
     }
 
     // Public property to access saved dock mode for restoration
@@ -106,10 +101,8 @@ public partial class GroupViewModel : ObservableObject
 
     partial void OnViewModeChanged(GroupViewMode value)
     {
-        if (_isInitializing) return; // Don't sync during initialization
-        System.Diagnostics.Debug.WriteLine($"OnViewModeChanged: {value} for group '{Name}'");
-        SyncToModel(); // Sync all properties to model
-        OnPropertyChanged(nameof(ViewMode)); // Trigger save via MainViewModel
+        if (_isInitializing) return;
+        SyncToModel();
     }
 
     partial void OnPositionXChanged(double value)
@@ -156,19 +149,10 @@ public partial class GroupViewModel : ObservableObject
     {
         try
         {
-            System.Diagnostics.Debug.WriteLine($"OnAccentColorHexChanged: {value} for group '{Name}'");
             ApplyAccentColor(value);
             _model.AccentColor = value;
-
-            // Regenerate icon if no custom icon set (color changed!)
             if (string.IsNullOrEmpty(_model.CustomIconPath))
-            {
                 LoadGroupIcon();
-            }
-
-            // Notify that a property changed to trigger auto-save
-            OnPropertyChanged(nameof(AccentColorHex));
-            System.Diagnostics.Debug.WriteLine($"  Color set in model and property changed notified");
         }
         catch (Exception ex)
         {

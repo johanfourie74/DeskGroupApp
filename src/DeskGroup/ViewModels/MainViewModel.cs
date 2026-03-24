@@ -177,15 +177,21 @@ public partial class MainViewModel : ObservableObject
             _desktopIconService, _persistenceService, _positionHelper, _settings);
 
         // Subscribe to property changes to trigger auto-save
-        vm.PropertyChanged += async (s, e) =>
+        vm.PropertyChanged += (s, e) =>
         {
-            // Save whenever any important property changes (but not during drag or visibility toggles)
-            if (e.PropertyName != nameof(GroupViewModel.IsVisible) && 
-                e.PropertyName != nameof(GroupViewModel.IsDragging))
+            if (e.PropertyName == nameof(GroupViewModel.IsVisible) ||
+                e.PropertyName == nameof(GroupViewModel.IsDragging))
+                return;
+
+            // Use debounced save for rapid-fire changes during resize
+            if (e.PropertyName == nameof(GroupViewModel.Width) ||
+                e.PropertyName == nameof(GroupViewModel.Height))
             {
-                System.Diagnostics.Debug.WriteLine($"MainViewModel: GroupVM.{e.PropertyName} changed, triggering save");
-                await _persistenceService.SaveGroupsImmediateAsync(_groupModels);
+                _persistenceService.SaveGroupsDebounced(_groupModels);
+                return;
             }
+
+            _ = _persistenceService.SaveGroupsImmediateAsync(_groupModels);
         };
 
         return vm;
@@ -265,53 +271,10 @@ public partial class MainViewModel : ObservableObject
 
     public void ToggleAllGroupsVisibility()
     {
-        AllGroupsVisible = !AllGroupsVisible;
-
-        System.Diagnostics.Debug.WriteLine($"ToggleAllGroupsVisibility: AllGroupsVisible = {AllGroupsVisible}");
-
-        foreach (var group in Groups)
-        {
-            System.Diagnostics.Debug.WriteLine($"  Processing group '{group.Name}': Current DockMode={group.DockMode}, SavedDockModeBeforeFloat={group.SavedDockModeBeforeFloat}");
-
-            if (AllGroupsVisible)
-            {
-                // SHOWING: First make visible, THEN change dock mode so window is on-screen!
-                group.IsVisible = true;
-
-                // TEMP-FLOAT: If Sticky, temporarily make it Float so user can interact
-                if (group.DockMode == GroupDockMode.Sticky)
-                {
-                    System.Diagnostics.Debug.WriteLine($"    → Saving Sticky mode and switching to Float for '{group.Name}'");
-                    group.SavedDockModeBeforeFloat = GroupDockMode.Sticky;
-                    group.DockMode = GroupDockMode.Float;
-
-                    // Set timestamp in GroupWidget to prevent immediate restoration on same click
-                    DeskGroup.Views.GroupWidget.SetLastTempFloatTime();
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine($"    → Group '{group.Name}' is already Float, no mode change needed");
-                }
-            }
-            else
-            {
-                // HIDING: Restore sticky mode if it was saved, THEN hide
-                if (group.SavedDockModeBeforeFloat.HasValue)
-                {
-                    System.Diagnostics.Debug.WriteLine($"    → Restoring '{group.Name}' from Float to {group.SavedDockModeBeforeFloat.Value}");
-                    group.DockMode = group.SavedDockModeBeforeFloat.Value;
-                    group.SavedDockModeBeforeFloat = null;
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine($"    → No saved dock mode to restore for '{group.Name}'");
-                }
-
-                group.IsVisible = false;
-            }
-        }
-
-        System.Diagnostics.Debug.WriteLine($"ToggleAllGroupsVisibility: COMPLETE");
+        if (AllGroupsVisible)
+            HideAllGroups();
+        else
+            ShowAllGroups();
     }
 
     private void ToggleFocusedGroupFullscreen()
@@ -417,84 +380,31 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand] 
     private void ShowAllGroups()
     {
-        try
+        AllGroupsVisible = true;
+        foreach (var group in Groups)
         {
-            System.Diagnostics.Debug.WriteLine($"ShowAllGroups: START - showing {Groups.Count} groups");
-
-            AllGroupsVisible = true;
-
-            int count = 0;
-            foreach (var group in Groups)
+            group.IsVisible = true;
+            if (group.DockMode == GroupDockMode.Sticky)
             {
-                count++;
-                System.Diagnostics.Debug.WriteLine($"  Showing group {count}: {group.Name}, DockMode={group.DockMode}");
-
-                // Make visible FIRST
-                group.IsVisible = true;
-
-                // TEMP-FLOAT: If group is Sticky, temporarily make it Float so user can interact with it
-                if (group.DockMode == GroupDockMode.Sticky)
-                {
-                    System.Diagnostics.Debug.WriteLine($"    → Saving Sticky mode and switching to Float for '{group.Name}'");
-                    group.SavedDockModeBeforeFloat = GroupDockMode.Sticky;
-                    group.DockMode = GroupDockMode.Float;
-                }
+                group.SavedDockModeBeforeFloat = GroupDockMode.Sticky;
+                group.DockMode = GroupDockMode.Float;
             }
-
-            System.Diagnostics.Debug.WriteLine($"ShowAllGroups: COMPLETE");
         }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"ShowAllGroups: FAILED - {ex.Message}");
-            System.Diagnostics.Debug.WriteLine($"  Stack: {ex.StackTrace}");
-
-            MessageBox.Show(
-                $"Failed to show groups:\n\n{ex.Message}",
-                "Show Groups Error",
-                MessageBoxButton.OK,
-                MessageBoxImage.Error);
-        }
+        DeskGroup.Views.GroupWidget.SetLastTempFloatTime();
     }
 
     [RelayCommand] 
     private void HideAllGroups()
     {
-        try
+        AllGroupsVisible = false;
+        foreach (var group in Groups)
         {
-            System.Diagnostics.Debug.WriteLine($"HideAllGroups: START - hiding {Groups.Count} groups");
-
-            AllGroupsVisible = false;
-
-            int count = 0;
-            foreach (var group in Groups)
+            if (group.SavedDockModeBeforeFloat.HasValue)
             {
-                count++;
-                System.Diagnostics.Debug.WriteLine($"  Hiding group {count}: {group.Name}");
-
-                // RESTORE: If we temporarily floated this group, restore it back to Sticky FIRST
-                if (group.SavedDockModeBeforeFloat.HasValue)
-                {
-                    System.Diagnostics.Debug.WriteLine($"    → Restoring '{group.Name}' from Float to {group.SavedDockModeBeforeFloat.Value}");
-                    group.DockMode = group.SavedDockModeBeforeFloat.Value;
-                    group.SavedDockModeBeforeFloat = null;
-                }
-
-                // Then hide
-                group.IsVisible = false;
+                group.DockMode = group.SavedDockModeBeforeFloat.Value;
+                group.SavedDockModeBeforeFloat = null;
             }
-
-            System.Diagnostics.Debug.WriteLine($"HideAllGroups: COMPLETE");
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"HideAllGroups: FAILED - {ex.Message}");
-            System.Diagnostics.Debug.WriteLine($"  Stack: {ex.StackTrace}");
-
-            MessageBox.Show(
-                $"Failed to hide groups:\n\n{ex.Message}",
-                "Hide Groups Error",
-                MessageBoxButton.OK,
-                MessageBoxImage.Error);
+            group.IsVisible = false;
         }
     }
 
@@ -506,18 +416,13 @@ public partial class MainViewModel : ObservableObject
     /// </summary>
     public void RestoreAllTemporaryFloats()
     {
-        System.Diagnostics.Debug.WriteLine($"RestoreAllTemporaryFloats: START - checking {Groups.Count} groups");
-
         foreach (var group in Groups)
         {
             if (group.SavedDockModeBeforeFloat.HasValue)
             {
-                System.Diagnostics.Debug.WriteLine($"  → Restoring '{group.Name}' from Float to {group.SavedDockModeBeforeFloat.Value}");
                 group.DockMode = group.SavedDockModeBeforeFloat.Value;
                 group.SavedDockModeBeforeFloat = null;
             }
         }
-
-        System.Diagnostics.Debug.WriteLine($"RestoreAllTemporaryFloats: COMPLETE");
     }
 }
