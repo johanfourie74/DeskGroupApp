@@ -404,9 +404,9 @@ public partial class GroupViewModel : ObservableObject
 
         var center = new Point(PositionX + Width / 2, PositionY + Height / 2);
         var fsRect = _positionHelper.GetFullscreenRect(center);
+        ViewMode = GroupViewMode.Fullscreen;
         PositionX = fsRect.X; PositionY = fsRect.Y;
         Width = fsRect.Width; Height = fsRect.Height;
-        ViewMode = GroupViewMode.Fullscreen;
     }
 
     private void RestoreFromFullscreen()

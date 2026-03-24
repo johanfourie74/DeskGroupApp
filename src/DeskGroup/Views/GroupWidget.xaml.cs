@@ -467,9 +467,8 @@ public partial class GroupWidget : Window
                 {
                     UpdateLayout(); // Force layout before measuring
                     CompactView.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-                    // Reduced padding for smaller 32px icons (+20 instead of +60)
-                    Width = Math.Max(CompactView.DesiredSize.Width + 20, 200);
-                    Height = Math.Max(CompactView.DesiredSize.Height + 20, 120); // Dynamic height for 1-2 rows
+                    Width = Math.Max(CompactView.DesiredSize.Width + 4, 200);
+                    Height = Math.Max(CompactView.DesiredSize.Height + 4, 120);
                 }
                 else
                 {
@@ -600,8 +599,8 @@ public partial class GroupWidget : Window
         if (_viewModel?.ViewMode != GroupViewMode.Compact || _windowHandle == IntPtr.Zero) return;
 
         CompactView.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-        int newW = (int)Math.Max(CompactView.DesiredSize.Width + 20, 200);
-        int newH = (int)Math.Max(CompactView.DesiredSize.Height + 20, 120);
+        int newW = (int)Math.Max(CompactView.DesiredSize.Width + 4, 200);
+        int newH = (int)Math.Max(CompactView.DesiredSize.Height + 4, 120);
         Width = newW;
         Height = newH;
         SetWindowPosInDips(IntPtr.Zero, 0, 0, newW, newH,
@@ -613,8 +612,8 @@ public partial class GroupWidget : Window
         if (_viewModel?.ViewMode != GroupViewMode.Hover || _windowHandle == IntPtr.Zero) return;
 
         HoverView.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-        int newW = (int)Math.Max(HoverView.DesiredSize.Width + 20, 200);
-        int newH = (int)Math.Max(HoverView.DesiredSize.Height + 20, 60);
+        int newW = (int)Math.Max(HoverView.DesiredSize.Width + 4, 200);
+        int newH = (int)Math.Max(HoverView.DesiredSize.Height + 4, 60);
         Width = newW;
         Height = newH;
         SetWindowPosInDips(IntPtr.Zero, 0, 0, newW, newH,
@@ -864,8 +863,6 @@ public partial class GroupWidget : Window
                     int targetX = wasFullscreen && _preFullscreenLeft > 0 ? (int)_preFullscreenLeft : (_viewModel != null ? (int)_viewModel.PositionX : 0);
                     int targetY = wasFullscreen && _preFullscreenTop > 0 ? (int)_preFullscreenTop : (_viewModel != null ? (int)_viewModel.PositionY : 0);
 
-                    System.Diagnostics.Debug.WriteLine($"📍 RESTORING Minimized to: ({targetX}, {targetY}), size: {targetWidth}x{targetHeight}");
-
                     // Change ONLY view visibility (cheap, no layout)
                     MinimizedView.Visibility = Visibility.Visible;
                     HoverView.Visibility = Visibility.Collapsed;
@@ -873,6 +870,16 @@ public partial class GroupWidget : Window
                     NormalView.Visibility = Visibility.Collapsed;
                     GridView.Visibility = Visibility.Collapsed;
                     FullscreenView.Visibility = Visibility.Collapsed;
+
+                    // Measure actual content size now that MinimizedView is visible
+                    MinimizedView.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                    if (MinimizedView.DesiredSize.Width > 0 && MinimizedView.DesiredSize.Height > 0)
+                    {
+                        targetWidth = (int)Math.Max(MinimizedView.DesiredSize.Width + 4, 200);
+                        targetHeight = (int)Math.Max(MinimizedView.DesiredSize.Height + 4, 30);
+                    }
+
+                    System.Diagnostics.Debug.WriteLine($"📍 RESTORING Minimized to: ({targetX}, {targetY}), size: {targetWidth}x{targetHeight}");
 
                     // WIN32 FIRST: Atomic position/size change!
                     if (_windowHandle != IntPtr.Zero)
@@ -930,8 +937,8 @@ public partial class GroupWidget : Window
 
                     // Measure actual content size now that HoverView is visible
                     HoverView.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-                    int hoverTargetW = (int)Math.Max(HoverView.DesiredSize.Width + 20, 200);
-                    int hoverTargetH = (int)Math.Max(HoverView.DesiredSize.Height + 20, 60);
+                    int hoverTargetW = (int)Math.Max(HoverView.DesiredSize.Width + 4, 200);
+                    int hoverTargetH = (int)Math.Max(HoverView.DesiredSize.Height + 4, 60);
 
                     System.Diagnostics.Debug.WriteLine($"🎯 Hover measured: {hoverTargetW}x{hoverTargetH} at ({hoverTargetX},{hoverTargetY})");
 
@@ -966,8 +973,8 @@ public partial class GroupWidget : Window
                     CompactView.Visibility = Visibility.Visible;
 
                     CompactView.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-                    int compactTargetW = (int)Math.Max(CompactView.DesiredSize.Width + 20, 200);
-                    int compactTargetH = (int)Math.Max(CompactView.DesiredSize.Height + 20, 120);
+                    int compactTargetW = (int)Math.Max(CompactView.DesiredSize.Width + 4, 200);
+                    int compactTargetH = (int)Math.Max(CompactView.DesiredSize.Height + 4, 120);
                     int compactTargetX = wasFullscreenCompact && _preFullscreenLeft > 0 ? (int)_preFullscreenLeft : (_viewModel != null ? (int)_viewModel.PositionX : 0);
                     int compactTargetY = wasFullscreenCompact && _preFullscreenTop > 0 ? (int)_preFullscreenTop : (_viewModel != null ? (int)_viewModel.PositionY : 0);
 
