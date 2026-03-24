@@ -1,8 +1,8 @@
 # DeskGroup - Development Backlog
 
-**Last Updated:** 2025-01-10 (v1.0 Release Prep Complete)  
-**Status:** ✅ **READY FOR FINAL USER TEST BEFORE RELEASE**  
-**Commit:** All Day 1 + Day 2 fixes applied — awaiting user sign-off before v1.0.0 tag
+**Last Updated:** 2025-07-10  
+**Status:** ✅ **CLEAN BUILD — AWAITING USER TEST OF SIZING FIXES**  
+**Commit:** `457c79d` — sizing + independent Normal/Grid view sizes
 
 ---
 
@@ -82,6 +82,24 @@ Based on new features added in BATCH 2 (Status Footer, Transparency Controls, Ex
   - Standardised `Foreground #CCFFFFFF` everywhere (was White/#CC mixed)
   - Consistent padding/margin across all views
   - Compact footer structure standardised to Run/SemiBold pattern
+
+- [x] **View Sizing & Footer Gap Fixes** ✓ **DONE** — commits `deb0342`, `457c79d`
+  - Footer blank space: `+20`/`+4` → `Math.Ceiling(DesiredSize)` (no additive padding)
+  - `UpdateLayout()` before every `Measure()` so DesiredSize is never stale on view switch
+  - Minimized height now snaps correctly on switch (no hover cycle required)
+  - Compact height now snaps correctly when switching from larger views
+  - Hover/Compact footer gap eliminated
+
+- [x] **Independent Normal/Grid View Sizes** ✓ **DONE** — commit `457c79d`
+  - Added `GridViewWidth`/`GridViewHeight` to `IconGroup` model (defaults 400×300, backward-compatible)
+  - `GroupViewModel` exposes new observable properties, wired through `SyncToModel`
+  - `GroupWidget.xaml.cs` routes `OnSizeChanged` and `ApplyViewMode` separately per view mode
+  - `EnterFullscreen`/`RestoreFromFullscreen` routes to correct per-view properties
+  - Normal and Grid views now remember their own independent sizes
+
+- [x] **Fullscreen Restore Ordering Fix** ✓ **DONE** — commit `deb0342`
+  - `ViewMode = Fullscreen` now set BEFORE `Width`/`Height` in `EnterFullscreen()`
+  - Prevents pre-fullscreen size from being overwritten before it can be saved
 
 - [x] **About Dialog** ✓ **DONE & VERIFIED** (Settings → About tab)
   - Version info dynamically loaded from assembly

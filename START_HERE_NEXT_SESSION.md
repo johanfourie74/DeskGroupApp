@@ -1,174 +1,170 @@
 # 🚀 START HERE - Next Session
 
-**Last Session Date:** 2025-01-09  
+**Last Session Date:** 2025-07-10  
 **Status:** ✅ **READY TO CONTINUE**  
 **Current Branch:** `Dev`  
-**Latest Commit:** `6ea1c81` (Documentation lock-in)  
-**Restore Point:** `29db853` (Settings Window Complete)
+**Latest Commit:** `457c79d` (Sizing & Grid fix batch)  
+**Restore Point:** `457c79d` ← **USE THIS**
 
 ---
 
-## 📍 **WHERE WE ARE**
+## 📍 WHERE WE ARE
 
-### ✅ **COMPLETED THIS SESSION:**
+### ✅ COMPLETED THIS SESSION
 
-1. **Hover Jump Fix** 🎉
-   - Used WndProc WM_WINDOWPOSCHANGING interception
-   - No more flash to (0,0) when expanding Minimized → Hover
-   - **Documented in:** `FIX_HOVER_JUMP_WNDPROC_SOLUTION.md`
-   - **Commit:** `80eab96`
+1. **Footer Gap Eliminated** 🎉
+   - `Math.Ceiling(DesiredSize)` with zero additive padding
+   - No more blank space below footer in Hover/Compact views
+   - **Commit:** `deb0342`
 
-2. **Tabbed Settings Window** 🎉
-   - Settings | About | Help tabs
-   - F1 hotkey opens Help
-   - Dynamic header, conditional bottom buttons
-   - **Commit:** `e345d47`
+2. **Minimized & Compact Height on Switch** 🎉
+   - `UpdateLayout()` before every `Measure()` call
+   - Heights snap correctly immediately on view switch — no hover cycle workaround needed
+   - **Commit:** `457c79d`
 
-3. **Crash Fix** 🎉
-   - Prevented startup crash (exit code 0xFFFFFFFF)
-   - Added defensive coding (null checks, TryFindResource)
-   - **Commit:** `29db853` ← **RESTORE POINT**
+3. **Independent Normal/Grid View Sizes** 🎉
+   - `GridViewWidth` / `GridViewHeight` added to model + ViewModel
+   - Resizing Normal no longer affects Grid size and vice versa
+   - Both views remember their own last-used size independently
+   - **Commit:** `457c79d`
 
-4. **Documentation Lock-in** 🎉
-   - Updated BACKLOG.md
-   - Created session summary
-   - All changes committed and synced
-   - **Commit:** `6ea1c81`
+4. **Fullscreen Restore Fix** 🎉
+   - `ViewMode = Fullscreen` now set BEFORE Width/Height assignments
+   - Restores correct size and view mode on exit
+   - **Commit:** `deb0342`
 
 ---
 
-## 🎯 **WHAT'S NEXT**
+## 🎯 WHAT'S NEXT
 
-Based on BACKLOG.md, the next priorities are:
+### **Priority 1: Test the Sizing Fixes** 🧪
+User should test all 7 bug scenarios before signing off:
+- Minimized height on switch (no hover cycle needed)
+- Hover/Compact footer — no blank gap below text
+- Compact height on switch from larger views
+- Normal and Grid independent sizes
+- Fullscreen enter/exit restore
+- Grid footer consistency
 
-### **Option 1: Footer Styling Polish** ⏳
-- **Status:** AWAITING REQUIREMENTS
-- **What:** Adjust font sizes, background opacity, separator
-- **Why:** User will provide specific requirements
-- **Blocked by:** User input needed
+### **Priority 2: v1.0.0 Release Tag** 🏷️
+Once sizing fixes are verified:
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
 
-### **Option 2: Color Picker Enhancement** ⏸️
-- **Status:** PAUSED - AFTER FOOTER CHANGES
-- **What:** Verify new colors (White, Light Gray, Dark Gray, Black)
-- **Why:** Test contrast/visibility with transparency
-
-### **Option 3: Performance & Optimization** ⚡
-- Memory optimization
-- Rendering performance
-- Startup time improvements
-
-### **Option 4: Additional Features** 🆕
-- Multiple desktop support
-- Backup/restore configuration
-- Import/export groups
-- Themes/skins
+### **Priority 3: Feature Backlog** 📋
+See BACKLOG.md for the full list. Top candidates:
+- Global hotkey for Show/Hide All
+- Configurable hover delay
+- Drag shortcuts between groups
+- Performance profiling
 
 ---
 
-## 📂 **PROJECT STRUCTURE REMINDER**
+## 📂 PROJECT STRUCTURE
 
 ```
 DeskGroup/
 ├── src/DeskGroup/
+│   ├── Models/
+│   │   └── IconGroup.cs              ← GridViewWidth/Height added here
 │   ├── Views/
-│   │   ├── GroupWidget.xaml.cs ← Hover jump fix here
-│   │   ├── SettingsWindow.xaml ← Tabbed interface here
-│   │   └── SettingsWindow.xaml.cs ← Tab switching logic here
+│   │   ├── GroupWidget.xaml.cs       ← All sizing logic, view switching
+│   │   ├── SettingsWindow.xaml       ← Tabbed settings UI
+│   │   └── SettingsWindow.xaml.cs    ← Tab switching, F1 hotkey
 │   ├── ViewModels/
-│   │   ├── GroupViewModel.cs
+│   │   ├── GroupViewModel.cs         ← GridViewWidth/Height observable props
 │   │   ├── MainViewModel.cs
 │   │   └── SettingsViewModel.cs
 │   ├── Controls/
 │   │   └── IconTile.xaml.cs
-│   ├── Helpers/
-│   │   └── Win32Interop.cs
-│   └── Themes/
-│       ├── LightTheme.xaml
-│       └── Generic.xaml
-├── BACKLOG.md ← Task tracking
-├── FIX_HOVER_JUMP_WNDPROC_SOLUTION.md ← Reusable WndProc pattern
-└── SESSION_SUMMARY_SETTINGS_WINDOW_COMPLETE.md ← Last session details
+│   └── Helpers/
+│       └── Win32Interop.cs           ← WndProc hover jump fix
+├── BACKLOG.md
+├── SESSION_SUMMARY_SIZING_GRID_FIX.md   ← This session
+├── SESSION_SUMMARY_SETTINGS_WINDOW_COMPLETE.md
+└── FIX_HOVER_JUMP_WNDPROC_SOLUTION.md
 ```
 
 ---
 
-## 🔑 **KEY CONTEXT TO REMEMBER**
+## 🔑 KEY CONTEXT
 
-### **1. Hover Jump Fix Pattern (Reusable!)**
-- **Problem:** WPF renders synchronously during Visibility changes
-- **Solution:** WndProc hook intercepts WM_WINDOWPOSCHANGING BEFORE rendering
-- **How:** Set `_hasPendingPosition = true` → Change visibility → WndProc intercepts and corrects position
-- **Documented:** `FIX_HOVER_JUMP_WNDPROC_SOLUTION.md`
+### 1. GridViewWidth/Height — New in This Session
+- `IconGroup.GridViewWidth` (default 400) and `GridViewHeight` (default 300)
+- JSON-backward-compatible (existing saves get defaults)
+- `GroupViewModel` exposes as `[ObservableProperty]`
+- `GroupWidget.xaml.cs` — `OnSizeChanged` routes by view mode (Normal vs Grid)
+- `ApplyViewMode(Grid)` reads from `GridViewWidth`/`GridViewHeight`
+- `EnterFullscreen` saves/restores per `_preFullscreenViewMode`
 
-### **2. Settings Window Design**
-- **Tabs:** Settings | About | Help
-- **F1 Hotkey:** Opens Help tab from anywhere
-- **Bottom Buttons:** Only visible on Settings tab
-- **Version Info:** Dynamically pulled from assembly
-- **Safe Resource Lookup:** Uses TryFindResource to prevent crashes
+### 2. Sizing Pattern (Critical — do not change)
+```csharp
+// CORRECT pattern for auto-sizing views:
+UpdateLayout();
+SomeView.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+int targetH = (int)Math.Ceiling(SomeView.DesiredSize.Height);
+// NO additive padding — Math.Ceiling already handles sub-pixel
+```
 
-### **3. Project Specifics**
-- **Target:** .NET 10
-- **Framework:** WPF
-- **Architecture:** MVVM (ViewModel pattern)
-- **State Management:** ViewModels hold state, Views are just UI
-- **Persistence:** JSON serialization to AppData
+### 3. Hover Jump Fix (WndProc — still working)
+- `_hasPendingPosition = true` → change visibility → WndProc intercepts WM_WINDOWPOSCHANGING
+- Documented in `FIX_HOVER_JUMP_WNDPROC_SOLUTION.md`
 
----
-
-## 🧪 **HOW TO TEST CURRENT STATE**
-
-1. **Build & Run:**
-   ```bash
-   dotnet build
-   dotnet run --project src/DeskGroup/DeskGroup.csproj
-   ```
-
-2. **Test Hover Jump:**
-   - Create/open a group in Minimized mode
-   - Hover over it
-   - **Expected:** Smooth expansion, no flash to (0,0)
-
-3. **Test Settings Window:**
-   - Right-click tray icon → Settings
-   - Click About tab → Should show version, author, links
-   - Click Help tab → Should show help content
-   - Press F1 → Should switch to Help tab
-   - **Expected:** All tabs work, no crashes
-
-4. **Test Crash Prevention:**
-   - Start app from scratch
-   - Open Settings window immediately
-   - **Expected:** No crash on startup, version displays correctly
+### 4. Project Specifics
+- **.NET 10**, WPF, `WindowStyle=None`, `AllowsTransparency=True`
+- MVVM — ViewModels hold state, Views are UI only
+- JSON persistence to AppData via `PersistenceService`
+- CommunityToolkit.Mvvm source generators for `[ObservableProperty]`
 
 ---
 
-## 🚨 **KNOWN ISSUES / GOTCHAS**
+## 🧪 HOW TO TEST
 
-### **None Currently!** ✅
-All major bugs fixed:
-- ✅ Hover jump: Fixed with WndProc
-- ✅ Startup crash: Fixed with defensive coding
-- ✅ Settings window: Working with tabs
+```bash
+dotnet build
+dotnet run --project src/DeskGroup/DeskGroup.csproj
+```
 
-### **Things to Watch:**
-- **Footer Styling:** User wants changes (awaiting requirements)
-- **Color Picker:** Needs verification after footer changes
-- **Performance:** Not yet profiled (could be optimized later)
+**Sizing fix checklist:**
+1. Create a group → set to Minimized → switch to Normal → switch back to Minimized  
+   **Expected:** Correct minimized height immediately, no hover cycle needed
+2. Hover over a Minimized group  
+   **Expected:** No blank gap below footer text
+3. Set group to Compact  
+   **Expected:** Correct compact height, no blank gap below footer
+4. Resize in Normal view → switch to Grid → resize in Grid → switch back to Normal  
+   **Expected:** Each view remembers its own size independently
+5. Enter fullscreen → press Escape/restore  
+   **Expected:** Returns to correct pre-fullscreen size and view mode
 
 ---
 
-## 📊 **GIT STATUS**
+## 🚨 KNOWN ISSUES / GOTCHAS
+
+### None Currently ✅
+- Sizing fixes: applied and build-verified (`457c79d`)
+- Hover jump: fixed (`FIX_HOVER_JUMP_WNDPROC_SOLUTION.md`)
+- Startup crash: fixed (defensive coding in SettingsWindow)
+- Settings window: working with tabs
+
+### Things to Watch
+- **Sizing fixes need user runtime testing** — build passes, not yet runtime-verified by user
+- **`partial void` methods with CommunityToolkit** — always include `(TypeName paramName)` in the signature or the source generator can't match and will cascade errors
+
+---
+
+## 📊 GIT STATUS
 
 ```
 Branch: Dev
-Sync: ✅ Local = Remote (6ea1c81)
-Working Tree: Clean (no uncommitted changes)
-Last Commit: "docs: Complete lock-in for Settings Window feature"
-Restore Point: 29db853 (Settings Window Complete)
+Sync: ✅ Local = Remote (457c79d)
+Working Tree: Clean
+Restore Point: 457c79d
 ```
 
-**To verify sync:**
+**Verify sync:**
 ```bash
 git status
 git log --oneline -5
@@ -176,106 +172,19 @@ git log --oneline -5
 
 ---
 
-## 🎯 **SUGGESTED NEXT STEPS (When You Return)**
-
-### **Quick Wins (Easy, High Value):**
-1. **Footer Styling** (once you provide requirements)
-   - Adjust fonts, opacity, separator
-   - Test in Light/Dark themes
-   - ~20-30 minutes
-
-2. **Color Picker Verification**
-   - Test new colors with transparency
-   - Verify contrast in both themes
-   - ~10-15 minutes
-
-### **Medium Features:**
-1. **Performance Profiling**
-   - Measure startup time
-   - Check memory usage
-   - Optimize hot paths
-   - ~1-2 hours
-
-2. **Additional Settings**
-   - Backup/restore groups
-   - Export/import configuration
-   - ~30-60 minutes
-
-### **Big Features (Long-term):**
-1. **Multiple Desktop Support**
-2. **Themes/Skins System**
-3. **Plugin Architecture**
-
----
-
-## 💡 **TIPS FOR NEXT SESSION**
-
-1. **Start Fresh:**
-   - Pull latest from remote: `git pull origin Dev`
-   - Verify you're on `6ea1c81` or later
-   - Build to confirm everything compiles
-
-2. **Reference Documents:**
-   - **BACKLOG.md** - Task list and priorities
-   - **FIX_HOVER_JUMP_WNDPROC_SOLUTION.md** - Reusable WndProc pattern
-   - **SESSION_SUMMARY_SETTINGS_WINDOW_COMPLETE.md** - What we did last time
-
-3. **If Something Breaks:**
-   - Restore to last known good: `git checkout 29db853`
-   - Check BACKLOG.md for context
-   - Check session summary for details
-
-4. **Communication Style You Prefer:**
-   - Clear step-by-step instructions ✅
-   - Test first, then lock in (save, doc, commit, push, verify) ✅
-   - Ask questions if unclear ✅
-
----
-
-## 🎉 **SESSION ACHIEVEMENTS RECAP**
-
-- ✅ Fixed hover jump bug (WndProc interception - reusable pattern!)
-- ✅ Built tabbed Settings window (Settings/About/Help)
-- ✅ Fixed startup crash (defensive coding)
-- ✅ Created comprehensive documentation
-- ✅ All changes committed, pushed, and synced
-- ✅ Restore point established (29db853)
-
-**You crushed it this session!** 🚀
-
----
-
-## 🤝 **READY FOR YOUR RETURN**
-
-Everything is:
-- ✅ Saved
-- ✅ Documented
-- ✅ Committed (local)
-- ✅ Pushed (remote)
-- ✅ Synced
-- ✅ Verified
-- ✅ Ready to continue
-
-**Just open this file when you return, and we'll pick up exactly where we left off!**
-
----
-
-**Have a great break! See you next session!** 😊🎉
-
----
-
-## 🔖 **QUICK REFERENCE**
+## 🔖 QUICK REFERENCE
 
 **Build:** `dotnet build`  
 **Run:** `dotnet run --project src/DeskGroup/DeskGroup.csproj`  
 **Status:** `git status`  
-**History:** `git log --oneline -5`  
-**Restore Point:** `git checkout 29db853`  
+**History:** `git log --oneline -8`  
+**Restore Point:** `git checkout 457c79d`  
 **Latest:** `git checkout Dev`  
 **Sync:** `git pull origin Dev`  
 
 **Documentation:**
 - Task List: `BACKLOG.md`
-- Last Session: `SESSION_SUMMARY_SETTINGS_WINDOW_COMPLETE.md`
+- This Session: `SESSION_SUMMARY_SIZING_GRID_FIX.md`
+- Settings Session: `SESSION_SUMMARY_SETTINGS_WINDOW_COMPLETE.md`
 - WndProc Fix: `FIX_HOVER_JUMP_WNDPROC_SOLUTION.md`
 - This Guide: `START_HERE_NEXT_SESSION.md`
