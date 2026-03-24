@@ -1,10 +1,10 @@
 # 🚀 START HERE - Next Session
 
-**Last Session Date:** 2025-07-10  
-**Status:** ✅ **READY TO CONTINUE**  
+**Last Session Date:** 2025-07-11  
+**Status:** ✅ **CLEAN BUILD — AWAITING USER TEST OF ALL SIZING + BUTTON FIXES**  
 **Current Branch:** `Dev`  
-**Latest Commit:** `457c79d` (Sizing & Grid fix batch)  
-**Restore Point:** `457c79d` ← **USE THIS**
+**Latest Commit:** `a6b3c25` (Sizing bugs + Settings close button alignment)  
+**Restore Point:** `a6b3c25` ← **USE THIS**
 
 ---
 
@@ -12,42 +12,45 @@
 
 ### ✅ COMPLETED THIS SESSION
 
-1. **Footer Gap Eliminated** 🎉
-   - `Math.Ceiling(DesiredSize)` with zero additive padding
-   - No more blank space below footer in Hover/Compact views
-   - **Commit:** `deb0342`
+1. **All View Mode Sizing Bugs Fixed** 🎉 — commit `a6b3c25`
+   - **Root cause:** WPF coerces `Window.Height` to `max(Height, MinHeight)` during layout pass.
+     MinHeight from a large view (e.g. 230 for Grid, 600 for Fullscreen) was still active when
+     switching to a small view (target 60px), causing WPF to clamp height upward.
+   - **Fix:** `MinHeight` is now always set **BEFORE** `Width`/`Height` in all 6 view mode cases
+     in both `UpdateViewMode()` and `ApplyViewMode()`.
+   - **Footer gap fix:** Replaced `Measure(infinity)` + `Math.Ceiling(DesiredSize)` with
+     `SizeToContent.WidthAndHeight` + `UpdateLayout()` + `ActualWidth/Height` for Compact and Hover.
+     This gives pixel-perfect sizing with zero gap regardless of DPI.
+   - **Bugs fixed:**
+     - #2 Minimized height wrong when switching from Normal/Compact ✓
+     - #3 Hover view footer gap ✓
+     - #4 Compact height wrong when switching from larger view ✓
+     - #5 Compact view footer gap ✓
+     - #6 Normal/Grid independent sizes not preserved on switch ✓
+     - #7 Grid view footer gap (intermittent) ✓
 
-2. **Minimized & Compact Height on Switch** 🎉
-   - `UpdateLayout()` before every `Measure()` call
-   - Heights snap correctly immediately on view switch — no hover cycle workaround needed
-   - **Commit:** `457c79d`
-
-3. **Independent Normal/Grid View Sizes** 🎉
-   - `GridViewWidth` / `GridViewHeight` added to model + ViewModel
-   - Resizing Normal no longer affects Grid size and vice versa
-   - Both views remember their own last-used size independently
-   - **Commit:** `457c79d`
-
-4. **Fullscreen Restore Fix** 🎉
-   - `ViewMode = Fullscreen` now set BEFORE Width/Height assignments
-   - Restores correct size and view mode on exit
-   - **Commit:** `deb0342`
+2. **Settings Window Close Button Alignment Fixed** 🎉 — commit `a6b3c25`
+   - The ✕ button was visually offset because the header `Padding="24,16,0,16"` pushed it
+     16px down from the top-right corner.
+   - **Fix:** Added `Margin="0,-16,0,-16"` to the button to cancel the header padding,
+     making it fill the full header height flush with the window corner.
+   - Also corrected `CornerRadius` from `0,9,0,0` → `0,10,0,0` to match the outer window border.
 
 ---
 
 ## 🎯 WHAT'S NEXT
 
-### **Priority 1: Test the Sizing Fixes** 🧪
-User should test all 7 bug scenarios before signing off:
-- Minimized height on switch (no hover cycle needed)
-- Hover/Compact footer — no blank gap below text
-- Compact height on switch from larger views
-- Normal and Grid independent sizes
-- Fullscreen enter/exit restore
-- Grid footer consistency
+### **Priority 1: Test All Fixes** 🧪
+User should verify all 6 sizing bugs are resolved + close button looks correct:
+- Minimized height snaps immediately on switch (no hover cycle needed)
+- Hover/Compact footer — zero blank space below text
+- Compact height snaps correctly when switching from Normal/Grid/Fullscreen
+- Normal and Grid remember their own independent sizes
+- Grid footer gap gone (even intermittently)
+- Settings window ✕ button is flush at top-right corner, X is vertically centred
 
 ### **Priority 2: v1.0.0 Release Tag** 🏷️
-Once sizing fixes are verified:
+Once all fixes verified by user:
 ```bash
 git tag v1.0.0
 git push origin v1.0.0

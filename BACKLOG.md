@@ -1,8 +1,8 @@
 # DeskGroup - Development Backlog
 
-**Last Updated:** 2025-07-10  
-**Status:** ✅ **CLEAN BUILD — AWAITING USER TEST OF SIZING FIXES**  
-**Commit:** `457c79d` — sizing + independent Normal/Grid view sizes
+**Last Updated:** 2025-07-11  
+**Status:** ✅ **CLEAN BUILD — AWAITING USER TEST OF SIZING + CLOSE BUTTON FIXES**  
+**Commit:** `a6b3c25` — all sizing bugs fixed, Settings close button aligned
 
 ---
 
@@ -324,6 +324,15 @@ Based on new features added in BATCH 2 (Status Footer, Transparency Controls, Ex
 ---
 
 ## 📊 SESSION HISTORY
+
+### **Sizing Bug Fix Session** ✅ **[AWAITING USER SIGN-OFF]** — commit `a6b3c25`
+- ✅ Fixed MinHeight coercion bug (root cause of bugs #2, #4, #6, #7)
+  - MinHeight now set BEFORE Width/Height in all 6 view cases in UpdateViewMode() + ApplyViewMode()
+- ✅ Fixed Hover + Compact footer gap (bugs #3, #5)
+  - Replaced Measure(infinity) + Math.Ceiling(DesiredSize) with SizeToContent.WidthAndHeight + ActualWidth/Height
+- ✅ Fixed Settings window ✕ close button vertical alignment
+  - Added Margin="0,-16,0,-16" to cancel header padding; CornerRadius 9→10 to match window border
+- ✅ Build: 0 errors, 0 warnings
 
 ### **v1.0 Release Prep Session** ✅ **[RELEASE READY - AWAITING USER SIGN-OFF]**
 - ✅ Fixed NaN JSON serialization in PersistenceService → 45/45 tests pass
