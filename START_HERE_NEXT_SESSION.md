@@ -3,8 +3,8 @@
 **Last Session Date:** 2025-07-11  
 **Status:** ✅ **CLEAN BUILD — HELP PANEL UPDATED, CLOSE BUTTON POLISHED, HOTKEY FIXED**  
 **Current Branch:** `Dev`  
-**Latest Commit:** `6101459` (Polish: close button, hotkey Ctrl+F2, Help panel rewrite)  
-**Restore Point:** `6101459` ← **USE THIS**
+**Latest Commit:** `90bd9b3` (Polish: close button, hotkey Ctrl+F2, Help panel rewrite)  
+**Restore Point:** `90bd9b3` ← **USE THIS**
 
 ---
 
@@ -153,9 +153,9 @@ dotnet run --project src/DeskGroup/DeskGroup.csproj
 
 ```
 Branch: Dev
-Sync: ✅ Local = Remote (6101459)
+Sync: ✅ Local = Remote (90bd9b3)
 Working Tree: Clean
-Restore Point: 6101459
+Restore Point: 90bd9b3
 ```
 
 **Verify sync:**
@@ -172,7 +172,7 @@ git log --oneline -5
 **Run:** `dotnet run --project src/DeskGroup/DeskGroup.csproj`  
 **Status:** `git status`  
 **History:** `git log --oneline -8`  
-**Restore Point:** `git checkout 6101459`  
+**Restore Point:** `git checkout 90bd9b3`  
 **Latest:** `git checkout Dev`  
 **Sync:** `git pull origin Dev`  
 
