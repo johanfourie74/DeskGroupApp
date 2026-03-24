@@ -16,7 +16,7 @@ public class AppSettings
     public int CustomIconSize { get; set; } = 48;
     public bool StartWithWindows { get; set; } = true;
     public bool StartMinimizedToTray { get; set; } = false;
-    public string ToggleAllHotkey { get; set; } = "Ctrl+Alt+G";
+    public string ToggleAllHotkey { get; set; } = "Ctrl+F2";
     public string FullscreenToggleHotkey { get; set; } = "F11";
     public bool WatchForUngroupedIcons { get; set; } = true;
     public List<string> DismissedUngroupedIcons { get; set; } = new();

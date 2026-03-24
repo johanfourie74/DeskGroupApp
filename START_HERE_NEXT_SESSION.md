@@ -1,10 +1,10 @@
 # 🚀 START HERE - Next Session
 
 **Last Session Date:** 2025-07-11  
-**Status:** ✅ **CLEAN BUILD — AWAITING USER TEST OF ALL SIZING + BUTTON FIXES**  
+**Status:** ✅ **CLEAN BUILD — HELP PANEL UPDATED, CLOSE BUTTON POLISHED, HOTKEY FIXED**  
 **Current Branch:** `Dev`  
-**Latest Commit:** `a6b3c25` (Sizing bugs + Settings close button alignment)  
-**Restore Point:** `a6b3c25` ← **USE THIS**
+**Latest Commit:** `6101459` (Polish: close button, hotkey Ctrl+F2, Help panel rewrite)  
+**Restore Point:** `6101459` ← **USE THIS**
 
 ---
 
@@ -12,55 +12,46 @@
 
 ### ✅ COMPLETED THIS SESSION
 
-1. **All View Mode Sizing Bugs Fixed** 🎉 — commit `a6b3c25`
-   - **Root cause:** WPF coerces `Window.Height` to `max(Height, MinHeight)` during layout pass.
-     MinHeight from a large view (e.g. 230 for Grid, 600 for Fullscreen) was still active when
-     switching to a small view (target 60px), causing WPF to clamp height upward.
-   - **Fix:** `MinHeight` is now always set **BEFORE** `Width`/`Height` in all 6 view mode cases
-     in both `UpdateViewMode()` and `ApplyViewMode()`.
-   - **Footer gap fix:** Replaced `Measure(infinity)` + `Math.Ceiling(DesiredSize)` with
-     `SizeToContent.WidthAndHeight` + `UpdateLayout()` + `ActualWidth/Height` for Compact and Hover.
-     This gives pixel-perfect sizing with zero gap regardless of DPI.
-   - **Bugs fixed:**
-     - #2 Minimized height wrong when switching from Normal/Compact ✓
-     - #3 Hover view footer gap ✓
-     - #4 Compact height wrong when switching from larger view ✓
-     - #5 Compact view footer gap ✓
-     - #6 Normal/Grid independent sizes not preserved on switch ✓
-     - #7 Grid view footer gap (intermittent) ✓
+1. **Settings Window Close Button Polish** 🎨
+   - Height reduced to `34px`, `VerticalAlignment=Top` pins it to the top-right corner
+   - `Margin="0,-16,0,0"` cancels the header's 16px padding so the button sits flush
+   - `CornerRadius` corrected `0,9,0,0` → `0,10,0,0` to match outer window border
 
-2. **Settings Window Close Button Alignment Fixed** 🎉 — commit `a6b3c25`
-   - The ✕ button was visually offset because the header `Padding="24,16,0,16"` pushed it
-     16px down from the top-right corner.
-   - **Fix:** Added `Margin="0,-16,0,-16"` to the button to cancel the header padding,
-     making it fill the full header height flush with the window corner.
-   - Also corrected `CornerRadius` from `0,9,0,0` → `0,10,0,0` to match the outer window border.
+2. **Global Hotkey Default: `Ctrl+Alt+G` → `Ctrl+F2`**
+   - `AppSettings.cs` line 19: `ToggleAllHotkey` default changed
+   - Help panel format hint + keyboard shortcuts entry updated to `Ctrl+F2`
+
+3. **Help Panel — Comprehensive Rewrite** (all 3 chunks applied + build verified ✅)
+   - **Quick Start:** Added step 4 (choose View Mode via right-click)
+   - **View Modes:** Added resize grip, Hover auto-collapse + top-5, independent sizes tip
+   - **Right-Click Menu:** Brand-new section — all 7 actions documented
+   - **Tray Icon:** Brand-new section — click/double-click + all 6 right-click items
+   - **Tips & Tricks:** Expanded 8 → 12 tips (double-click pin, drag-to-add, resize, mouse-wheel, footer click, auto-save backups)
+
+4. **All View Mode Sizing Bugs Fixed** (previous session `a6b3c25`)
+   - See previous session notes below for details
 
 ---
 
 ## 🎯 WHAT'S NEXT
 
-### **Priority 1: Test All Fixes** 🧪
-User should verify all 6 sizing bugs are resolved + close button looks correct:
-- Minimized height snaps immediately on switch (no hover cycle needed)
-- Hover/Compact footer — zero blank space below text
-- Compact height snaps correctly when switching from Normal/Grid/Fullscreen
-- Normal and Grid remember their own independent sizes
-- Grid footer gap gone (even intermittently)
-- Settings window ✕ button is flush at top-right corner, X is vertically centred
-
-### **Priority 2: v1.0.0 Release Tag** 🏷️
-Once all fixes verified by user:
+### **Priority 1: v1.0.0 Release Tag** 🏷️
+All known issues are resolved. Ready to tag:
 ```bash
 git tag v1.0.0
 git push origin v1.0.0
 ```
 
+### **Priority 2: User Runtime Testing** 🧪
+- All view mode sizing fixes (previous session) still await user runtime sign-off
+- Help panel updated — verify it reads correctly under each section heading
+- Close button sizing — verify flush top-right corner
+
 ### **Priority 3: Feature Backlog** 📋
 See BACKLOG.md for the full list. Top candidates:
-- Global hotkey for Show/Hide All
 - Configurable hover delay
 - Drag shortcuts between groups
+- Global hotkey (implemented, tweak if needed)
 - Performance profiling
 
 ---
@@ -162,9 +153,9 @@ dotnet run --project src/DeskGroup/DeskGroup.csproj
 
 ```
 Branch: Dev
-Sync: ✅ Local = Remote (457c79d)
+Sync: ✅ Local = Remote (6101459)
 Working Tree: Clean
-Restore Point: 457c79d
+Restore Point: 6101459
 ```
 
 **Verify sync:**
@@ -181,13 +172,14 @@ git log --oneline -5
 **Run:** `dotnet run --project src/DeskGroup/DeskGroup.csproj`  
 **Status:** `git status`  
 **History:** `git log --oneline -8`  
-**Restore Point:** `git checkout 457c79d`  
+**Restore Point:** `git checkout 6101459`  
 **Latest:** `git checkout Dev`  
 **Sync:** `git pull origin Dev`  
 
 **Documentation:**
 - Task List: `BACKLOG.md`
-- This Session: `SESSION_SUMMARY_SIZING_GRID_FIX.md`
+- This Session: `SESSION_SUMMARY_HELP_PANEL_POLISH.md`
+- Sizing Session: `SESSION_SUMMARY_SIZING_GRID_FIX.md`
 - Settings Session: `SESSION_SUMMARY_SETTINGS_WINDOW_COMPLETE.md`
 - WndProc Fix: `FIX_HOVER_JUMP_WNDPROC_SOLUTION.md`
 - This Guide: `START_HERE_NEXT_SESSION.md`

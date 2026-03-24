@@ -1,8 +1,8 @@
 # DeskGroup - Development Backlog
 
 **Last Updated:** 2025-07-11  
-**Status:** ✅ **CLEAN BUILD — AWAITING USER TEST OF SIZING + CLOSE BUTTON FIXES**  
-**Commit:** `a6b3c25` — all sizing bugs fixed, Settings close button aligned
+**Status:** ✅ **CLEAN BUILD — HELP PANEL UPDATED, CLOSE BUTTON POLISHED, HOTKEY DEFAULT FIXED**  
+**Commit:** *(see START_HERE_NEXT_SESSION.md for latest hash)*
 
 ---
 
@@ -115,6 +115,22 @@ Based on new features added in BATCH 2 (Status Footer, Transparency Controls, Ex
   - Removed White, Gray, Black presets (did not render correctly)
   - Palette now shows 22 Windows 11 accent colours only
   - Custom hex input still available for any colour
+
+- [x] **Settings Close Button Polish** ✓ **DONE** — this session
+  - Height reduced to `34px`, `VerticalAlignment=Top` to pin to corner
+  - Negative top margin (`Margin="0,-16,0,0"`) cancels header padding
+  - `CornerRadius` corrected to `0,10,0,0` to match outer window border
+
+- [x] **Global Hotkey Default Fixed** ✓ **DONE** — this session
+  - Changed default `ToggleAllHotkey` from `Ctrl+Alt+G` → `Ctrl+F2` in `AppSettings.cs`
+  - Updated help text and format hint in `SettingsWindow.xaml` to match
+
+- [x] **Help Panel Comprehensive Update** ✓ **DONE** — this session
+  - **Quick Start:** Added step 4 (View Mode selection)
+  - **View Modes:** Updated all descriptions — resize grip, Hover top-5, auto-collapse, independent sizes tip
+  - **Right-Click Menu:** New section documenting all 7 context menu actions (View Mode, Add shortcut, Appearance, Position, Rename, Show/Hide All, Delete)
+  - **Tray Icon:** New section documenting single/double-click toggle + all 6 right-click items
+  - **Tips & Tricks:** Expanded from 8 → 12 tips (added double-click to pin, drag-to-add, resize grip, mouse-wheel slider, footer click restores sticky, auto-save backups)
 
 ---
 

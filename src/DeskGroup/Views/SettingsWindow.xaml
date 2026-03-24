@@ -97,9 +97,10 @@
                     </StackPanel>
                     <Button Grid.Column="1"
                             Width="44"
-                            Margin="0,-16,0,-16"
+                            Height="34"
+                            Margin="0,-16,0,0"
                             Click="CloseButton_Click"
-                            VerticalAlignment="Stretch"
+                            VerticalAlignment="Top"
                             Cursor="Hand"
                             Focusable="False">
                         <Button.Template>
@@ -322,7 +323,7 @@
                              VerticalContentAlignment="Center"
                              FontFamily="Consolas"/>
                 </DockPanel>
-                <TextBlock Text="Use format like Ctrl+Alt+G or F11. Changes apply after clicking Apply."
+                <TextBlock Text="Use format like Ctrl+F2 or F11. Changes apply after clicking Apply."
                            Style="{StaticResource SettingDesc}"/>
 
                 <!-- ====================================================================== -->
@@ -519,13 +520,16 @@
                            Foreground="{DynamicResource ForegroundPrimary}"
                            Margin="0,0,0,16">
                     <Run Text="1. Create a group:"/>
-                    <Run Text=" Right-click tray icon → New Group" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <Run Text=" Right-click the tray icon → New Group" Foreground="{DynamicResource ForegroundSecondary}"/>
                     <LineBreak/>
                     <Run Text="2. Add shortcuts:"/>
-                    <Run Text=" Drag desktop icons onto the group or use the context menu" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <Run Text=" Drag desktop icons onto a group, or right-click group → Add shortcut" Foreground="{DynamicResource ForegroundSecondary}"/>
                     <LineBreak/>
                     <Run Text="3. Customize:"/>
-                    <Run Text=" Right-click group → Change name, icon, or color" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <Run Text=" Right-click group → Appearance to change color or icon; Rename to rename" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run Text="4. Choose how it looks:"/>
+                    <Run Text=" Right-click group → View Mode (Minimized, Compact, Normal, Grid, Fullscreen)" Foreground="{DynamicResource ForegroundSecondary}"/>
                 </TextBlock>
 
                 <!-- View Modes -->
@@ -539,22 +543,59 @@
                            Foreground="{DynamicResource ForegroundPrimary}"
                            Margin="0,0,0,16">
                     <Run FontWeight="SemiBold" Text="Minimized:"/>
-                    <Run Text=" Compact pill showing group name and icon count" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <Run Text=" Compact pill showing group name and shortcut count" Foreground="{DynamicResource ForegroundSecondary}"/>
                     <LineBreak/>
                     <Run FontWeight="SemiBold" Text="Hover:"/>
-                    <Run Text=" Auto-expands when you hover over minimized group" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <Run Text=" Auto-expands on hover; shows top 5 most-used shortcuts; auto-collapses when mouse leaves" Foreground="{DynamicResource ForegroundSecondary}"/>
                     <LineBreak/>
                     <Run FontWeight="SemiBold" Text="Compact:"/>
-                    <Run Text=" Icons only in a 1-2 row grid (hover for tooltips)" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <Run Text=" Icons-only grid (1-2 rows); hover an icon to see its name" Foreground="{DynamicResource ForegroundSecondary}"/>
                     <LineBreak/>
                     <Run FontWeight="SemiBold" Text="Normal:"/>
-                    <Run Text=" Icons with labels in a vertical list" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <Run Text=" Icons with labels in a vertical list; drag the corner grip to resize" Foreground="{DynamicResource ForegroundSecondary}"/>
                     <LineBreak/>
                     <Run FontWeight="SemiBold" Text="Grid:"/>
-                    <Run Text=" Icons with labels in a multi-column grid" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <Run Text=" Icons with labels in a multi-column grid; drag the corner grip to resize" Foreground="{DynamicResource ForegroundSecondary}"/>
                     <LineBreak/>
                     <Run FontWeight="SemiBold" Text="Fullscreen:"/>
-                    <Run Text=" Full-screen grid view (press F11 or ESC to exit)" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <Run Text=" Full-screen grid view; press F11 or ESC to exit" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run FontWeight="SemiBold" Text="Tip:"/>
+                    <Run Text=" Normal and Grid each remember their own independent size" Foreground="{DynamicResource ForegroundSecondary}"/>
+                </TextBlock>
+
+                <!-- Right-Click Menu -->
+                <Border Style="{StaticResource SectionSeparator}"/>
+                <TextBlock Text="Right-Click Menu"
+                           Style="{StaticResource SectionHeader}"/>
+
+                <TextBlock TextWrapping="Wrap"
+                           FontFamily="{DynamicResource DefaultFont}"
+                           FontSize="{DynamicResource FontSizeNormal}"
+                           Foreground="{DynamicResource ForegroundPrimary}"
+                           Margin="0,0,0,16">
+                    <Run Text="Right-click anywhere on a group window:" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run FontWeight="SemiBold" Text="View Mode &#x2192;"/>
+                    <Run Text=" Switch between Minimized, Compact, Normal, Grid, Fullscreen" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run FontWeight="SemiBold" Text="Add shortcut:"/>
+                    <Run Text=" Browse and add a .lnk, .url or .exe file" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run FontWeight="SemiBold" Text="Appearance &#x2192;"/>
+                    <Run Text=" Change color (22 Windows 11 accent colors + custom hex) or icon" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run FontWeight="SemiBold" Text="Position &#x2192;"/>
+                    <Run Text=" Pin position, toggle snap-to-grid, or switch Sticky/Float layer" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run FontWeight="SemiBold" Text="Rename:"/>
+                    <Run Text=" Give the group a new name" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run FontWeight="SemiBold" Text="Show / Hide All:"/>
+                    <Run Text=" Toggle visibility of all groups at once" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run FontWeight="SemiBold" Text="Delete group:"/>
+                    <Run Text=" Permanently removes the group; shortcuts are restored to the desktop" Foreground="{DynamicResource ForegroundSecondary}"/>
                 </TextBlock>
 
                 <!-- Dock Modes -->
@@ -593,8 +634,37 @@
                     <Run FontWeight="SemiBold" Text="ESC:"/>
                     <Run Text=" Exit fullscreen mode" Foreground="{DynamicResource ForegroundSecondary}"/>
                     <LineBreak/>
-                    <Run FontWeight="SemiBold" Text="Ctrl+Alt+G:"/>
+                    <Run FontWeight="SemiBold" Text="Ctrl+F2:"/>
                     <Run Text=" Show/Hide all groups (configurable in Settings)" Foreground="{DynamicResource ForegroundSecondary}"/>
+                </TextBlock>
+
+                <!-- Tray Icon -->
+                <Border Style="{StaticResource SectionSeparator}"/>
+                <TextBlock Text="Tray Icon"
+                           Style="{StaticResource SectionHeader}"/>
+
+                <TextBlock TextWrapping="Wrap"
+                           FontFamily="{DynamicResource DefaultFont}"
+                           FontSize="{DynamicResource FontSizeNormal}"
+                           Foreground="{DynamicResource ForegroundPrimary}"
+                           Margin="0,0,0,16">
+                    <Run FontWeight="SemiBold" Text="Left-click or double-click:"/>
+                    <Run Text=" Toggle all groups visible/hidden" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run FontWeight="SemiBold" Text="Right-click &#x2192; Show / Hide All:"/>
+                    <Run Text=" Show or hide every group at once" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run FontWeight="SemiBold" Text="Right-click &#x2192; New Group:"/>
+                    <Run Text=" Create a new empty group on your desktop" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run FontWeight="SemiBold" Text="Right-click &#x2192; Sort Ungrouped Icons:"/>
+                    <Run Text=" See all ungrouped desktop shortcuts and add them to groups" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run FontWeight="SemiBold" Text="Right-click &#x2192; Settings:"/>
+                    <Run Text=" Open this Settings window" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run FontWeight="SemiBold" Text="Right-click &#x2192; Exit DeskGroup:"/>
+                    <Run Text=" Close the application completely" Foreground="{DynamicResource ForegroundSecondary}"/>
                 </TextBlock>
 
                 <!-- Tips -->
@@ -607,21 +677,29 @@
                            FontSize="{DynamicResource FontSizeNormal}"
                            Foreground="{DynamicResource ForegroundPrimary}"
                            Margin="0,0,0,16">
-                    <Run Text="• Drag the header to move a group" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <Run Text="• Drag the group header to reposition it anywhere on screen" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run Text="• Double-click the group header to toggle pin (lock/unlock position)" Foreground="{DynamicResource ForegroundSecondary}"/>
                     <LineBreak/>
                     <Run Text="• Drag an icon within a group to reorder it" Foreground="{DynamicResource ForegroundSecondary}"/>
                     <LineBreak/>
-                    <Run Text="• Drag an icon off a group to remove it" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <Run Text="• Drag a desktop shortcut directly onto a group to add it" Foreground="{DynamicResource ForegroundSecondary}"/>
                     <LineBreak/>
-                    <Run Text="• Right-click group → Show All / Hide All to toggle all groups at once" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <Run Text="• Drag an icon off a group window to remove it from the group" Foreground="{DynamicResource ForegroundSecondary}"/>
                     <LineBreak/>
-                    <Run Text="• Pin a group to prevent moving" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <Run Text="• Drag the resize grip (bottom-right corner) in Normal or Grid view to set a custom size" Foreground="{DynamicResource ForegroundSecondary}"/>
                     <LineBreak/>
-                    <Run Text="• Enable Snap to Grid for organized layouts" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <Run Text="• Scroll the mouse wheel over the Transparency slider for fine-grained control" Foreground="{DynamicResource ForegroundSecondary}"/>
                     <LineBreak/>
-                    <Run Text="• Adjust transparency to blend with wallpaper" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <Run Text="• Click the footer bar on a minimized group to restore it to Sticky mode after Show All" Foreground="{DynamicResource ForegroundSecondary}"/>
                     <LineBreak/>
-                    <Run Text="• Right-click anywhere on a group for context menu" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <Run Text="• Hover over any icon to see a glow highlight — click once to launch" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run Text="• Enable Snap to Grid for perfectly aligned group layouts" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run Text="• Use Sticky mode to keep groups behind your windows like classic desktop gadgets" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run Text="• Groups and positions are saved automatically; backups are kept in %LOCALAPPDATA%\DeskGroup" Foreground="{DynamicResource ForegroundSecondary}"/>
                 </TextBlock>
             </StackPanel>
         </ScrollViewer>
