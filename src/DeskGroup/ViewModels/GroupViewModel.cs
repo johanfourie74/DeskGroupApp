@@ -91,6 +91,8 @@ public partial class GroupViewModel : ObservableObject
     [ObservableProperty] private double _positionY = 100;
     [ObservableProperty] private double _width = 300;
     [ObservableProperty] private double _height = 250;
+    [ObservableProperty] private double _gridViewWidth = 400;
+    [ObservableProperty] private double _gridViewHeight = 300;
     [ObservableProperty] private string _monitorDeviceName = string.Empty;
     [ObservableProperty] private bool _isVisible = true;
     [ObservableProperty] private SolidColorBrush _accentBrush = new(Colors.DodgerBlue);
@@ -140,6 +142,18 @@ public partial class GroupViewModel : ObservableObject
     }
 
     partial void OnHeightChanged(double value)
+    {
+        if (_isInitializing) return;
+        SyncToModel();
+    }
+
+    partial void OnGridViewWidthChanged(double value)
+    {
+        if (_isInitializing) return;
+        SyncToModel();
+    }
+
+    partial void OnGridViewHeightChanged(double value)
     {
         if (_isInitializing) return;
         SyncToModel();
@@ -201,6 +215,8 @@ public partial class GroupViewModel : ObservableObject
         IsPinned = model.IsPinned; SnapToGrid = model.SnapToGrid;
         PositionX = model.PositionX; PositionY = model.PositionY;
         Width = model.Width; Height = model.Height;
+        GridViewWidth = model.GridViewWidth > 0 ? model.GridViewWidth : 400;
+        GridViewHeight = model.GridViewHeight > 0 ? model.GridViewHeight : 300;
         MonitorDeviceName = model.MonitorDeviceName;
         IsVisible = model.IsVisible; AccentColorHex = model.AccentColor;
         DockMode = model.DockMode;
@@ -351,6 +367,7 @@ public partial class GroupViewModel : ObservableObject
         _model.IsPinned = IsPinned; _model.SnapToGrid = SnapToGrid;
         _model.PositionX = PositionX; _model.PositionY = PositionY;
         _model.Width = Width; _model.Height = Height;
+        _model.GridViewWidth = GridViewWidth; _model.GridViewHeight = GridViewHeight;
         _model.MonitorDeviceName = MonitorDeviceName;
         _model.IsVisible = IsVisible; _model.AccentColor = AccentColorHex;
     }
@@ -400,19 +417,34 @@ public partial class GroupViewModel : ObservableObject
     {
         _preFullscreenViewMode = ViewMode;
         _preFullscreenX = PositionX; _preFullscreenY = PositionY;
-        _preFullscreenW = Width; _preFullscreenH = Height;
+        _preFullscreenW = ViewMode == GroupViewMode.Grid ? GridViewWidth : Width;
+        _preFullscreenH = ViewMode == GroupViewMode.Grid ? GridViewHeight : Height;
 
-        var center = new Point(PositionX + Width / 2, PositionY + Height / 2);
+        var center = new Point(PositionX + _preFullscreenW / 2, PositionY + _preFullscreenH / 2);
         var fsRect = _positionHelper.GetFullscreenRect(center);
         ViewMode = GroupViewMode.Fullscreen;
         PositionX = fsRect.X; PositionY = fsRect.Y;
-        Width = fsRect.Width; Height = fsRect.Height;
+        if (_preFullscreenViewMode == GroupViewMode.Grid)
+        {
+            GridViewWidth = fsRect.Width; GridViewHeight = fsRect.Height;
+        }
+        else
+        {
+            Width = fsRect.Width; Height = fsRect.Height;
+        }
     }
 
     private void RestoreFromFullscreen()
     {
         PositionX = _preFullscreenX; PositionY = _preFullscreenY;
-        Width = _preFullscreenW; Height = _preFullscreenH;
+        if (_preFullscreenViewMode == GroupViewMode.Grid)
+        {
+            GridViewWidth = _preFullscreenW; GridViewHeight = _preFullscreenH;
+        }
+        else
+        {
+            Width = _preFullscreenW; Height = _preFullscreenH;
+        }
         ViewMode = _preFullscreenViewMode;
     }
 

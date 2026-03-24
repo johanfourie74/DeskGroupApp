@@ -19,6 +19,8 @@ public class IconGroup
     public double PositionY { get; set; } = 100;
     public double Width { get; set; } = 300;
     public double Height { get; set; } = 250;
+    public double GridViewWidth { get; set; } = 400;
+    public double GridViewHeight { get; set; } = 300;
     public string MonitorDeviceName { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public bool IsVisible { get; set; } = true;

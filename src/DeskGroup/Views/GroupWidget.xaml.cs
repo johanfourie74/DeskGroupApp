@@ -348,11 +348,21 @@ public partial class GroupWidget : Window
 
                 case nameof(GroupViewModel.Width):
                 case nameof(GroupViewModel.Height):
-                    if (_viewModel != null && (_viewModel.ViewMode == GroupViewMode.Normal || _viewModel.ViewMode == GroupViewMode.Grid))
+                    if (_viewModel != null && _viewModel.ViewMode == GroupViewMode.Normal)
                     {
                         SizeToContent = SizeToContent.Manual;
                         Width = _viewModel.Width;
                         Height = _viewModel.Height;
+                    }
+                    break;
+
+                case nameof(GroupViewModel.GridViewWidth):
+                case nameof(GroupViewModel.GridViewHeight):
+                    if (_viewModel != null && _viewModel.ViewMode == GroupViewMode.Grid)
+                    {
+                        SizeToContent = SizeToContent.Manual;
+                        Width = _viewModel.GridViewWidth;
+                        Height = _viewModel.GridViewHeight;
                     }
                     break;
 
@@ -467,8 +477,8 @@ public partial class GroupWidget : Window
                 {
                     UpdateLayout(); // Force layout before measuring
                     CompactView.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-                    Width = Math.Max(CompactView.DesiredSize.Width + 4, 200);
-                    Height = Math.Max(CompactView.DesiredSize.Height + 4, 120);
+                    Width = Math.Max(Math.Ceiling(CompactView.DesiredSize.Width), 200);
+                    Height = Math.Max(Math.Ceiling(CompactView.DesiredSize.Height), 120);
                 }
                 else
                 {
@@ -502,8 +512,8 @@ public partial class GroupWidget : Window
                 SizeToContent = SizeToContent.Manual;
                 if (_viewModel != null)
                 {
-                    Width = _viewModel.Width;
-                    Height = _viewModel.Height;
+                    Width = _viewModel.GridViewWidth;
+                    Height = _viewModel.GridViewHeight;
                 }
                 else
                 {
@@ -517,13 +527,10 @@ public partial class GroupWidget : Window
 
             case GroupViewMode.Fullscreen:
                 SizeToContent = SizeToContent.Manual;
-                if (_viewModel != null)
-                {
-                    Left = _viewModel.PositionX;
-                    Top = _viewModel.PositionY;
-                    Width = _viewModel.Width;
-                    Height = _viewModel.Height;
-                }
+                Left = 0;
+                Top = 0;
+                Width = SystemParameters.PrimaryScreenWidth;
+                Height = SystemParameters.PrimaryScreenHeight;
                 ResizeMode = ResizeMode.NoResize;
 
                 // If attached to desktop, temporarily detach for fullscreen
@@ -598,9 +605,10 @@ public partial class GroupWidget : Window
     {
         if (_viewModel?.ViewMode != GroupViewMode.Compact || _windowHandle == IntPtr.Zero) return;
 
+        UpdateLayout();
         CompactView.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-        int newW = (int)Math.Max(CompactView.DesiredSize.Width + 4, 200);
-        int newH = (int)Math.Max(CompactView.DesiredSize.Height + 4, 120);
+        int newW = (int)Math.Ceiling(Math.Max(CompactView.DesiredSize.Width, 200));
+        int newH = (int)Math.Ceiling(Math.Max(CompactView.DesiredSize.Height, 120));
         Width = newW;
         Height = newH;
         SetWindowPosInDips(IntPtr.Zero, 0, 0, newW, newH,
@@ -611,9 +619,10 @@ public partial class GroupWidget : Window
     {
         if (_viewModel?.ViewMode != GroupViewMode.Hover || _windowHandle == IntPtr.Zero) return;
 
+        UpdateLayout();
         HoverView.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-        int newW = (int)Math.Max(HoverView.DesiredSize.Width + 4, 200);
-        int newH = (int)Math.Max(HoverView.DesiredSize.Height + 4, 60);
+        int newW = (int)Math.Ceiling(Math.Max(HoverView.DesiredSize.Width, 200));
+        int newH = (int)Math.Ceiling(Math.Max(HoverView.DesiredSize.Height, 60));
         Width = newW;
         Height = newH;
         SetWindowPosInDips(IntPtr.Zero, 0, 0, newW, newH,
@@ -872,11 +881,12 @@ public partial class GroupWidget : Window
                     FullscreenView.Visibility = Visibility.Collapsed;
 
                     // Measure actual content size now that MinimizedView is visible
+                    UpdateLayout();
                     MinimizedView.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
                     if (MinimizedView.DesiredSize.Width > 0 && MinimizedView.DesiredSize.Height > 0)
                     {
-                        targetWidth = (int)Math.Max(MinimizedView.DesiredSize.Width + 4, 200);
-                        targetHeight = (int)Math.Max(MinimizedView.DesiredSize.Height + 4, 30);
+                        targetWidth = (int)Math.Ceiling(Math.Max(MinimizedView.DesiredSize.Width, 200));
+                        targetHeight = (int)Math.Ceiling(Math.Max(MinimizedView.DesiredSize.Height, 30));
                     }
 
                     System.Diagnostics.Debug.WriteLine($"📍 RESTORING Minimized to: ({targetX}, {targetY}), size: {targetWidth}x{targetHeight}");
@@ -936,9 +946,10 @@ public partial class GroupWidget : Window
                     _hasPendingPosition = false;
 
                     // Measure actual content size now that HoverView is visible
+                    UpdateLayout();
                     HoverView.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-                    int hoverTargetW = (int)Math.Max(HoverView.DesiredSize.Width + 4, 200);
-                    int hoverTargetH = (int)Math.Max(HoverView.DesiredSize.Height + 4, 60);
+                    int hoverTargetW = (int)Math.Ceiling(Math.Max(HoverView.DesiredSize.Width, 200));
+                    int hoverTargetH = (int)Math.Ceiling(Math.Max(HoverView.DesiredSize.Height, 60));
 
                     System.Diagnostics.Debug.WriteLine($"🎯 Hover measured: {hoverTargetW}x{hoverTargetH} at ({hoverTargetX},{hoverTargetY})");
 
@@ -972,9 +983,10 @@ public partial class GroupWidget : Window
                     FullscreenView.Visibility = Visibility.Collapsed;
                     CompactView.Visibility = Visibility.Visible;
 
+                    UpdateLayout();
                     CompactView.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-                    int compactTargetW = (int)Math.Max(CompactView.DesiredSize.Width + 4, 200);
-                    int compactTargetH = (int)Math.Max(CompactView.DesiredSize.Height + 4, 120);
+                    int compactTargetW = (int)Math.Ceiling(Math.Max(CompactView.DesiredSize.Width, 200));
+                    int compactTargetH = (int)Math.Ceiling(Math.Max(CompactView.DesiredSize.Height, 120));
                     int compactTargetX = wasFullscreenCompact && _preFullscreenLeft > 0 ? (int)_preFullscreenLeft : (_viewModel != null ? (int)_viewModel.PositionX : 0);
                     int compactTargetY = wasFullscreenCompact && _preFullscreenTop > 0 ? (int)_preFullscreenTop : (_viewModel != null ? (int)_viewModel.PositionY : 0);
 
@@ -1055,8 +1067,8 @@ public partial class GroupWidget : Window
                     bool wasFullscreenGrid = (FullscreenView.Visibility == Visibility.Visible);
                     int gridTargetX = wasFullscreenGrid && _preFullscreenLeft > 0 ? (int)_preFullscreenLeft : (_viewModel != null ? (int)_viewModel.PositionX : 0);
                     int gridTargetY = wasFullscreenGrid && _preFullscreenTop > 0 ? (int)_preFullscreenTop : (_viewModel != null ? (int)_viewModel.PositionY : 0);
-                    int gridTargetW = wasFullscreenGrid && _preFullscreenWidth > 0 ? (int)_preFullscreenWidth : (_viewModel != null ? (int)_viewModel.Width : 400);
-                    int gridTargetH = wasFullscreenGrid && _preFullscreenHeight > 0 ? (int)_preFullscreenHeight : (_viewModel != null ? (int)_viewModel.Height : 300);
+                    int gridTargetW = wasFullscreenGrid && _preFullscreenWidth > 0 ? (int)_preFullscreenWidth : (_viewModel != null ? (int)_viewModel.GridViewWidth : 400);
+                    int gridTargetH = wasFullscreenGrid && _preFullscreenHeight > 0 ? (int)_preFullscreenHeight : (_viewModel != null ? (int)_viewModel.GridViewHeight : 300);
 
                     System.Diagnostics.Debug.WriteLine($"📍 RESTORING Grid to: ({gridTargetX}, {gridTargetY}), size: {gridTargetW}x{gridTargetH}");
 
@@ -1423,17 +1435,21 @@ public partial class GroupWidget : Window
     {
         if (_viewModel == null || _isInitializing || _isUpdatingViewMode) return;
 
-        // Only sync size for resizable modes (Normal and Grid)
-        if (_viewModel.ViewMode != GroupViewMode.Normal && _viewModel.ViewMode != GroupViewMode.Grid)
+        if (_viewModel.ViewMode == GroupViewMode.Normal)
         {
-            return;
+            if (Math.Abs(e.NewSize.Width - _viewModel.Width) > 1 || Math.Abs(e.NewSize.Height - _viewModel.Height) > 1)
+            {
+                _viewModel.Width = Math.Round(e.NewSize.Width);
+                _viewModel.Height = Math.Round(e.NewSize.Height);
+            }
         }
-
-        // Only update if size actually changed (avoid redundant saves)
-        if (Math.Abs(e.NewSize.Width - _viewModel.Width) > 1 || Math.Abs(e.NewSize.Height - _viewModel.Height) > 1)
+        else if (_viewModel.ViewMode == GroupViewMode.Grid)
         {
-            _viewModel.Width = Math.Round(e.NewSize.Width);
-            _viewModel.Height = Math.Round(e.NewSize.Height);
+            if (Math.Abs(e.NewSize.Width - _viewModel.GridViewWidth) > 1 || Math.Abs(e.NewSize.Height - _viewModel.GridViewHeight) > 1)
+            {
+                _viewModel.GridViewWidth = Math.Round(e.NewSize.Width);
+                _viewModel.GridViewHeight = Math.Round(e.NewSize.Height);
+            }
         }
     }
 
