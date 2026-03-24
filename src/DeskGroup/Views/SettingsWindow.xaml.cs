@@ -297,7 +297,7 @@ public partial class SettingsWindow : Window
             SettingsApplied?.Invoke(this, EventArgs.Empty);
 
             // Show brief confirmation
-            ApplyButton.Content = "âœ“ Applied";
+            ApplyButton.Content = "✓ Applied";
             var timer = new System.Windows.Threading.DispatcherTimer
             {
                 Interval = TimeSpan.FromMilliseconds(1200)

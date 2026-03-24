@@ -115,7 +115,7 @@
 
                                 <!-- Arrow -->
                                 <TextBlock Grid.Column="2"
-                                           Text="Righti"
+                                           Text="&#x2192;"
                                            FontSize="16"
                                            Foreground="{DynamicResource ForegroundSecondary}"
                                            VerticalAlignment="Center"

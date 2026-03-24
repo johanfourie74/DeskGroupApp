@@ -48,6 +48,7 @@ public partial class App : Application
     private MainViewModel? _mainViewModel;
     private TaskbarIcon? _trayIcon;
     private readonly Dictionary<Guid, GroupWidget> _groupWindows = new();
+    private System.Windows.Threading.DispatcherTimer? _trayClickTimer;
 
     // Hidden helper window used for hotkey registration
     // (needs an HWND but doesn't need to be visible)
@@ -454,11 +455,31 @@ public partial class App : Application
             // Build context menu
             _trayIcon.ContextMenu = BuildTrayContextMenu();
 
-            System.Diagnostics.Debug.WriteLine("CreateTrayIcon: Wiring double-click event");
+            System.Diagnostics.Debug.WriteLine("CreateTrayIcon: Wiring click events");
 
-            // Double-click tray icon -> toggle visibility
+            // Left single-click -> toggle visibility (debounced to prevent double-toggle on double-click)
+            _trayIcon.TrayLeftMouseUp += (s, e) =>
+            {
+                if (_trayClickTimer == null)
+                {
+                    _trayClickTimer = new System.Windows.Threading.DispatcherTimer
+                    {
+                        Interval = TimeSpan.FromMilliseconds(300)
+                    };
+                    _trayClickTimer.Tick += (ts, te) =>
+                    {
+                        _trayClickTimer.Stop();
+                        _mainViewModel?.ToggleAllGroupsVisibility();
+                    };
+                }
+                _trayClickTimer.Stop();
+                _trayClickTimer.Start();
+            };
+
+            // Double-click also toggles (cancel single-click timer to avoid double-toggle)
             _trayIcon.TrayMouseDoubleClick += (s, e) =>
             {
+                _trayClickTimer?.Stop();
                 _mainViewModel?.ToggleAllGroupsVisibility();
             };
 

@@ -491,7 +491,7 @@ public partial class GroupWidget : Window
                     Height = 250;
                 }
                 MinWidth = 200;
-                MinHeight = 150;
+                MinHeight = 180;
                 ResizeMode = ResizeMode.CanResizeWithGrip; // Allow user to resize
                 break;
 
@@ -508,7 +508,7 @@ public partial class GroupWidget : Window
                     Height = 300;
                 }
                 MinWidth = 250;
-                MinHeight = 200;
+                MinHeight = 230;
                 ResizeMode = ResizeMode.CanResizeWithGrip; // Allow user to resize
                 break;
 
@@ -1008,7 +1008,7 @@ public partial class GroupWidget : Window
                     SizeToContent = SizeToContent.Manual;
                     ResizeMode = ResizeMode.CanResizeWithGrip;
                     MinWidth = 200;
-                    MinHeight = 150;
+                    MinHeight = 180;
                     Visibility = Visibility.Visible;
                     break;
 
@@ -1053,7 +1053,7 @@ public partial class GroupWidget : Window
                     SizeToContent = SizeToContent.Manual;
                     ResizeMode = ResizeMode.CanResizeWithGrip;
                     MinWidth = 250;
-                    MinHeight = 200;
+                    MinHeight = 230;
                     Visibility = Visibility.Visible;
                     break;
 
@@ -1415,6 +1415,11 @@ public partial class GroupWidget : Window
     {
         if (_viewModel?.IsPinned == true) return;
 
+        // Don't intercept clicks that originated from icon tiles — let them initiate DnD
+        if (e.OriginalSource is DependencyObject origSrc &&
+            (origSrc is IconTile || FindParentOfType<IconTile>(origSrc) != null))
+            return;
+
         _isDragging = false;
         _dragStarted = true;
         _dragStartMouseScreen = PointToScreen(e.GetPosition(this));
@@ -1566,6 +1571,17 @@ public partial class GroupWidget : Window
     private void MenuHideAllGroups_Click(object sender, RoutedEventArgs e)
     {
         GetMainViewModel()?.HideAllGroupsCommand.Execute(null);
+    }
+
+    private static T? FindParentOfType<T>(DependencyObject child) where T : DependencyObject
+    {
+        var parent = VisualTreeHelper.GetParent(child);
+        while (parent != null)
+        {
+            if (parent is T t) return t;
+            parent = VisualTreeHelper.GetParent(parent);
+        }
+        return null;
     }
 }
 

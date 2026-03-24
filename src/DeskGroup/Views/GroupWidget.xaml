@@ -690,7 +690,7 @@
 
             <!-- Position -->
             <MenuItem Header="Position">
-                <MenuItem Header="{Binding IsPinned, StringFormat='📌 Pin position ({0})'}"
+                <MenuItem Header="📌 Pin position"
                           Command="{Binding TogglePinCommand}"
                           IsCheckable="True"
                           IsChecked="{Binding IsPinned, Mode=OneWay}"/>
