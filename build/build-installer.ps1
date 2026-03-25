@@ -90,7 +90,7 @@ if (![string]::IsNullOrEmpty($innoCompiler) -and (Test-Path $innoCompiler)) {
         "Name: `"english`"; MessagesFile: `"compiler:Default.isl`"`r`n`r`n" +
         "[Tasks]`r`n" +
         "Name: `"desktopicon`"; Description: `"{cm:CreateDesktopIcon}`"; GroupDescription: `"{cm:AdditionalIcons}`"; Flags: unchecked`r`n" +
-        "Name: `"startup`"; Description: `"Start DeskGroup with Windows`"; GroupDescription: `"Startup:`"; Flags: checked`r`n`r`n" +
+        "Name: `"startup`"; Description: `"Start DeskGroup with Windows`"; GroupDescription: `"Startup:`"`r`n`r`n" +
         "[Files]`r`n" +
         "Source: `"$publishDir\*`"; DestDir: `"{app}`"; Flags: ignoreversion recursesubdirs`r`n`r`n" +
         "[Icons]`r`n" +
