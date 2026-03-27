@@ -82,6 +82,7 @@ if (![string]::IsNullOrEmpty($innoCompiler) -and (Test-Path $innoCompiler)) {
         "SolidCompression=yes`r`n" +
         "WizardStyle=modern`r`n" +
         "PrivilegesRequired=lowest`r`n" +
+        "CloseApplications=yes`r`n" +
         "UninstallDisplayIcon={app}\DeskGroup.exe`r`n" +
         "ArchitecturesAllowed=x64`r`n" +
         "ArchitecturesInstallIn64BitMode=x64`r`n" +
@@ -102,7 +103,9 @@ if (![string]::IsNullOrEmpty($innoCompiler) -and (Test-Path $innoCompiler)) {
         "[Registry]`r`n" +
         "Root: HKCU; Subkey: `"SOFTWARE\Microsoft\Windows\CurrentVersion\Run`"; ValueType: string; ValueName: `"DeskGroup`"; ValueData: `"`"`"{app}\DeskGroup.exe`"`" --startup`"; Flags: uninsdeletevalue; Tasks: startup`r`n`r`n" +
         "[UninstallRun]`r`n" +
-        "Filename: `"{app}\DeskGroup.exe`"; Parameters: `"--uninstall-cleanup`"; Flags: runhidden skipifdoesntexist`r`n"
+        "Filename: `"{app}\DeskGroup.exe`"; Parameters: `"--uninstall-cleanup`"; Flags: runhidden skipifdoesntexist`r`n`r`n" +
+        "[UninstallDelete]`r`n" +
+        "Type: filesandordirs; Name: `"{localappdata}\DeskGroup`"`r`n"
 
     [System.IO.File]::WriteAllText($innoScriptPath, $issContent, [System.Text.Encoding]::UTF8)
     & $innoCompiler $innoScriptPath

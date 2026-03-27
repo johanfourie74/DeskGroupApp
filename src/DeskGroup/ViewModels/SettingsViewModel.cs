@@ -50,6 +50,7 @@ public partial class SettingsViewModel : ObservableObject
     }
 
     [ObservableProperty] private bool _singleClickToLaunch;
+    [ObservableProperty] private bool _enableShellContextMenu;
     [ObservableProperty] private bool _startWithWindows;
     [ObservableProperty] private bool _startMinimizedToTray;
     [ObservableProperty] private string _toggleAllHotkey = string.Empty;
@@ -104,6 +105,7 @@ public partial class SettingsViewModel : ObservableObject
         AutoUpdate  = settings.AutoUpdate;
         AutoInstall = settings.AutoInstall;
         SingleClickToLaunch = settings.SingleClickToLaunch;
+        EnableShellContextMenu = settings.EnableShellContextMenu;
 
         UpdateStatusText = $"Last checked: {(settings.LastUpdateCheck == DateTime.MinValue ? "Never" : settings.LastUpdateCheck.ToLocalTime().ToString("g"))}";
     }
@@ -178,8 +180,13 @@ public partial class SettingsViewModel : ObservableObject
         _settings.AutoUpdate  = AutoUpdate;
         _settings.AutoInstall = AutoInstall;
         _settings.SingleClickToLaunch = SingleClickToLaunch;
+        _settings.EnableShellContextMenu = EnableShellContextMenu;
         _startupService.SyncWithSetting(StartWithWindows);
         await _persistenceService.SaveSettingsImmediateAsync(_settings);
+
+        // Sync shell context menu registration
+        if (EnableShellContextMenu) Helpers.ShellContextMenuHelper.RegisterContextMenu();
+        else Helpers.ShellContextMenuHelper.UnregisterContextMenu();
 
         // Handle shortcut/pin changes
         if (wasDesktopShortcut != DesktopShortcutInstalled)
@@ -486,5 +493,6 @@ public partial class SettingsViewModel : ObservableObject
         AutoUpdate  = d.AutoUpdate;
         AutoInstall = d.AutoInstall;
         SingleClickToLaunch = d.SingleClickToLaunch;
+        EnableShellContextMenu = d.EnableShellContextMenu;
     }
 }

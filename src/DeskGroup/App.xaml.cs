@@ -50,6 +50,7 @@ public partial class App : Application
     private readonly Dictionary<Guid, GroupWidget> _groupWindows = new();
     private System.Windows.Threading.DispatcherTimer? _trayClickTimer;
     private System.Windows.Threading.DispatcherTimer? _updateCheckTimer;
+    private NamedPipeServer? _pipeServer;
 
     // Hidden helper window used for hotkey registration
     // (needs an HWND but doesn't need to be visible)
@@ -59,15 +60,30 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
+        // Handle special launch modes before any other initialization
+        string? addToGroupPath = null;
+        for (int i = 0; i < e.Args.Length - 1; i++)
+            if (e.Args[i] == "--add-to-group") { addToGroupPath = e.Args[i + 1]; break; }
+
+        if (e.Args.Contains("--uninstall-cleanup"))
+        {
+            await UninstallHelper.RunAsync();
+            Shutdown(0);
+            return;
+        }
+
         // Single Instance Check
         _singleInstanceGuard = new SingleInstanceGuard();
         if (!_singleInstanceGuard.TryAcquire())
         {
-            MessageBox.Show(
-                "DeskGroup is already running.\n\nCheck your system tray.",
-                "DeskGroup",
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
+            if (addToGroupPath != null)
+                NamedPipeServer.TrySend(addToGroupPath);
+            else
+                MessageBox.Show(
+                    "DeskGroup is already running.\n\nCheck your system tray.",
+                    "DeskGroup",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
             Shutdown();
             return;
         }
@@ -122,6 +138,18 @@ public partial class App : Application
 
         // Apply Theme
         ApplyTheme(_mainViewModel.Settings.Theme);
+
+        // Sync shell context menu registration with current setting
+        if (_mainViewModel.Settings.EnableShellContextMenu)
+            ShellContextMenuHelper.RegisterContextMenu();
+        else
+            ShellContextMenuHelper.UnregisterContextMenu();
+
+        // Start IPC pipe server for --add-to-group messages from shell context menu
+        _pipeServer = new NamedPipeServer();
+        _pipeServer.MessageReceived += (s, path) =>
+            Dispatcher.Invoke(() => ShowUngroupedIconsDialog(new List<string> { path }));
+        _pipeServer.Start();
 
         // Create Helper Window for Hotkeys
         _helperWindow = new Window
@@ -252,6 +280,16 @@ public partial class App : Application
         _updateCheckTimer.Tick += async (s, e) => await RunBackgroundUpdateCheckAsync();
         if (_mainViewModel.Settings.AutoUpdate)
             _updateCheckTimer.Start();
+
+        // If launched via shell context menu --add-to-group, open the dialog after startup
+        if (addToGroupPath != null)
+        {
+            _ = Task.Delay(800).ContinueWith(
+                _ => Dispatcher.Invoke(() => ShowUngroupedIconsDialog(new List<string> { addToGroupPath })),
+                System.Threading.CancellationToken.None,
+                TaskContinuationOptions.None,
+                TaskScheduler.Default);
+        }
     }
 
     protected override async void OnExit(ExitEventArgs e)
@@ -323,6 +361,9 @@ public partial class App : Application
 
         // Close helper window
         try { _helperWindow?.Close(); } catch { }
+
+        // Dispose IPC pipe server
+        _pipeServer?.Dispose();
 
         // Release single instance
         _singleInstanceGuard?.Dispose();

@@ -39,6 +39,9 @@ public class AppSettings
     // Launch behavior
     public bool SingleClickToLaunch { get; set; } = false;
 
+    // Shell integration
+    public bool EnableShellContextMenu { get; set; } = false;
+
     // Settings Window Position
     public double SettingsWindowLeft { get; set; } = double.NaN;
     public double SettingsWindowTop { get; set; } = double.NaN;

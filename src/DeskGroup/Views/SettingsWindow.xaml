@@ -272,6 +272,16 @@
                 <TextBlock Text="When enabled, desktop icons are hidden after being added to a group. They are restored when removed or the group is deleted."
                            Style="{StaticResource SettingDesc}"/>
 
+                <!-- Shell context menu -->
+                <DockPanel Style="{StaticResource SettingRow}">
+                    <TextBlock Text="Shell context menu" Style="{StaticResource SettingLabel}"
+                               DockPanel.Dock="Left" Width="160"/>
+                    <CheckBox IsChecked="{Binding EnableShellContextMenu}"
+                              VerticalAlignment="Center"/>
+                </DockPanel>
+                <TextBlock Text="Adds 'Add to DeskGroup' to the right-click menu of .lnk and .url files in Explorer and on the desktop."
+                           Style="{StaticResource SettingDesc}"/>
+
                 <!-- ====================================================================== -->
                 <!-- ICONS -->
                 <!-- ====================================================================== -->
