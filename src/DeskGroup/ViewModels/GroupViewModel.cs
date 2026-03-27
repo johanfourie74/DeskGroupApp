@@ -333,9 +333,31 @@ public partial class GroupViewModel : ObservableObject
             }
         }
 
-        // Generate letter-based icon with INVERTED colors (accent color text on off-white bg)
-        GroupIcon = CreateGroupLetterIcon(Name, AccentColorHex);
-        System.Diagnostics.Debug.WriteLine($"LoadGroupIcon: Generated letter-based icon for '{Name}'");
+        // Use DeskGroup app icon as default group icon
+        GroupIcon = LoadDefaultDeskGroupIcon() ?? CreateGroupLetterIcon(Name, AccentColorHex);
+        System.Diagnostics.Debug.WriteLine($"LoadGroupIcon: Using default DeskGroup icon for '{Name}'");
+    }
+
+    private static ImageSource? LoadDefaultDeskGroupIcon()
+    {
+        try
+        {
+            var uri = new Uri("pack://application:,,,/Assets/dg_icon.png", UriKind.Absolute);
+            var streamInfo = System.Windows.Application.GetResourceStream(uri);
+            if (streamInfo == null) return null;
+            var bitmap = new System.Windows.Media.Imaging.BitmapImage();
+            bitmap.BeginInit();
+            bitmap.StreamSource = streamInfo.Stream;
+            bitmap.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+            bitmap.DecodePixelWidth = 48;
+            bitmap.EndInit();
+            bitmap.Freeze();
+            return bitmap;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private static ImageSource CreateGroupLetterIcon(string groupName, string accentColorHex)
