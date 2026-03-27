@@ -86,7 +86,8 @@
                     </Grid.ColumnDefinitions>
                     <StackPanel Grid.Column="0"
                                 MouseLeftButtonDown="SettingsHeader_MouseLeftButtonDown"
-                                Cursor="SizeAll">
+                                Cursor="SizeAll"
+                                Background="Transparent">
                         <TextBlock x:Name="HeaderTitle"
                                    Text="Settings"
                                    FontFamily="{DynamicResource DefaultFont}"

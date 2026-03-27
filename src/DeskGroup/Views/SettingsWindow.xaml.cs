@@ -299,34 +299,11 @@ public partial class SettingsWindow : Window
 
     private void SettingsWindow_Loaded(object sender, RoutedEventArgs e)
     {
-        var settings = _viewModel.Settings;
-
-        // Restore position if valid
-        if (!double.IsNaN(settings.SettingsWindowLeft) && !double.IsNaN(settings.SettingsWindowTop))
-        {
-            Left = settings.SettingsWindowLeft;
-            Top = settings.SettingsWindowTop;
-            Width = settings.SettingsWindowWidth;
-            Height = settings.SettingsWindowHeight;
-
-            // Ensure window is on screen
-            var workingArea = SystemParameters.WorkArea;
-            if (Left < workingArea.Left || Left > workingArea.Right - Width)
-                WindowStartupLocation = WindowStartupLocation.CenterScreen;
-            if (Top < workingArea.Top || Top > workingArea.Bottom - Height)
-                WindowStartupLocation = WindowStartupLocation.CenterScreen;
-        }
+        // Always opens at CenterScreen (set in XAML); no position restore.
     }
 
     private void SettingsWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
     {
-        // Save window position
-        var settings = _viewModel.Settings;
-        settings.SettingsWindowLeft = Left;
-        settings.SettingsWindowTop = Top;
-        settings.SettingsWindowWidth = Width;
-        settings.SettingsWindowHeight = Height;
-
         // ViewModel will auto-save via debounce
     }
 
