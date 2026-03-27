@@ -1,8 +1,8 @@
 # DeskGroup - Development Backlog
 
-**Last Updated:** 2025-07-11  
-**Status:** ✅ **CLEAN BUILD — HELP PANEL UPDATED, CLOSE BUTTON POLISHED, HOTKEY DEFAULT FIXED**  
-**Commit:** *(see START_HERE_NEXT_SESSION.md for latest hash)*
+**Last Updated:** 2025-07-12  
+**Status:** ✅ **v1.4.1 SHIPPED — DOCS UPDATED — AWAITING USER TEST RESULTS**  
+**Commit:** `bc3f21d`
 
 ---
 
@@ -131,6 +131,25 @@ Based on new features added in BATCH 2 (Status Footer, Transparency Controls, Ex
   - **Right-Click Menu:** New section documenting all 7 context menu actions (View Mode, Add shortcut, Appearance, Position, Rename, Show/Hide All, Delete)
   - **Tray Icon:** New section documenting single/double-click toggle + all 6 right-click items
   - **Tips & Tricks:** Expanded from 8 → 12 tips (added double-click to pin, drag-to-add, resize grip, mouse-wheel slider, footer click restores sticky, auto-save backups)
+
+- [x] **Phase 2 — Hotkey keyboard+mouse separation** ✓ **DONE** — commit `d8d290c`
+  - `HotkeyMode.cs` enum: Keyboard / Mouse / Both
+  - `AppSettings.cs`: 4 new fields (ToggleAllMouseHotkey, ToggleAllHotkeyMode, FullscreenMouseHotkey, FullscreenHotkeyMode)
+  - `HotkeyBox`: CaptureMode DP, Deactivated auto-cancel, duplicate detection
+  - `SettingsWindow.xaml`: 2-row layout per action (mode ComboBox + ⌨️ + 🖱️ boxes)
+  - `MainViewModel.RegisterHotkeys()` mode-aware
+  - `SettingsViewModel`: OwnerWindow, 4 new props, dialog owners set, ValidateHotkeys updated
+
+- [x] **⚙️ Settings in group body context menu** ✓ **DONE** — commit `3d89aca`
+  - Window.ContextMenu in GroupWidget.xaml + MenuSettings_Click handler
+
+- [x] **README.md + in-app Help panel fully updated for v1.4.0** ✓ **DONE** — commit `453ecd7`
+  - README: hotkey table, new features, build markdown all corrected
+  - Help panel: Settings entry, mouse hotkeys, hotkey mode tip, shell context menu tip
+
+- [x] **v1.4.1 — About version fix + in-app help rebuild** ✓ **DONE** — commit `bc3f21d`
+  - About tab VersionText fixed (was frozen at 1.3.0)
+  - Both artifacts: `DeskGroup-Setup-1.4.1.exe` (69 MB), `DeskGroup-Portable-1.4.1.zip` (68.6 MB)
 
 ---
 

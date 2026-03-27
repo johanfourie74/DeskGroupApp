@@ -1,63 +1,76 @@
 # 🚀 START HERE - Next Session
 
-**Last Session Date:** 2025-07-11  
-**Status:** ✅ **CLEAN BUILD — HELP PANEL UPDATED, CLOSE BUTTON POLISHED, HOTKEY FIXED**  
+**Last Session Date:** 2025-07-12  
+**Status:** ✅ **CLEAN BUILD — v1.4.1 SHIPPED — DOCS + IN-APP HELP FULLY UPDATED**  
 **Current Branch:** `Dev`  
-**Latest Commit:** `90bd9b3` (Polish: close button, hotkey Ctrl+F2, Help panel rewrite)  
-**Restore Point:** `90bd9b3` ← **USE THIS**
+**Latest Commit:** `bc3f21d` (chore: bump to v1.4.1 — in-app help + About version fix)  
+**Restore Point:** `bc3f21d` ← **USE THIS**
 
 ---
 
 ## 📍 WHERE WE ARE
 
-### ✅ COMPLETED THIS SESSION
+### ✅ COMPLETED THIS SESSION (Phase 2 + v1.4.x docs/release)
 
-1. **Settings Window Close Button Polish** 🎨
-   - Height reduced to `34px`, `VerticalAlignment=Top` pins it to the top-right corner
-   - `Margin="0,-16,0,0"` cancels the header's 16px padding so the button sits flush
-   - `CornerRadius` corrected `0,9,0,0` → `0,10,0,0` to match outer window border
+1. **Phase 2 multi-fix** (commit `d8d290c`) — all 6 items:
+   - Win32 drag fix in `SettingsWindow.xaml.cs` (WM_NCLBUTTONDOWN)
+   - `HotkeyBox` — `CaptureMode` DP (KeyboardOnly/MouseOnly/All), Deactivated auto-cancel, duplicate detection
+   - `SettingsViewModel` — `OwnerWindow`, 4 new hotkey props, dialog owners set, `ValidateHotkeys` updated
+   - `SettingsWindow.xaml` — 2-row layout (mode ComboBox + ⌨️ + 🖱️ HotkeyBox per action)
+   - `HotkeyWarningDialog.xaml` — CenterOwner
+   - `HotkeyMode.cs` enum — Keyboard / Mouse / Both
 
-2. **Global Hotkey Default: `Ctrl+Alt+G` → `Ctrl+F2`**
-   - `AppSettings.cs` line 19: `ToggleAllHotkey` default changed
-   - Help panel format hint + keyboard shortcuts entry updated to `Ctrl+F2`
+2. **⚙️ Settings in group body context menu** (commit `3d89aca`)
+   - Added to `GroupWidget.xaml` Window.ContextMenu + `MenuSettings_Click` handler
 
-3. **Help Panel — Comprehensive Rewrite** (all 3 chunks applied + build verified ✅)
-   - **Quick Start:** Added step 4 (choose View Mode via right-click)
-   - **View Modes:** Added resize grip, Hover auto-collapse + top-5, independent sizes tip
-   - **Right-Click Menu:** Brand-new section — all 7 actions documented
-   - **Tray Icon:** Brand-new section — click/double-click + all 6 right-click items
-   - **Tips & Tricks:** Expanded 8 → 12 tips (double-click pin, drag-to-add, resize, mouse-wheel, footer click, auto-save backups)
+3. **v1.4.0 version bump + build** (commit `db6dea1`)
+   - `DeskGroup-Setup-1.4.0.exe` (69 MB), `DeskGroup-Portable-1.4.0.zip` (68.6 MB)
 
-4. **All View Mode Sizing Bugs Fixed** (previous session `a6b3c25`)
-   - See previous session notes below for details
+4. **README.md + in-app Help panel updated** (commit `453ecd7`)
+   - README: hotkey table corrected, new features documented, build markdown fixed
+   - Help panel: ⚙️ Settings entry, mouse hotkeys section, hotkey mode + shell context menu tips
+
+5. **v1.4.1 version bump + build** (commit `bc3f21d`)
+   - About tab `VersionText` fixed (was stuck on 1.3.0)
+   - `DeskGroup-Setup-1.4.1.exe` (69 MB), `DeskGroup-Portable-1.4.1.zip` (68.6 MB)
+   - Both artifacts in `build\output\`
 
 ---
 
 ## 🎯 WHAT'S NEXT
 
-### **Priority 1: v1.0.0 Release Tag** 🏷️
-All known issues are resolved. Ready to tag:
-```bash
-git tag v1.0.0
-git push origin v1.0.0
-```
+### **Priority 1: Test v1.4.1 artifacts** 🧪
+User is testing now. If issues found → patch list will be provided next session.
 
-### **Priority 2: User Runtime Testing** 🧪
-- All view mode sizing fixes (previous session) still await user runtime sign-off
-- Help panel updated — verify it reads correctly under each section heading
-- Close button sizing — verify flush top-right corner
+### **Priority 2: Post-test bug fixes** 🐛
+Address any issues found during testing of v1.4.1.
 
 ### **Priority 3: Feature Backlog** 📋
-See BACKLOG.md for the full list. Top candidates:
-- Configurable hover delay
+See BACKLOG.md. Top candidates after testing:
+- Configurable hover delay (currently 300ms hardcoded)
 - Drag shortcuts between groups
-- Global hotkey (implemented, tweak if needed)
-- Performance profiling
+- Visual feedback during drag (highlight drop zones)
+- CI/CD pipeline (GitHub Actions for automated builds)
 
 ---
 
-## 📂 PROJECT STRUCTURE
+## ⚡ QUICK REFERENCE COMMANDS
+```powershell
+# Build installer
+.\build\build-installer.ps1
 
+# Build portable zip
+.\build\build-portable.ps1
+
+# Git status
+git log --oneline -5
+git status
+
+# Open solution
+start src\DeskGroup\DeskGroup.sln
+```
+
+---
 ```
 DeskGroup/
 ├── src/DeskGroup/
