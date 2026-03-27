@@ -140,10 +140,14 @@ public partial class HotkeyBox : UserControl
     {
         var key = e.Key == Key.System ? e.SystemKey : e.Key;
 
-        // Ignore bare modifier presses
+        // Show hint when a standalone modifier is pressed
         if (key is Key.LeftCtrl or Key.RightCtrl or Key.LeftAlt or Key.RightAlt
                 or Key.LeftShift or Key.RightShift or Key.LWin or Key.RWin)
+        {
+            ShowHint("Hold modifier(s) then press a key — e.g. Ctrl+F2");
+            e.Handled = true;
             return;
+        }
 
         // ESC cancels detect without capturing
         if (key == Key.Escape)
@@ -153,10 +157,11 @@ public partial class HotkeyBox : UserControl
             return;
         }
 
+        var mods = e.KeyboardDevice.Modifiers;
         var sb = new StringBuilder();
-        if (Keyboard.IsKeyDown(Key.LeftCtrl) || Keyboard.IsKeyDown(Key.RightCtrl)) sb.Append("Ctrl+");
-        if (Keyboard.IsKeyDown(Key.LeftAlt) || Keyboard.IsKeyDown(Key.RightAlt)) sb.Append("Alt+");
-        if (Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift)) sb.Append("Shift+");
+        if ((mods & ModifierKeys.Control) != 0) sb.Append("Ctrl+");
+        if ((mods & ModifierKeys.Alt)     != 0) sb.Append("Alt+");
+        if ((mods & ModifierKeys.Shift)   != 0) sb.Append("Shift+");
         sb.Append(KeyToString(key));
 
         CaptureValue(sb.ToString());
@@ -224,6 +229,14 @@ public partial class HotkeyBox : UserControl
         StatusText.Text = message;
         StatusText.Foreground = new System.Windows.Media.SolidColorBrush(
             System.Windows.Media.Color.FromRgb(0xFF, 0xA5, 0x00));
+        StatusText.Visibility = Visibility.Visible;
+    }
+
+    private void ShowHint(string message)
+    {
+        StatusText.Text = message;
+        StatusText.Foreground = new System.Windows.Media.SolidColorBrush(
+            System.Windows.Media.Color.FromRgb(0x00, 0x78, 0xD4));
         StatusText.Visibility = Visibility.Visible;
     }
 

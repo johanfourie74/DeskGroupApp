@@ -383,7 +383,7 @@ public partial class SettingsWindow : Window
 
         if (!string.IsNullOrWhiteSpace(_viewModel.ToggleAllHotkey))
         {
-            if (!Services.HotkeyService.TryParseHotkey(_viewModel.ToggleAllHotkey, out _, out _))
+            if (!Services.HotkeyService.IsValidHotkeyString(_viewModel.ToggleAllHotkey))
             {
                 errors.AppendLine($"Invalid hotkey format: \"{_viewModel.ToggleAllHotkey}\"");
             }
@@ -391,7 +391,7 @@ public partial class SettingsWindow : Window
 
         if (!string.IsNullOrWhiteSpace(_viewModel.FullscreenToggleHotkey))
         {
-            if (!Services.HotkeyService.TryParseHotkey(_viewModel.FullscreenToggleHotkey, out _, out _))
+            if (!Services.HotkeyService.IsValidHotkeyString(_viewModel.FullscreenToggleHotkey))
             {
                 errors.AppendLine($"Invalid hotkey format: \"{_viewModel.FullscreenToggleHotkey}\"");
             }
@@ -401,7 +401,7 @@ public partial class SettingsWindow : Window
         {
             MessageBox.Show(
                 $"Please fix the following hotkey issues:\n\n{errors}\n" +
-                "Valid format examples: Ctrl+Alt+G, F11, Ctrl+Shift+F5",
+                "Valid format examples: Ctrl+Alt+G, F11, Ctrl+Shift+F5, MiddleClick, XButton1",
                 "Invalid Hotkey",
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
