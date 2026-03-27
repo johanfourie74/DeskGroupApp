@@ -660,6 +660,9 @@
                     <LineBreak/>
                     <Run FontWeight="SemiBold" Text="Delete group:"/>
                     <Run Text=" Permanently removes the group; shortcuts are restored to the desktop" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run FontWeight="SemiBold" Text="&#x2699;&#xFE0F; Settings:"/>
+                    <Run Text=" Open the Settings window" Foreground="{DynamicResource ForegroundSecondary}"/>
                 </TextBlock>
 
                 <!-- Dock Modes -->
@@ -699,7 +702,10 @@
                     <Run Text=" Exit fullscreen mode" Foreground="{DynamicResource ForegroundSecondary}"/>
                     <LineBreak/>
                     <Run FontWeight="SemiBold" Text="Ctrl+F2:"/>
-                    <Run Text=" Show/Hide all groups (configurable in Settings)" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <Run Text=" Show/Hide all groups (default; fully configurable in Settings — keyboard, mouse button, or both)" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run FontWeight="SemiBold" Text="Mouse hotkeys:"/>
+                    <Run Text=" Assign MiddleClick, XButton1/2, ScrollUp/Down as triggers; configure per action in Settings → Hotkeys" Foreground="{DynamicResource ForegroundSecondary}"/>
                 </TextBlock>
 
                 <!-- Tray Icon -->
@@ -770,6 +776,10 @@
                     <Run Text="• Enable Detect new desktop icons in Settings to get notified when new shortcuts appear on the desktop" Foreground="{DynamicResource ForegroundSecondary}"/>
                     <LineBreak/>
                     <Run Text="• Groups and positions are saved automatically; backups are kept in %LOCALAPPDATA%\DeskGroup" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run Text="• In Settings &#x2192; Hotkeys, choose Keyboard / Mouse / Both for each action — assign a mouse button (MiddleClick, XButton1, ScrollUp, etc.) as an alternative or combined trigger" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run Text="• Enable Shell context menu in Settings then Apply; right-click any .lnk or .url file and choose 'Add to DeskGroup' (on Windows 11: right-click &#x2192; Show more options first)" Foreground="{DynamicResource ForegroundSecondary}"/>
                 </TextBlock>
             </StackPanel>
         </ScrollViewer>

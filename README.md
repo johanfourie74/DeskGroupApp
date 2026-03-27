@@ -34,7 +34,8 @@ Clean up your cluttered desktop while keeping all your shortcuts instantly acces
 - **Custom group icons** - use any `.ico`, `.exe`, or `.dll` icon
 - **Light / Dark / System** theme modes (follows Windows setting)
 - **Configurable icon sizes** - follow system default or set your own
-- **Configurable hotkeys** for show/hide all and fullscreen toggle
+- **Configurable hotkeys** — separate keyboard and mouse hotkeys per action; use keyboard only, mouse only, or both simultaneously
+- **Shell context menu** — optional "Add to DeskGroup" entry when right-clicking `.lnk`/`.url` files (enable in Settings; on Windows 11 appears in "Show more options")
 
 ### Safety & Persistence
 - Desktop icons are **safely hidden** (moved to managed storage), not deleted
@@ -77,16 +78,17 @@ Clean up your cluttered desktop while keeping all your shortcuts instantly acces
 3. **Drag & drop** desktop shortcuts onto the group widget
 4. **Hover** over the minimized pill to see your top shortcuts
 5. **Double-click** any icon to launch it
-6. **Repeat** - create as many groups as you need!
+6. **Settings** — right-click any group widget → **⚙️ Settings**, or tray icon → Settings
+7. **Repeat** - create as many groups as you need!
 
 ### Keyboard Shortcuts
 | Shortcut | Action |
 |----------|--------|
-| `Ctrl+Alt+G` | Toggle all groups visible/hidden |
+| `Ctrl+F2` | Toggle all groups visible/hidden (default; configurable) |
 | `F11` | Toggle fullscreen on active group |
 | `Escape` | Exit fullscreen |
 
-*Hotkeys are fully configurable in Settings.*
+*Hotkeys are fully configurable in Settings — choose keyboard, mouse, or both.*
 
 ---
 
@@ -102,9 +104,14 @@ Access via **tray icon > Settings** or right-click any group widget.
 | Grid size | 20px | Grid spacing in pixels |
 | Hide grouped icons | On | Move original desktop icons to managed storage |
 | Icon size | System | Follow Windows or set custom size |
+| Single-click to launch | Off | Launch shortcuts with a single click |
 | Start with Windows | On | Auto-launch at login |
 | Detect new icons | On | Watch desktop for new ungrouped shortcuts |
 | Multi-monitor | On | Allow groups on all connected displays |
+| Show/Hide all — Use | Keyboard | Keyboard, Mouse, or Both |
+| Show/Hide all — keyboard hotkey | Ctrl+F2 | Keyboard combo to toggle all groups |
+| Show/Hide all — mouse hotkey | (none) | Mouse button/scroll to toggle all groups |
+| Shell context menu | Off | "Add to DeskGroup" on .lnk/.url right-click |
 
 ---
 
@@ -122,27 +129,32 @@ cd DeskGroup
 dotnet restore src/DeskGroup/DeskGroup.csproj
 dotnet build src/DeskGroup/DeskGroup.csproj --configuration Release
 dotnet run --project src/DeskGroup/DeskGroup.csproj
-# Portable ZIP
-.\build\build-portable.ps1
+```
 
-# Installer EXE (requires Inno Setup 6)
+### Package
+```powershell
+# Portable ZIP + Installer EXE (requires Inno Setup 6)
 .\build\build-installer.ps1
-dotnet test tests/DeskGroup.Tests/DeskGroup.Tests.csproj
+```
+
+### Project Structure
+```
 DeskGroup/
 |-- src/DeskGroup/
 |   |-- Models/          # Data models (ShortcutItem, IconGroup, AppSettings)
 |   |-- Services/        # Business logic (persistence, icons, shortcuts, hotkeys)
 |   |-- ViewModels/      # MVVM ViewModels
 |   |-- Views/           # WPF Windows and UserControls
-|   |-- Controls/        # Reusable UI controls (IconTile, ColorPicker, DragThumb)
+|   |-- Controls/        # Reusable UI controls (IconTile, ColorPicker, DragThumb, HotkeyBox)
 |   |-- Converters/      # WPF value converters
 |   |-- Helpers/         # Win32 interop, DPI, positioning utilities
 |   |-- Themes/          # Light/Dark theme resource dictionaries
 |   |-- Assets/          # Icons and images
-|-- tests/DeskGroup.Tests/  # Unit tests (xUnit + FluentAssertions)
 |-- build/               # Build and packaging scripts
 |-- README.md
-Data & Privacy
+```
+
+### Data & Privacy
 All data is stored locally - nothing is sent to the internet
 Installed mode: %AppData%\DeskGroup\
 Portable mode: DeskGroupData\ next to the executable
