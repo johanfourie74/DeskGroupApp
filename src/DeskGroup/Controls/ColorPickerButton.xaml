@@ -37,29 +37,21 @@
         </x:Array>
 
         <Style x:Key="ColorSwatchButton" TargetType="Button">
-            <Setter Property="Width" Value="14"/>
-            <Setter Property="Height" Value="14"/>
-            <Setter Property="Margin" Value="1"/>
+            <Setter Property="Width" Value="16"/>
+            <Setter Property="Height" Value="16"/>
+            <Setter Property="Margin" Value="2"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Grid>
-                            <Border x:Name="SwatchBorder"
-                                    CornerRadius="4"
-                                    Background="{TemplateBinding Background}"
-                                    BorderThickness="2"
-                                    BorderBrush="Transparent"/>
-                            <!-- Selection ring -->
-                            <Border x:Name="SelectionRing"
-                                    CornerRadius="4"
-                                    BorderThickness="2"
-                                    BorderBrush="Transparent"
-                                    Margin="-2"/>
-                        </Grid>
+                        <Border x:Name="SwatchBorder"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="3"
+                                BorderThickness="2"
+                                BorderBrush="Transparent"/>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="SelectionRing" Property="BorderBrush"
+                                <Setter TargetName="SwatchBorder" Property="BorderBrush"
                                         Value="{DynamicResource ForegroundPrimary}"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
@@ -125,24 +117,19 @@
                                FontWeight="SemiBold"
                                Margin="4,0,0,8"/>
 
-                    <!-- Color grid -->
+                    <!-- Color grid — UniformGrid 11 cols × 2 rows = all 22 swatches guaranteed -->
                     <ItemsControl ItemsSource="{StaticResource PresetColors}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
-                                <WrapPanel MaxWidth="128"/>
+                                <UniformGrid Columns="11"/>
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <Button Style="{StaticResource ColorSwatchButton}"
-                                        Width="14"
-                                        Height="14"
                                         Click="ColorSwatch_Click"
-                                        Tag="{Binding}">
-                                    <Button.Background>
-                                        <Binding Path="Tag" RelativeSource="{RelativeSource Self}" Converter="{StaticResource HexToBrushConverter}" />
-                                    </Button.Background>
-                                </Button>
+                                        Tag="{Binding}"
+                                        Background="{Binding Converter={StaticResource HexToBrushConverter}}"/>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>

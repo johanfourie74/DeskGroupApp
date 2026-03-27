@@ -19,11 +19,11 @@ public class ColorPickerDialog : Window
     {
         Title = "Choose Color";
         Width = 380;
-        Height = 340; // Increased from 280 to 340 to show all buttons
+        Height = 310;
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
         WindowStyle = WindowStyle.ToolWindow;
         ResizeMode = ResizeMode.NoResize;
-        Topmost = true; // Always on top
+        Topmost = true;
 
         SelectedColor = currentColor;
 
@@ -88,30 +88,34 @@ public class ColorPickerDialog : Window
         Grid.SetRow(presetsLabel, 2);
         grid.Children.Add(presetsLabel);
 
-        // Preset colors
-        var presetsPanel = new WrapPanel();
+        // Preset colors — all 22 Windows 11 accent colors, 11 per row × 2 rows
+        var presetsPanel = new WrapPanel { Width = 242 };
         var presetColors = new[]
         {
-            "#0078D4", "#E81123", "#107C10", "#FFB900", 
-            "#8E8CD8", "#00B7C3", "#E3008C", "#B4009E"
+            "#0078D4", "#0063B1", "#0099BC", "#2D7D9A", "#00B7C3", "#038387",
+            "#00B294", "#018574", "#00CC6A", "#10893E", "#107C10",
+            "#498205", "#847545", "#FF8C00", "#E81123", "#D13438",
+            "#C30052", "#BF0077", "#9B0062", "#881798", "#744DA9", "#8764B8"
         };
 
         foreach (var color in presetColors)
         {
+            var hex = color; // capture for lambda
             var colorButton = new Button
             {
-                Width = 36,
-                Height = 36,
-                Margin = new Thickness(4),
+                Width = 18,
+                Height = 18,
+                Margin = new Thickness(2),
                 Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(color)),
                 BorderBrush = Brushes.Gray,
                 BorderThickness = new Thickness(1),
+                ToolTip = color,
                 Cursor = System.Windows.Input.Cursors.Hand
             };
             colorButton.Click += (s, e) =>
             {
-                _hexInput.Text = color;
-                SelectedColor = color;
+                _hexInput.Text = hex;
+                SelectedColor = hex;
             };
             presetsPanel.Children.Add(colorButton);
         }
