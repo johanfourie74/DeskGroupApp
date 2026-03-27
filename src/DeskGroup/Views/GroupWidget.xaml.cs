@@ -841,6 +841,11 @@ public partial class GroupWidget : Window
         }
     }
 
+    private void MenuSettings_Click(object sender, RoutedEventArgs e)
+    {
+        SettingsRequested?.Invoke(this, EventArgs.Empty);
+    }
+
     /// <summary>
     /// Footer click handler - restores sticky mode after Show All
     /// </summary>

@@ -752,6 +752,13 @@
                     <TextBlock Text="🗑️" FontSize="12"/>
                 </MenuItem.Icon>
             </MenuItem>
+
+            <Separator/>
+
+            <!-- Settings -->
+            <MenuItem Header="⚙️ Settings" x:Name="MenuSettings"
+                      Click="MenuSettings_Click">
+            </MenuItem>
         </ContextMenu>
     </Window.ContextMenu>
 
