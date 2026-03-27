@@ -9,6 +9,11 @@ public partial class SettingsWindow : Window
     private readonly SettingsViewModel _viewModel;
     private bool _applied = false;
 
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern IntPtr SendMessage(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
+    private const uint WM_NCLBUTTONDOWN = 0xA1;
+    private const int HTCAPTION = 2;
+
     /// <summary>
     /// Fired when the user clicks Apply, so the main app can refresh hotkeys, theme, etc.
     /// </summary>
@@ -19,6 +24,7 @@ public partial class SettingsWindow : Window
         InitializeComponent();
         _viewModel = viewModel;
         DataContext = _viewModel;
+        _viewModel.OwnerWindow = this;
 
         // Restore window position if previously saved
         Loaded += SettingsWindow_Loaded;
@@ -356,7 +362,12 @@ public partial class SettingsWindow : Window
 
     private void SettingsHeader_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
-        try { DragMove(); } catch { }
+        if (e.LeftButton == System.Windows.Input.MouseButtonState.Pressed)
+        {
+            var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+            SendMessage(hwnd, WM_NCLBUTTONDOWN, (IntPtr)HTCAPTION, IntPtr.Zero);
+            e.Handled = true;
+        }
     }
 
     private void TransparencySlider_MouseWheel(object sender, System.Windows.Input.MouseWheelEventArgs e)

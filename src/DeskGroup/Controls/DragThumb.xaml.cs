@@ -177,6 +177,12 @@ public partial class DragThumb : UserControl
         floatItem.Click += (s, args) => RaiseEvent(new RoutedEventArgs(SetFloatRequestedEvent));
         menu.Items.Add(floatItem);
 
+        menu.Items.Add(new Separator());
+
+        var settingsItem = new MenuItem { Header = "⚙️ Settings" };
+        settingsItem.Click += (s, args) => RaiseEvent(new RoutedEventArgs(OpenSettingsRequestedEvent));
+        menu.Items.Add(settingsItem);
+
         menu.IsOpen = true;
         e.Handled = true;
     }
@@ -197,6 +203,10 @@ public partial class DragThumb : UserControl
 
     public static readonly RoutedEvent SetFloatRequestedEvent =
         EventManager.RegisterRoutedEvent("SetFloatRequested", RoutingStrategy.Bubble,
+            typeof(RoutedEventHandler), typeof(DragThumb));
+
+    public static readonly RoutedEvent OpenSettingsRequestedEvent =
+        EventManager.RegisterRoutedEvent("OpenSettingsRequested", RoutingStrategy.Bubble,
             typeof(RoutedEventHandler), typeof(DragThumb));
 
     public event RoutedEventHandler TogglePinRequested
@@ -221,6 +231,12 @@ public partial class DragThumb : UserControl
     {
         add => AddHandler(SetFloatRequestedEvent, value);
         remove => RemoveHandler(SetFloatRequestedEvent, value);
+    }
+
+    public event RoutedEventHandler OpenSettingsRequested
+    {
+        add => AddHandler(OpenSettingsRequestedEvent, value);
+        remove => RemoveHandler(OpenSettingsRequestedEvent, value);
     }
 }
 

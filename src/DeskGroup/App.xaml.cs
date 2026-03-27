@@ -766,6 +766,8 @@ public partial class App : Application
             // Already handled inside GroupWidget, but hook available for future use
         };
 
+        window.SettingsRequested += (s, e) => ShowSettingsWindow();
+
         // Handle visibility changes directly to avoid infinite loops
         groupVm.PropertyChanged += (s, e) =>
         {

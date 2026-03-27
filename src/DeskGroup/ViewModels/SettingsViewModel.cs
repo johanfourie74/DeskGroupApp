@@ -54,7 +54,11 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private bool _startWithWindows;
     [ObservableProperty] private bool _startMinimizedToTray;
     [ObservableProperty] private string _toggleAllHotkey = string.Empty;
+    [ObservableProperty] private string _toggleAllMouseHotkey = string.Empty;
+    [ObservableProperty] private Models.HotkeyMode _toggleAllHotkeyMode;
     [ObservableProperty] private string _fullscreenToggleHotkey = string.Empty;
+    [ObservableProperty] private string _fullscreenMouseHotkey = string.Empty;
+    [ObservableProperty] private Models.HotkeyMode _fullscreenHotkeyMode;
     [ObservableProperty] private bool _watchForUngroupedIcons;
     [ObservableProperty] private bool _allowMultiMonitor;
     [ObservableProperty] private bool _showDebugMenu;
@@ -81,9 +85,12 @@ public partial class SettingsViewModel : ObservableObject
     public List<Models.ThemeMode> ThemeModes { get; } = new() { Models.ThemeMode.Light, Models.ThemeMode.Dark, Models.ThemeMode.System };
     public List<GroupDockMode> DockModes { get; } = new() { GroupDockMode.Sticky, GroupDockMode.Float };
     public List<IconSizeMode> IconSizeModes { get; } = new() { IconSizeMode.System, IconSizeMode.Custom };
+    public System.Array HotkeyModes { get; } = Enum.GetValues(typeof(Models.HotkeyMode));
 
     // Expose settings for window position persistence
     public AppSettings Settings => _settings;
+
+    public Window? OwnerWindow { get; set; }
 
     public SettingsViewModel(AppSettings settings, PersistenceService persistenceService, StartupService startupService)
     {
@@ -106,6 +113,10 @@ public partial class SettingsViewModel : ObservableObject
         AutoInstall = settings.AutoInstall;
         SingleClickToLaunch = settings.SingleClickToLaunch;
         EnableShellContextMenu = settings.EnableShellContextMenu;
+        ToggleAllMouseHotkey = settings.ToggleAllMouseHotkey;
+        ToggleAllHotkeyMode = settings.ToggleAllHotkeyMode;
+        FullscreenMouseHotkey = settings.FullscreenMouseHotkey;
+        FullscreenHotkeyMode = settings.FullscreenHotkeyMode;
 
         UpdateStatusText = $"Last checked: {(settings.LastUpdateCheck == DateTime.MinValue ? "Never" : settings.LastUpdateCheck.ToLocalTime().ToString("g"))}";
     }
@@ -143,6 +154,7 @@ public partial class SettingsViewModel : ObservableObject
             var dialog = new DeskGroup.Views.HotkeyWarningDialog(
                 "CRITICAL: Hotkey Conflict Detected",
                 message);
+            dialog.Owner = OwnerWindow;
 
             var result = dialog.ShowDialog();
 
@@ -154,9 +166,13 @@ public partial class SettingsViewModel : ObservableObject
         }
 
         // Check if hotkeys changed
-        bool hotkeysChanged = 
+        bool hotkeysChanged =
             _settings.ToggleAllHotkey != ToggleAllHotkey ||
-            _settings.FullscreenToggleHotkey != FullscreenToggleHotkey;
+            _settings.ToggleAllMouseHotkey != ToggleAllMouseHotkey ||
+            _settings.ToggleAllHotkeyMode != ToggleAllHotkeyMode ||
+            _settings.FullscreenToggleHotkey != FullscreenToggleHotkey ||
+            _settings.FullscreenMouseHotkey != FullscreenMouseHotkey ||
+            _settings.FullscreenHotkeyMode != FullscreenHotkeyMode;
 
         // Capture shortcut states before overwriting
         bool wasDesktopShortcut = _settings.DesktopShortcutInstalled;
@@ -170,7 +186,11 @@ public partial class SettingsViewModel : ObservableObject
         _settings.HideGroupedIcons = HideGroupedIcons; _settings.IconSizeMode = IconSizeMode;
         _settings.CustomIconSize = CustomIconSize; _settings.StartWithWindows = StartWithWindows;
         _settings.ToggleAllHotkey = ToggleAllHotkey;
+        _settings.ToggleAllMouseHotkey = ToggleAllMouseHotkey;
+        _settings.ToggleAllHotkeyMode = ToggleAllHotkeyMode;
         _settings.FullscreenToggleHotkey = FullscreenToggleHotkey;
+        _settings.FullscreenMouseHotkey = FullscreenMouseHotkey;
+        _settings.FullscreenHotkeyMode = FullscreenHotkeyMode;
         _settings.WatchForUngroupedIcons = WatchForUngroupedIcons;
         _settings.AllowMultiMonitor = AllowMultiMonitor;
         _settings.ShowDebugMenu = ShowDebugMenu;
@@ -212,6 +232,7 @@ public partial class SettingsViewModel : ObservableObject
             // RESTART LATER = gray (default), RESTART NOW = green (recommended)
             dialog.CancelButtonControl.Style = (System.Windows.Style)dialog.FindResource("DefaultButtonStyle");
             dialog.ForceButtonControl.Style = (System.Windows.Style)dialog.FindResource("GreenButtonStyle");
+            dialog.Owner = OwnerWindow;
 
             var result = dialog.ShowDialog();
 
@@ -449,32 +470,49 @@ public partial class SettingsViewModel : ObservableObject
 
     private string? ValidateHotkeys()
     {
-        // Check if hotkeys can be parsed
-        if (!string.IsNullOrWhiteSpace(ToggleAllHotkey))
+        if (!string.IsNullOrWhiteSpace(ToggleAllHotkey) && !HotkeyService.IsValidHotkeyString(ToggleAllHotkey))
+            return $"'Toggle All Groups' keyboard hotkey '{ToggleAllHotkey}' is not in valid format.\n\nExamples: Ctrl+F2, XButton1, Ctrl+ScrollUp";
+
+        if (!string.IsNullOrWhiteSpace(ToggleAllMouseHotkey))
         {
-            if (!HotkeyService.IsValidHotkeyString(ToggleAllHotkey))
+            if (!HotkeyService.IsValidHotkeyString(ToggleAllMouseHotkey))
+                return $"'Toggle All Groups' mouse hotkey '{ToggleAllMouseHotkey}' is not in valid format.\n\nExamples: MiddleClick, Ctrl+XButton1";
+            if (!HotkeyService.IsMouseHotkeyString(ToggleAllMouseHotkey))
+                return $"'Toggle All Groups' mouse hotkey '{ToggleAllMouseHotkey}' must be a mouse button combo.\n\nExamples: MiddleClick, Ctrl+XButton1, ScrollUp";
+        }
+
+        if (!string.IsNullOrWhiteSpace(FullscreenToggleHotkey) && !HotkeyService.IsValidHotkeyString(FullscreenToggleHotkey))
+            return $"'Fullscreen Toggle' keyboard hotkey '{FullscreenToggleHotkey}' is not in valid format.\n\nExamples: F11, Ctrl+XButton2";
+
+        if (!string.IsNullOrWhiteSpace(FullscreenMouseHotkey))
+        {
+            if (!HotkeyService.IsValidHotkeyString(FullscreenMouseHotkey))
+                return $"'Fullscreen Toggle' mouse hotkey '{FullscreenMouseHotkey}' is not in valid format.\n\nExamples: MiddleClick, Ctrl+XButton2";
+            if (!HotkeyService.IsMouseHotkeyString(FullscreenMouseHotkey))
+                return $"'Fullscreen Toggle' mouse hotkey '{FullscreenMouseHotkey}' must be a mouse button combo.\n\nExamples: MiddleClick, Ctrl+XButton2, ScrollDown";
+        }
+
+        // Collect all non-empty hotkeys and check for duplicates
+        var allHotkeys = new[]
+        {
+            (Label: "Toggle All (keyboard)",  Value: ToggleAllHotkey),
+            (Label: "Toggle All (mouse)",      Value: ToggleAllMouseHotkey),
+            (Label: "Fullscreen (keyboard)",   Value: FullscreenToggleHotkey),
+            (Label: "Fullscreen (mouse)",      Value: FullscreenMouseHotkey),
+        };
+
+        for (int i = 0; i < allHotkeys.Length; i++)
+        {
+            if (string.IsNullOrWhiteSpace(allHotkeys[i].Value)) continue;
+            for (int j = i + 1; j < allHotkeys.Length; j++)
             {
-                return $"'Toggle All Groups' hotkey '{ToggleAllHotkey}' is not in valid format.\n\nExamples: Ctrl+F2, XButton1, Ctrl+ScrollUp";
+                if (string.IsNullOrWhiteSpace(allHotkeys[j].Value)) continue;
+                if (allHotkeys[i].Value.Equals(allHotkeys[j].Value, System.StringComparison.OrdinalIgnoreCase))
+                    return $"'{allHotkeys[i].Label}' and '{allHotkeys[j].Label}' are set to the same combination.\n\nEach hotkey must be unique.";
             }
         }
 
-        if (!string.IsNullOrWhiteSpace(FullscreenToggleHotkey))
-        {
-            if (!HotkeyService.IsValidHotkeyString(FullscreenToggleHotkey))
-            {
-                return $"'Fullscreen Toggle' hotkey '{FullscreenToggleHotkey}' is not in valid format.\n\nExamples: F11, Ctrl+XButton2";
-            }
-        }
-
-        // Check if both hotkeys are the same
-        if (!string.IsNullOrWhiteSpace(ToggleAllHotkey) && 
-            !string.IsNullOrWhiteSpace(FullscreenToggleHotkey) &&
-            ToggleAllHotkey.Equals(FullscreenToggleHotkey, System.StringComparison.OrdinalIgnoreCase))
-        {
-            return "Both hotkeys are set to the same combination.\n\nEach hotkey must be unique.";
-        }
-
-        return null; // Valid
+        return null;
     }
 
     [RelayCommand]
@@ -487,7 +525,9 @@ public partial class SettingsViewModel : ObservableObject
         SnapGridSize = d.SnapGridSize; HideGroupedIcons = d.HideGroupedIcons; IconSizeMode = d.IconSizeMode;
         CustomIconSize = d.CustomIconSize; StartWithWindows = d.StartWithWindows;
         StartMinimizedToTray = d.StartMinimizedToTray; ToggleAllHotkey = d.ToggleAllHotkey;
-        FullscreenToggleHotkey = d.FullscreenToggleHotkey; WatchForUngroupedIcons = d.WatchForUngroupedIcons;
+        ToggleAllMouseHotkey = d.ToggleAllMouseHotkey; ToggleAllHotkeyMode = d.ToggleAllHotkeyMode;
+        FullscreenToggleHotkey = d.FullscreenToggleHotkey; FullscreenMouseHotkey = d.FullscreenMouseHotkey;
+        FullscreenHotkeyMode = d.FullscreenHotkeyMode; WatchForUngroupedIcons = d.WatchForUngroupedIcons;
         AllowMultiMonitor = d.AllowMultiMonitor;
         ShowDebugMenu = d.ShowDebugMenu;
         AutoUpdate  = d.AutoUpdate;

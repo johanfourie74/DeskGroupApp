@@ -5,6 +5,8 @@ using System.Windows.Input;
 
 namespace DeskGroup.Controls;
 
+public enum HotkeyBoxCaptureMode { All, KeyboardOnly, MouseOnly }
+
 public partial class HotkeyBox : UserControl
 {
     // ── Dependency Property ────────────────────────────────────────────────────
@@ -30,6 +32,16 @@ public partial class HotkeyBox : UserControl
             box.HotkeyTextBox.FontStyle = FontStyles.Normal;
             box._updatingText = false;
         }
+    }
+
+    public static readonly DependencyProperty CaptureModeProperty =
+        DependencyProperty.Register(nameof(CaptureMode), typeof(HotkeyBoxCaptureMode), typeof(HotkeyBox),
+            new PropertyMetadata(HotkeyBoxCaptureMode.All));
+
+    public HotkeyBoxCaptureMode CaptureMode
+    {
+        get => (HotkeyBoxCaptureMode)GetValue(CaptureModeProperty);
+        set => SetValue(CaptureModeProperty, value);
     }
 
     // ── State ──────────────────────────────────────────────────────────────────
@@ -85,7 +97,12 @@ public partial class HotkeyBox : UserControl
         HideStatus();
 
         _updatingText = true;
-        HotkeyTextBox.Text = "Press key combo or mouse button…";
+        HotkeyTextBox.Text = CaptureMode switch
+        {
+            HotkeyBoxCaptureMode.KeyboardOnly => "Press key combo (e.g. Ctrl+F2)\u2026",
+            HotkeyBoxCaptureMode.MouseOnly    => "Press modifier(s) + mouse button\u2026",
+            _                                 => "Press key combo or mouse button\u2026"
+        };
         HotkeyTextBox.FontStyle = FontStyles.Italic;
         _updatingText = false;
 
@@ -93,8 +110,12 @@ public partial class HotkeyBox : UserControl
         if (_captureWindow != null)
         {
             _captureWindow.PreviewKeyDown += OnWindowKeyDown;
-            _captureWindow.PreviewMouseDown += OnWindowMouseDown;
-            _captureWindow.PreviewMouseWheel += OnWindowMouseWheel;
+            _captureWindow.Deactivated    += OnWindowDeactivated;
+            if (CaptureMode != HotkeyBoxCaptureMode.KeyboardOnly)
+            {
+                _captureWindow.PreviewMouseDown  += OnWindowMouseDown;
+                _captureWindow.PreviewMouseWheel += OnWindowMouseWheel;
+            }
         }
     }
 
@@ -113,6 +134,13 @@ public partial class HotkeyBox : UserControl
 
     private void CaptureValue(string value)
     {
+        if (string.Equals(value, HotkeyValue, StringComparison.OrdinalIgnoreCase))
+        {
+            ShowHint("\u2139\uFE0F Already your active hotkey \u2014 no change made.");
+            StopDetecting();
+            return;
+        }
+
         _isDetecting = false;
         DetectButton.IsChecked = false;
         UnhookEvents();
@@ -128,11 +156,14 @@ public partial class HotkeyBox : UserControl
     private void UnhookEvents()
     {
         if (_captureWindow == null) return;
-        _captureWindow.PreviewKeyDown -= OnWindowKeyDown;
-        _captureWindow.PreviewMouseDown -= OnWindowMouseDown;
+        _captureWindow.PreviewKeyDown    -= OnWindowKeyDown;
+        _captureWindow.Deactivated       -= OnWindowDeactivated;
+        _captureWindow.PreviewMouseDown  -= OnWindowMouseDown;
         _captureWindow.PreviewMouseWheel -= OnWindowMouseWheel;
         _captureWindow = null;
     }
+
+    private void OnWindowDeactivated(object? sender, EventArgs e) => StopDetecting();
 
     // ── Keyboard capture ────────────────────────────────────────────────────────
 
@@ -140,11 +171,19 @@ public partial class HotkeyBox : UserControl
     {
         var key = e.Key == Key.System ? e.SystemKey : e.Key;
 
+        // In MouseOnly mode only modifiers are tracked (for BuildMouseCombo); ignore key captures
+        if (CaptureMode == HotkeyBoxCaptureMode.MouseOnly)
+        {
+            if (key == Key.Escape) { StopDetecting(); }
+            e.Handled = true;
+            return;
+        }
+
         // Show hint when a standalone modifier is pressed
         if (key is Key.LeftCtrl or Key.RightCtrl or Key.LeftAlt or Key.RightAlt
                 or Key.LeftShift or Key.RightShift or Key.LWin or Key.RWin)
         {
-            ShowHint("Hold modifier(s) then press a key — e.g. Ctrl+F2");
+            ShowHint("Hold modifier(s) then press a key \u2014 e.g. Ctrl+F2");
             e.Handled = true;
             return;
         }

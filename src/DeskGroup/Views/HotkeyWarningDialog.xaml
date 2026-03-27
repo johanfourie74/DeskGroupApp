@@ -4,7 +4,7 @@
         Title="⚠️ Hotkey Conflict Detected"
         Width="600"
         Height="500"
-        WindowStartupLocation="CenterScreen"
+        WindowStartupLocation="CenterOwner"
         WindowStyle="SingleBorderWindow"
         ResizeMode="NoResize"
         Background="#F0F0F0">

@@ -17,7 +17,11 @@ public class AppSettings
     public bool StartWithWindows { get; set; } = true;
     public bool StartMinimizedToTray { get; set; } = false;
     public string ToggleAllHotkey { get; set; } = "Ctrl+F2";
+    public string ToggleAllMouseHotkey { get; set; } = string.Empty;
+    public HotkeyMode ToggleAllHotkeyMode { get; set; } = HotkeyMode.Keyboard;
     public string FullscreenToggleHotkey { get; set; } = "F11";
+    public string FullscreenMouseHotkey { get; set; } = string.Empty;
+    public HotkeyMode FullscreenHotkeyMode { get; set; } = HotkeyMode.Keyboard;
     public bool WatchForUngroupedIcons { get; set; } = true;
     public List<string> DismissedUngroupedIcons { get; set; } = new();
     public bool IsPortableMode { get; set; } = false;

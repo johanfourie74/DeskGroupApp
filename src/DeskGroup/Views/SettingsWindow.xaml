@@ -322,24 +322,50 @@
                 <Border Style="{StaticResource SectionSeparator}"/>
                 <TextBlock Text="Hotkeys" Style="{StaticResource SectionHeader}"/>
 
-                <!-- Toggle all -->
+                <!-- Toggle all — mode selector -->
                 <DockPanel Style="{StaticResource SettingRow}">
                     <TextBlock Text="Show/Hide all groups" Style="{StaticResource SettingLabel}"
                                DockPanel.Dock="Left" Width="160"/>
+                    <ComboBox ItemsSource="{Binding HotkeyModes}"
+                              SelectedItem="{Binding ToggleAllHotkeyMode}"
+                              Width="90" HorizontalAlignment="Left"/>
+                </DockPanel>
+                <!-- Toggle all — keyboard + mouse boxes -->
+                <DockPanel Margin="160,0,0,8">
+                    <TextBlock Text="⌨️" VerticalAlignment="Center" Margin="0,0,4,0"
+                               FontSize="13" ToolTip="Keyboard hotkey"/>
                     <controls:HotkeyBox HotkeyValue="{Binding ToggleAllHotkey, UpdateSourceTrigger=PropertyChanged}"
-                                        Width="200"
-                                        HorizontalAlignment="Left"/>
+                                        CaptureMode="KeyboardOnly"
+                                        Width="130" HorizontalAlignment="Left"/>
+                    <TextBlock Text="🖱️" VerticalAlignment="Center" Margin="8,0,4,0"
+                               FontSize="13" ToolTip="Mouse hotkey"/>
+                    <controls:HotkeyBox HotkeyValue="{Binding ToggleAllMouseHotkey, UpdateSourceTrigger=PropertyChanged}"
+                                        CaptureMode="MouseOnly"
+                                        Width="130" HorizontalAlignment="Left"/>
                 </DockPanel>
 
-                <!-- Fullscreen toggle -->
+                <!-- Fullscreen toggle — mode selector -->
                 <DockPanel Style="{StaticResource SettingRow}">
                     <TextBlock Text="Toggle fullscreen" Style="{StaticResource SettingLabel}"
                                DockPanel.Dock="Left" Width="160"/>
-                    <controls:HotkeyBox HotkeyValue="{Binding FullscreenToggleHotkey, UpdateSourceTrigger=PropertyChanged}"
-                                        Width="200"
-                                        HorizontalAlignment="Left"/>
+                    <ComboBox ItemsSource="{Binding HotkeyModes}"
+                              SelectedItem="{Binding FullscreenHotkeyMode}"
+                              Width="90" HorizontalAlignment="Left"/>
                 </DockPanel>
-                <TextBlock Text="Type a combo (e.g. Ctrl+F2, F11) or click 🎯 to detect a key, side button, or scroll wheel. Changes apply after Apply."
+                <!-- Fullscreen toggle — keyboard + mouse boxes -->
+                <DockPanel Margin="160,0,0,8">
+                    <TextBlock Text="⌨️" VerticalAlignment="Center" Margin="0,0,4,0"
+                               FontSize="13" ToolTip="Keyboard hotkey"/>
+                    <controls:HotkeyBox HotkeyValue="{Binding FullscreenToggleHotkey, UpdateSourceTrigger=PropertyChanged}"
+                                        CaptureMode="KeyboardOnly"
+                                        Width="130" HorizontalAlignment="Left"/>
+                    <TextBlock Text="🖱️" VerticalAlignment="Center" Margin="8,0,4,0"
+                               FontSize="13" ToolTip="Mouse hotkey"/>
+                    <controls:HotkeyBox HotkeyValue="{Binding FullscreenMouseHotkey, UpdateSourceTrigger=PropertyChanged}"
+                                        CaptureMode="MouseOnly"
+                                        Width="130" HorizontalAlignment="Left"/>
+                </DockPanel>
+                <TextBlock Text="Select which input(s) to use, then type or click 🎯 to detect. Keyboard: e.g. Ctrl+F2. Mouse: MiddleClick, XButton1, ScrollUp. Both: register both simultaneously."
                            Style="{StaticResource SettingDesc}"/>
 
                 <!-- ====================================================================== -->

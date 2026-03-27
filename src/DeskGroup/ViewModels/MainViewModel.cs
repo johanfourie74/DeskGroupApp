@@ -102,7 +102,15 @@ public partial class MainViewModel : ObservableObject
         // Subscribe to registration failures BEFORE registering
         _hotkeyService.RegistrationFailed += OnHotkeyRegistrationFailed;
 
-        _hotkeyService.RegisterHotkey(_settings.ToggleAllHotkey, ToggleAllGroupsVisibility);
+        // Register keyboard hotkey for Toggle All (if mode includes keyboard)
+        if (_settings.ToggleAllHotkeyMode != Models.HotkeyMode.Mouse
+            && !string.IsNullOrWhiteSpace(_settings.ToggleAllHotkey))
+            _hotkeyService.RegisterHotkey(_settings.ToggleAllHotkey, ToggleAllGroupsVisibility);
+
+        // Register mouse hotkey for Toggle All (if mode includes mouse)
+        if (_settings.ToggleAllHotkeyMode != Models.HotkeyMode.Keyboard
+            && !string.IsNullOrWhiteSpace(_settings.ToggleAllMouseHotkey))
+            _hotkeyService.RegisterHotkey(_settings.ToggleAllMouseHotkey, ToggleAllGroupsVisibility);
 
         // F11 hotkey removed - per-window KeyDown handler is more reliable
         // (Users press F11 while focused on the group they want to fullscreen)

@@ -76,6 +76,11 @@ public partial class GroupWidget : Window
     /// </summary>
     public event EventHandler<string[]>? FilesDropped;
 
+    /// <summary>
+    /// Fired when the user opens Settings from the group context menu.
+    /// </summary>
+    public event EventHandler? SettingsRequested;
+
     public GroupWidget()
     {
         InitializeComponent();
@@ -115,6 +120,7 @@ public partial class GroupWidget : Window
         AddHandler(DragThumb.ToggleSnapRequestedEvent, new RoutedEventHandler(OnToggleSnapRequested));
         AddHandler(DragThumb.SetStickyRequestedEvent, new RoutedEventHandler(OnSetStickyRequested));
         AddHandler(DragThumb.SetFloatRequestedEvent, new RoutedEventHandler(OnSetFloatRequested));
+        AddHandler(DragThumb.OpenSettingsRequestedEvent, new RoutedEventHandler(OnOpenSettingsRequested));
     }
 
     public GroupWidget(GroupViewModel viewModel) : this()
@@ -735,6 +741,12 @@ public partial class GroupWidget : Window
 
             _viewModel.ToggleDockModeCommand.Execute(null);
         }
+        e.Handled = true;
+    }
+
+    private void OnOpenSettingsRequested(object sender, RoutedEventArgs e)
+    {
+        SettingsRequested?.Invoke(this, EventArgs.Empty);
         e.Handled = true;
     }
 
