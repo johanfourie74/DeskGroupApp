@@ -339,6 +339,9 @@ public partial class MainViewModel : ObservableObject
     public SettingsViewModel CreateSettingsViewModel() =>
         new SettingsViewModel(_settings, _persistenceService, _startupService);
 
+    public Task SaveSettingsAsync() =>
+        _persistenceService.SaveSettingsImmediateAsync(_settings);
+
     public void ApplySettingsChanges(Window hotkeyWindow)
     {
         ThemeChanged?.Invoke(this, _settings.Theme);

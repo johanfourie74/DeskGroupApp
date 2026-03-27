@@ -4,6 +4,8 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:models="clr-namespace:DeskGroup.Models"
+        xmlns:controls="clr-namespace:DeskGroup.Controls"
+        xmlns:converters="clr-namespace:DeskGroup.Converters"
         mc:Ignorable="d"
         Title="DeskGroup Settings"
         Width="520" Height="600"
@@ -16,6 +18,9 @@
         Topmost="True">
 
     <Window.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BooleanToVisibility"/>
+        <converters:InverseBoolConverter      x:Key="InverseBool"/>
+
         <!-- Section header style with separator -->
         <Style x:Key="SectionHeader" TargetType="TextBlock">
             <Setter Property="FontFamily" Value="{DynamicResource DefaultFont}"/>
@@ -149,6 +154,12 @@
                     <Button x:Name="HelpTabButton"
                             Content="Help (F1)"
                             Click="HelpTab_Click"
+                            Style="{DynamicResource DefaultButton}"
+                            Padding="16,6"
+                            Margin="0,0,8,0"/>
+                    <Button x:Name="UpdatesTabButton"
+                            Content="Updates"
+                            Click="UpdatesTab_Click"
                             Style="{DynamicResource DefaultButton}"
                             Padding="16,6"/>
                 </StackPanel>
@@ -304,26 +315,20 @@
                 <DockPanel Style="{StaticResource SettingRow}">
                     <TextBlock Text="Show/Hide all groups" Style="{StaticResource SettingLabel}"
                                DockPanel.Dock="Left" Width="160"/>
-                    <TextBox Text="{Binding ToggleAllHotkey, UpdateSourceTrigger=PropertyChanged}"
-                             Width="160"
-                             HorizontalAlignment="Left"
-                             Padding="6,4"
-                             VerticalContentAlignment="Center"
-                             FontFamily="Consolas"/>
+                    <controls:HotkeyBox HotkeyValue="{Binding ToggleAllHotkey, UpdateSourceTrigger=PropertyChanged}"
+                                        Width="200"
+                                        HorizontalAlignment="Left"/>
                 </DockPanel>
 
                 <!-- Fullscreen toggle -->
                 <DockPanel Style="{StaticResource SettingRow}">
                     <TextBlock Text="Toggle fullscreen" Style="{StaticResource SettingLabel}"
                                DockPanel.Dock="Left" Width="160"/>
-                    <TextBox Text="{Binding FullscreenToggleHotkey, UpdateSourceTrigger=PropertyChanged}"
-                             Width="160"
-                             HorizontalAlignment="Left"
-                             Padding="6,4"
-                             VerticalContentAlignment="Center"
-                             FontFamily="Consolas"/>
+                    <controls:HotkeyBox HotkeyValue="{Binding FullscreenToggleHotkey, UpdateSourceTrigger=PropertyChanged}"
+                                        Width="200"
+                                        HorizontalAlignment="Left"/>
                 </DockPanel>
-                <TextBlock Text="Use format like Ctrl+F2 or F11. Changes apply after clicking Apply."
+                <TextBlock Text="Type a combo (e.g. Ctrl+F2, F11) or click 🎯 to detect a key, side button, or scroll wheel. Changes apply after Apply."
                            Style="{StaticResource SettingDesc}"/>
 
                 <!-- ====================================================================== -->
@@ -438,7 +443,7 @@
                            Margin="0,16,0,8"/>
 
                 <TextBlock x:Name="VersionText"
-                           Text="Version 1.0.0"
+                           Text="Version 1.2.0"
                            FontFamily="{DynamicResource DefaultFont}"
                            FontSize="{DynamicResource FontSizeNormal}"
                            Foreground="{DynamicResource ForegroundSecondary}"
@@ -701,6 +706,143 @@
                     <LineBreak/>
                     <Run Text="• Groups and positions are saved automatically; backups are kept in %LOCALAPPDATA%\DeskGroup" Foreground="{DynamicResource ForegroundSecondary}"/>
                 </TextBlock>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Updates Panel -->
+        <ScrollViewer x:Name="UpdatesPanel"
+                      Grid.Row="2"
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled"
+                      Padding="24,24,24,24"
+                      Visibility="Collapsed">
+            <StackPanel MaxWidth="480">
+
+                <!-- Current version + check button -->
+                <TextBlock Text="Updates"
+                           Style="{StaticResource SectionHeader}"
+                           Margin="0,0,0,8"/>
+
+                <DockPanel Margin="0,0,0,8">
+                    <TextBlock DockPanel.Dock="Left"
+                               VerticalAlignment="Center"
+                               FontFamily="{DynamicResource DefaultFont}"
+                               FontSize="{DynamicResource FontSizeSmall}"
+                               Foreground="{DynamicResource ForegroundSecondary}">
+                        <Run Text="Current version: "/>
+                        <Run x:Name="UpdateCurrentVersionRun" Text="—" FontWeight="SemiBold"/>
+                    </TextBlock>
+                </DockPanel>
+
+                <!-- Status line -->
+                <TextBlock Text="{Binding UpdateStatusText}"
+                           FontFamily="{DynamicResource DefaultFont}"
+                           FontSize="{DynamicResource FontSizeSmall}"
+                           Foreground="{DynamicResource ForegroundSecondary}"
+                           TextWrapping="Wrap"
+                           Margin="0,0,0,12"/>
+
+                <!-- Check for Update button + progress -->
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                    <Button Content="🔍 Check for Update"
+                            Command="{Binding CheckForUpdateCommand}"
+                            Style="{DynamicResource DefaultButton}"
+                            Padding="14,6"
+                            Margin="0,0,8,0"
+                            IsEnabled="{Binding IsCheckingForUpdate, Converter={StaticResource InverseBool}}"/>
+                    <!-- Downloading progress -->
+                    <StackPanel Orientation="Horizontal"
+                                Visibility="{Binding IsDownloadingUpdate, Converter={StaticResource BooleanToVisibility}}">
+                        <ProgressBar Value="{Binding DownloadProgress}"
+                                     Minimum="0" Maximum="100"
+                                     Width="140"
+                                     Height="20"
+                                     VerticalAlignment="Center"
+                                     Margin="0,0,8,0"/>
+                        <TextBlock Text="{Binding DownloadProgress, StringFormat={}{0}%}"
+                                   FontSize="{DynamicResource FontSizeSmall}"
+                                   Foreground="{DynamicResource ForegroundSecondary}"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <!-- Checking spinner (indeterminate) -->
+                    <ProgressBar IsIndeterminate="True"
+                                 Width="80" Height="20"
+                                 VerticalAlignment="Center"
+                                 Visibility="{Binding IsCheckingForUpdate, Converter={StaticResource BooleanToVisibility}}"/>
+                </StackPanel>
+
+                <!-- Update available panel -->
+                <Border Visibility="{Binding UpdateAvailable, Converter={StaticResource BooleanToVisibility}}"
+                        Background="{DynamicResource BackgroundSecondary}"
+                        BorderBrush="{DynamicResource AccentBrush}"
+                        BorderThickness="1"
+                        CornerRadius="6"
+                        Padding="16,12"
+                        Margin="0,8,0,12">
+                    <StackPanel>
+                        <TextBlock FontFamily="{DynamicResource DefaultFont}"
+                                   FontSize="{DynamicResource FontSizeLarge}"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource ForegroundPrimary}"
+                                   Margin="0,0,0,6">
+                            <Run Text="🆕  Version "/>
+                            <Run Text="{Binding AvailableVersion}" FontWeight="Bold"/>
+                            <Run Text=" is available"/>
+                        </TextBlock>
+                        <!-- Release notes (scrollable, capped height) -->
+                        <ScrollViewer MaxHeight="120"
+                                      VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled"
+                                      Margin="0,0,0,10">
+                            <TextBlock Text="{Binding UpdateReleaseNotes}"
+                                       FontFamily="Consolas"
+                                       FontSize="11"
+                                       Foreground="{DynamicResource ForegroundSecondary}"
+                                       TextWrapping="Wrap"/>
+                        </ScrollViewer>
+                        <!-- Action buttons -->
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="⬆️  Update &amp; Restart"
+                                    Command="{Binding InstallUpdateCommand}"
+                                    Style="{DynamicResource AccentButton}"
+                                    Padding="14,6"
+                                    Margin="0,0,8,0"
+                                    IsEnabled="{Binding IsDownloadingUpdate, Converter={StaticResource InverseBool}}"/>
+                            <Button Content="Skip this version"
+                                    Command="{Binding SkipThisUpdateCommand}"
+                                    Style="{DynamicResource DefaultButton}"
+                                    Padding="10,6"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- ──────────────────────────────────────────────────────── -->
+                <Border Style="{StaticResource SectionSeparator}"/>
+                <TextBlock Text="Automatic Updates" Style="{StaticResource SectionHeader}"/>
+
+                <DockPanel Style="{StaticResource SettingRow}">
+                    <TextBlock Text="Auto-update" Style="{StaticResource SettingLabel}"
+                               DockPanel.Dock="Left" Width="160"/>
+                    <CheckBox IsChecked="{Binding AutoUpdate}" VerticalAlignment="Center"/>
+                </DockPanel>
+                <TextBlock Text="Check for updates every time DeskGroup starts, and once per week while running."
+                           Style="{StaticResource SettingDesc}"/>
+
+                <DockPanel Style="{StaticResource SettingRow}"
+                           Visibility="{Binding AutoUpdate, Converter={StaticResource BooleanToVisibility}}">
+                    <TextBlock Text="Auto-install" Style="{StaticResource SettingLabel}"
+                               DockPanel.Dock="Left" Width="160"/>
+                    <CheckBox IsChecked="{Binding AutoInstall}" VerticalAlignment="Center"/>
+                </DockPanel>
+                <TextBlock Visibility="{Binding AutoUpdate, Converter={StaticResource BooleanToVisibility}}"
+                           Text="If an update is found, download and install it automatically then restart DeskGroup."
+                           Style="{StaticResource SettingDesc}"/>
+
+                <!-- Changes apply note -->
+                <TextBlock Text="Auto-update preferences are saved when you click Apply."
+                           Style="{StaticResource SettingDesc}"
+                           Margin="0,8,0,0"/>
+
             </StackPanel>
         </ScrollViewer>
 

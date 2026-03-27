@@ -49,6 +49,7 @@ public partial class App : Application
     private TaskbarIcon? _trayIcon;
     private readonly Dictionary<Guid, GroupWidget> _groupWindows = new();
     private System.Windows.Threading.DispatcherTimer? _trayClickTimer;
+    private System.Windows.Threading.DispatcherTimer? _updateCheckTimer;
 
     // Hidden helper window used for hotkey registration
     // (needs an HWND but doesn't need to be visible)
@@ -231,6 +232,26 @@ public partial class App : Application
         }
 
         // Note: Removed diagnostic message box to avoid blocking startup
+
+        // ── Auto-update background check ──────────────────────────────────────
+        // Startup check: run 5 seconds after launch so it doesn't compete with init
+        if (_mainViewModel.Settings.AutoUpdate)
+        {
+            _ = Task.Delay(5000).ContinueWith(
+                _ => Dispatcher.InvokeAsync(() => RunBackgroundUpdateCheckAsync()),
+                System.Threading.CancellationToken.None,
+                TaskContinuationOptions.None,
+                TaskScheduler.Default);
+        }
+
+        // Weekly background check timer
+        _updateCheckTimer = new System.Windows.Threading.DispatcherTimer
+        {
+            Interval = TimeSpan.FromDays(7)
+        };
+        _updateCheckTimer.Tick += async (s, e) => await RunBackgroundUpdateCheckAsync();
+        if (_mainViewModel.Settings.AutoUpdate)
+            _updateCheckTimer.Start();
     }
 
     protected override async void OnExit(ExitEventArgs e)
@@ -923,7 +944,55 @@ public partial class App : Application
         };
 
         _settingsWindow.Closed += (s, e) => _settingsWindow = null;
+
+        // Restart weekly timer in case AutoUpdate was toggled
+        if (_mainViewModel.Settings.AutoUpdate)
+        {
+            _updateCheckTimer?.Start();
+        }
+        else
+        {
+            _updateCheckTimer?.Stop();
+        }
+
         _settingsWindow.Show();
+    }
+
+    // ============================================================================================
+    // AUTO-UPDATE BACKGROUND CHECK
+    // ============================================================================================
+
+    private async Task RunBackgroundUpdateCheckAsync()
+    {
+        if (_mainViewModel == null || !_mainViewModel.Settings.AutoUpdate) return;
+        try
+        {
+            var info = await Services.UpdateService.CheckAsync(
+                _mainViewModel.Settings.SkippedUpdateVersion).ConfigureAwait(true);
+
+            _mainViewModel.Settings.LastUpdateCheck = DateTime.UtcNow;
+            await _mainViewModel.SaveSettingsAsync();
+
+            if (info == null) return;
+
+            if (_mainViewModel.Settings.AutoUpdate && _mainViewModel.Settings.AutoInstall)
+            {
+                if (!string.IsNullOrEmpty(info.DownloadUrl))
+                {
+                    var path = await Services.UpdateService.DownloadAsync(
+                        info.DownloadUrl, null).ConfigureAwait(true);
+                    Services.UpdateService.LaunchInstallerAndShutdown(path);
+                }
+            }
+            else
+            {
+                _trayIcon?.ShowBalloonTip(
+                    $"DeskGroup v{info.Version} available 🆕",
+                    "Open Settings → Updates to install.",
+                    BalloonIcon.Info);
+            }
+        }
+        catch { /* silent — background check */ }
     }
 
     // ============================================================================================

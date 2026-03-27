@@ -53,7 +53,7 @@ public partial class SettingsWindow : Window
             }
             else if (VersionText != null)
             {
-                VersionText.Text = "Version 1.0.0";
+                VersionText.Text = "Version 1.2.0";
             }
 
             // Safely set copyright
@@ -88,6 +88,11 @@ public partial class SettingsWindow : Window
         ShowHelpTab();
     }
 
+    private void UpdatesTab_Click(object sender, RoutedEventArgs e)
+    {
+        ShowUpdatesTab();
+    }
+
     private void ShowSettingsTab()
     {
         // Update header
@@ -98,6 +103,7 @@ public partial class SettingsWindow : Window
         SettingsPanel.Visibility = Visibility.Visible;
         AboutPanel.Visibility = Visibility.Collapsed;
         HelpPanel.Visibility = Visibility.Collapsed;
+        UpdatesPanel.Visibility = Visibility.Collapsed;
 
         // Update tab button styles (highlight active tab)
         try
@@ -120,6 +126,8 @@ public partial class SettingsWindow : Window
         AboutTabButton.FontWeight = FontWeights.Normal;
         HelpTabButton.ClearValue(BackgroundProperty);
         HelpTabButton.FontWeight = FontWeights.Normal;
+        UpdatesTabButton.ClearValue(BackgroundProperty);
+        UpdatesTabButton.FontWeight = FontWeights.Normal;
 
         // Show bottom buttons (Apply/Reset)
         BottomButtonBar.Visibility = Visibility.Visible;
@@ -135,6 +143,7 @@ public partial class SettingsWindow : Window
         SettingsPanel.Visibility = Visibility.Collapsed;
         AboutPanel.Visibility = Visibility.Visible;
         HelpPanel.Visibility = Visibility.Collapsed;
+        UpdatesPanel.Visibility = Visibility.Collapsed;
 
         // Update tab button styles
         SettingsTabButton.ClearValue(BackgroundProperty);
@@ -157,6 +166,8 @@ public partial class SettingsWindow : Window
         AboutTabButton.FontWeight = FontWeights.SemiBold;
         HelpTabButton.ClearValue(BackgroundProperty);
         HelpTabButton.FontWeight = FontWeights.Normal;
+        UpdatesTabButton.ClearValue(BackgroundProperty);
+        UpdatesTabButton.FontWeight = FontWeights.Normal;
 
         // Hide bottom buttons (not needed on About)
         BottomButtonBar.Visibility = Visibility.Collapsed;
@@ -172,6 +183,7 @@ public partial class SettingsWindow : Window
         SettingsPanel.Visibility = Visibility.Collapsed;
         AboutPanel.Visibility = Visibility.Collapsed;
         HelpPanel.Visibility = Visibility.Visible;
+        UpdatesPanel.Visibility = Visibility.Collapsed;
 
         // Update tab button styles
         SettingsTabButton.ClearValue(BackgroundProperty);
@@ -194,9 +206,50 @@ public partial class SettingsWindow : Window
         }
 
         HelpTabButton.FontWeight = FontWeights.SemiBold;
+        UpdatesTabButton.ClearValue(BackgroundProperty);
+        UpdatesTabButton.FontWeight = FontWeights.Normal;
 
         // Hide bottom buttons (not needed on Help)
         BottomButtonBar.Visibility = Visibility.Collapsed;
+    }
+
+    private void ShowUpdatesTab()
+    {
+        HeaderTitle.Text    = "Updates";
+        HeaderSubtitle.Text = "Check for new versions of DeskGroup";
+
+        SettingsPanel.Visibility = Visibility.Collapsed;
+        AboutPanel.Visibility    = Visibility.Collapsed;
+        HelpPanel.Visibility     = Visibility.Collapsed;
+        UpdatesPanel.Visibility  = Visibility.Visible;
+
+        SettingsTabButton.ClearValue(BackgroundProperty);
+        SettingsTabButton.FontWeight = FontWeights.Normal;
+        AboutTabButton.ClearValue(BackgroundProperty);
+        AboutTabButton.FontWeight = FontWeights.Normal;
+        HelpTabButton.ClearValue(BackgroundProperty);
+        HelpTabButton.FontWeight = FontWeights.Normal;
+
+        try
+        {
+            var accentBrush = TryFindResource("AccentBrush") as System.Windows.Media.Brush;
+            if (accentBrush != null) UpdatesTabButton.Background = accentBrush;
+        }
+        catch
+        {
+            UpdatesTabButton.Background = new System.Windows.Media.SolidColorBrush(
+                System.Windows.Media.Color.FromRgb(0, 120, 212));
+        }
+
+        UpdatesTabButton.FontWeight = FontWeights.SemiBold;
+
+        // Show Apply/Reset so AutoUpdate/AutoInstall can be saved
+        BottomButtonBar.Visibility = Visibility.Visible;
+
+        // Populate current version in the Updates panel
+        var ver = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+        if (ver != null && UpdateCurrentVersionRun != null)
+            UpdateCurrentVersionRun.Text = $"v{ver.Major}.{ver.Minor}.{ver.Build}";
     }
 
     // ====================================================================

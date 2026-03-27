@@ -45,6 +45,22 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private bool _pinnedToStart;
     [ObservableProperty] private bool _pinnedToTaskbar;
 
+    // ── Update settings ────────────────────────────────────────────────────────
+    [ObservableProperty] private bool _autoUpdate;
+    [ObservableProperty] private bool _autoInstall;
+
+    // ── Update UI state (not persisted directly) ───────────────────────────────
+    [ObservableProperty] private bool   _isCheckingForUpdate;
+    [ObservableProperty] private bool   _isDownloadingUpdate;
+    [ObservableProperty] private bool   _updateAvailable;
+    [ObservableProperty] private string _availableVersion  = string.Empty;
+    [ObservableProperty] private string _updateReleaseNotes = string.Empty;
+    [ObservableProperty] private string _updateStatusText   = string.Empty;
+    [ObservableProperty] private int    _downloadProgress;
+
+    private Services.UpdateService.UpdateInfo? _pendingUpdate;
+    private System.Threading.CancellationTokenSource? _updateCts;
+
     public List<Models.ThemeMode> ThemeModes { get; } = new() { Models.ThemeMode.Light, Models.ThemeMode.Dark, Models.ThemeMode.System };
     public List<GroupDockMode> DockModes { get; } = new() { GroupDockMode.Sticky, GroupDockMode.Float };
     public List<IconSizeMode> IconSizeModes { get; } = new() { IconSizeMode.System, IconSizeMode.Custom };
@@ -69,6 +85,10 @@ public partial class SettingsViewModel : ObservableObject
         DesktopShortcutInstalled = settings.DesktopShortcutInstalled;
         PinnedToStart = settings.PinnedToStart;
         PinnedToTaskbar = settings.PinnedToTaskbar;
+        AutoUpdate  = settings.AutoUpdate;
+        AutoInstall = settings.AutoInstall;
+
+        UpdateStatusText = $"Last checked: {(settings.LastUpdateCheck == DateTime.MinValue ? "Never" : settings.LastUpdateCheck.ToLocalTime().ToString("g"))}";
     }
 
     [RelayCommand]
@@ -130,7 +150,7 @@ public partial class SettingsViewModel : ObservableObject
         _settings.DefaultSnapToGrid = DefaultSnapToGrid; _settings.SnapGridSize = SnapGridSize;
         _settings.HideGroupedIcons = HideGroupedIcons; _settings.IconSizeMode = IconSizeMode;
         _settings.CustomIconSize = CustomIconSize; _settings.StartWithWindows = StartWithWindows;
-        _settings.StartMinimizedToTray = StartMinimizedToTray; _settings.ToggleAllHotkey = ToggleAllHotkey;
+        _settings.ToggleAllHotkey = ToggleAllHotkey;
         _settings.FullscreenToggleHotkey = FullscreenToggleHotkey;
         _settings.WatchForUngroupedIcons = WatchForUngroupedIcons;
         _settings.AllowMultiMonitor = AllowMultiMonitor;
@@ -138,6 +158,8 @@ public partial class SettingsViewModel : ObservableObject
         _settings.DesktopShortcutInstalled = DesktopShortcutInstalled;
         _settings.PinnedToStart = PinnedToStart;
         _settings.PinnedToTaskbar = PinnedToTaskbar;
+        _settings.AutoUpdate  = AutoUpdate;
+        _settings.AutoInstall = AutoInstall;
         _startupService.SyncWithSetting(StartWithWindows);
         await _persistenceService.SaveSettingsImmediateAsync(_settings);
 
@@ -233,6 +255,139 @@ public partial class SettingsViewModel : ObservableObject
         }
     }
 
+    // ── Update commands ────────────────────────────────────────────────────────
+
+    [RelayCommand]
+    private async System.Threading.Tasks.Task CheckForUpdateAsync()
+    {
+        if (IsCheckingForUpdate) return;
+        IsCheckingForUpdate = true;
+        UpdateAvailable = false;
+        _pendingUpdate  = null;
+
+        _updateCts?.Cancel();
+        _updateCts = new System.Threading.CancellationTokenSource();
+
+        try
+        {
+            UpdateStatusText = "Checking for updates…";
+            var info = await Services.UpdateService.CheckAsync(
+                _settings.SkippedUpdateVersion, _updateCts.Token).ConfigureAwait(true);
+
+            _settings.LastUpdateCheck = DateTime.UtcNow;
+            await _persistenceService.SaveSettingsImmediateAsync(_settings);
+
+            if (info == null)
+            {
+                UpdateStatusText = $"✅ You're up to date (v{Services.UpdateService.GetCurrentVersion()})  —  " +
+                                   $"Last checked: {DateTime.Now:g}";
+            }
+            else
+            {
+                _pendingUpdate      = info;
+                AvailableVersion    = info.Version;
+                UpdateReleaseNotes  = info.ReleaseNotes;
+                UpdateAvailable     = true;
+                UpdateStatusText    = $"🆕 Update available: v{info.Version}";
+
+                if (AutoUpdate && AutoInstall)
+                    await DownloadAndInstallAsync(_updateCts.Token);
+            }
+        }
+        catch (System.OperationCanceledException) { UpdateStatusText = "Check cancelled."; }
+        catch (Exception ex)                      { UpdateStatusText = $"Check failed: {ex.Message}"; }
+        finally                                   { IsCheckingForUpdate = false; }
+    }
+
+    [RelayCommand]
+    private void SkipThisUpdate()
+    {
+        if (_pendingUpdate == null) return;
+        _settings.SkippedUpdateVersion = _pendingUpdate.Version;
+        _ = _persistenceService.SaveSettingsImmediateAsync(_settings);
+        UpdateAvailable  = false;
+        UpdateStatusText = $"v{_pendingUpdate.Version} will be skipped.";
+        _pendingUpdate   = null;
+    }
+
+    [RelayCommand]
+    private async System.Threading.Tasks.Task InstallUpdateAsync()
+    {
+        if (_pendingUpdate == null || IsDownloadingUpdate) return;
+        await DownloadAndInstallAsync(System.Threading.CancellationToken.None);
+    }
+
+    private async System.Threading.Tasks.Task DownloadAndInstallAsync(System.Threading.CancellationToken ct)
+    {
+        if (_pendingUpdate == null) return;
+
+        if (string.IsNullOrEmpty(_pendingUpdate.DownloadUrl))
+        {
+            UpdateStatusText = "⚠️ No installer asset found in release. Visit GitHub to download manually.";
+            return;
+        }
+
+        IsDownloadingUpdate = true;
+        DownloadProgress    = 0;
+        UpdateStatusText    = "Downloading…";
+
+        try
+        {
+            var progress = new Progress<int>(p =>
+            {
+                DownloadProgress = p;
+                UpdateStatusText = $"Downloading… {p}%";
+            });
+
+            var path = await Services.UpdateService.DownloadAsync(
+                _pendingUpdate.DownloadUrl, progress, ct).ConfigureAwait(true);
+
+            UpdateStatusText = "Download complete — launching installer…";
+            Services.UpdateService.LaunchInstallerAndShutdown(path);
+        }
+        catch (System.OperationCanceledException) { UpdateStatusText = "Download cancelled."; }
+        catch (Exception ex)                      { UpdateStatusText = $"Download failed: {ex.Message}"; }
+        finally                                   { IsDownloadingUpdate = false; }
+    }
+
+    /// <summary>
+    /// Called by App.xaml.cs on startup and by the weekly background timer.
+    /// Runs silently; shows a balloon tip notification if an update is found and AutoInstall is off.
+    /// </summary>
+    public async System.Threading.Tasks.Task RunBackgroundUpdateCheckAsync(
+        Action<string, string>? showBalloon = null)
+    {
+        if (!AutoUpdate) return;
+        try
+        {
+            var info = await Services.UpdateService.CheckAsync(
+                _settings.SkippedUpdateVersion).ConfigureAwait(true);
+
+            _settings.LastUpdateCheck = DateTime.UtcNow;
+            await _persistenceService.SaveSettingsImmediateAsync(_settings);
+
+            if (info == null) return;
+
+            _pendingUpdate     = info;
+            AvailableVersion   = info.Version;
+            UpdateReleaseNotes = info.ReleaseNotes;
+            UpdateAvailable    = true;
+            UpdateStatusText   = $"🆕 Update available: v{info.Version}";
+
+            if (AutoInstall)
+            {
+                await DownloadAndInstallAsync(System.Threading.CancellationToken.None);
+            }
+            else
+            {
+                showBalloon?.Invoke(
+                    $"DeskGroup v{info.Version} available 🆕",
+                    "Open Settings → Updates to install.");
+            }
+        }
+        catch { /* silent — background check */ }
+    }
+
     private List<string> GetHotkeyWarnings()
     {
         var warnings = new List<string>();
@@ -272,17 +427,17 @@ public partial class SettingsViewModel : ObservableObject
         // Check if hotkeys can be parsed
         if (!string.IsNullOrWhiteSpace(ToggleAllHotkey))
         {
-            if (!HotkeyService.TryParseHotkey(ToggleAllHotkey, out _, out _))
+            if (!HotkeyService.IsValidHotkeyString(ToggleAllHotkey))
             {
-                return $"'Toggle All Groups' hotkey '{ToggleAllHotkey}' is not in valid format.\n\nExample: Ctrl+Shift+D";
+                return $"'Toggle All Groups' hotkey '{ToggleAllHotkey}' is not in valid format.\n\nExamples: Ctrl+F2, XButton1, Ctrl+ScrollUp";
             }
         }
 
         if (!string.IsNullOrWhiteSpace(FullscreenToggleHotkey))
         {
-            if (!HotkeyService.TryParseHotkey(FullscreenToggleHotkey, out _, out _))
+            if (!HotkeyService.IsValidHotkeyString(FullscreenToggleHotkey))
             {
-                return $"'Fullscreen Toggle' hotkey '{FullscreenToggleHotkey}' is not in valid format.\n\nExample: Ctrl+Shift+F";
+                return $"'Fullscreen Toggle' hotkey '{FullscreenToggleHotkey}' is not in valid format.\n\nExamples: F11, Ctrl+XButton2";
             }
         }
 
@@ -310,5 +465,7 @@ public partial class SettingsViewModel : ObservableObject
         FullscreenToggleHotkey = d.FullscreenToggleHotkey; WatchForUngroupedIcons = d.WatchForUngroupedIcons;
         AllowMultiMonitor = d.AllowMultiMonitor;
         ShowDebugMenu = d.ShowDebugMenu;
+        AutoUpdate  = d.AutoUpdate;
+        AutoInstall = d.AutoInstall;
     }
 }

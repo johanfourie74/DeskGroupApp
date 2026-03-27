@@ -30,6 +30,12 @@ public class AppSettings
     public int AutoSaveDebounceMs { get; set; } = 2000;
     public bool ShowDebugMenu { get; set; } = false;
 
+    // Auto-Update
+    public bool AutoUpdate { get; set; } = false;
+    public bool AutoInstall { get; set; } = false;
+    public string SkippedUpdateVersion { get; set; } = string.Empty;
+    public DateTime LastUpdateCheck { get; set; } = DateTime.MinValue;
+
     // Settings Window Position
     public double SettingsWindowLeft { get; set; } = double.NaN;
     public double SettingsWindowTop { get; set; } = double.NaN;
