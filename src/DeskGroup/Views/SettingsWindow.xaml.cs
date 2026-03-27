@@ -53,7 +53,7 @@ public partial class SettingsWindow : Window
             }
             else if (VersionText != null)
             {
-                VersionText.Text = "Version 1.2.0";
+                VersionText.Text = "Version 1.3.0";
             }
 
             // Safely set copyright

@@ -300,6 +300,36 @@ public partial class IconTile : UserControl
         add => AddHandler(RemoveShortcutEvent, value);
         remove => RemoveHandler(RemoveShortcutEvent, value);
     }
+
+    // Single-Click to Launch
+
+    public static readonly DependencyProperty SingleClickToLaunchProperty =
+        DependencyProperty.Register(nameof(SingleClickToLaunch), typeof(bool), typeof(IconTile),
+            new PropertyMetadata(false));
+
+    public bool SingleClickToLaunch
+    {
+        get => (bool)GetValue(SingleClickToLaunchProperty);
+        set => SetValue(SingleClickToLaunchProperty, value);
+    }
+
+    protected override void OnPreviewMouseLeftButtonUp(MouseButtonEventArgs e)
+    {
+        base.OnPreviewMouseLeftButtonUp(e);
+
+        if (!SingleClickToLaunch) return;
+
+        // Only fire on a genuine single click — not at the end of a drag
+        var pos = e.GetPosition(this);
+        bool isDrag = Math.Abs(pos.X - _mouseDownPos.X) > SystemParameters.MinimumHorizontalDragDistance ||
+                      Math.Abs(pos.Y - _mouseDownPos.Y) > SystemParameters.MinimumVerticalDragDistance;
+
+        if (!isDrag && LaunchCommand?.CanExecute(null) == true)
+        {
+            LaunchCommand.Execute(null);
+            e.Handled = true; // prevent SelectCommand from firing
+        }
+    }
 }
 
 public class RemoveShortcutRoutedEventArgs : RoutedEventArgs

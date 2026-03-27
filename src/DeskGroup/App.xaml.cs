@@ -921,11 +921,15 @@ public partial class App : Application
         // Subscribe to opacity changes for live updates
         settingsVm.OpacityChanged += (s, e) =>
         {
-            // Refresh opacity on all group windows immediately
             foreach (var groupVm in _mainViewModel.Groups)
-            {
                 groupVm.RefreshOpacity();
-            }
+        };
+
+        // Subscribe to icon size changes for live updates
+        settingsVm.IconSizeChanged += (s, e) =>
+        {
+            foreach (var groupVm in _mainViewModel.Groups)
+                groupVm.RefreshIconSize();
         };
 
         _settingsWindow.SettingsApplied += (s, e) =>

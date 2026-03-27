@@ -800,6 +800,20 @@ public partial class GroupWidget : Window
         }
     }
 
+    private void MenuGroupAppearance_Click(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel == null) return;
+        var dialog = new PerGroupAppearanceDialog(_viewModel);
+        dialog.Owner = this;
+        dialog.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        dialog.Show();
+    }
+
+    private void MenuResetGroupAppearance_Click(object sender, RoutedEventArgs e)
+    {
+        _viewModel?.ResetGroupAppearance();
+    }
+
     private void MenuDeleteGroup_Click(object sender, RoutedEventArgs e)
     {
         var result = MessageBox.Show(

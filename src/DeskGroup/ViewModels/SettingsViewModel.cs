@@ -15,6 +15,8 @@ public partial class SettingsViewModel : ObservableObject
 
     // Event to notify when opacity changes (for live updates)
     public event EventHandler? OpacityChanged;
+    // Event to notify when icon size settings change (for live updates)
+    public event EventHandler? IconSizeChanged;
 
     [ObservableProperty] private Models.ThemeMode _theme;
     [ObservableProperty] private double _groupBackgroundOpacity;
@@ -34,6 +36,20 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private bool _hideGroupedIcons;
     [ObservableProperty] private IconSizeMode _iconSizeMode;
     [ObservableProperty] private int _customIconSize;
+
+    partial void OnIconSizeModeChanged(IconSizeMode value)
+    {
+        _settings.IconSizeMode = value;
+        IconSizeChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    partial void OnCustomIconSizeChanged(int value)
+    {
+        _settings.CustomIconSize = value;
+        IconSizeChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    [ObservableProperty] private bool _singleClickToLaunch;
     [ObservableProperty] private bool _startWithWindows;
     [ObservableProperty] private bool _startMinimizedToTray;
     [ObservableProperty] private string _toggleAllHotkey = string.Empty;
@@ -87,6 +103,7 @@ public partial class SettingsViewModel : ObservableObject
         PinnedToTaskbar = settings.PinnedToTaskbar;
         AutoUpdate  = settings.AutoUpdate;
         AutoInstall = settings.AutoInstall;
+        SingleClickToLaunch = settings.SingleClickToLaunch;
 
         UpdateStatusText = $"Last checked: {(settings.LastUpdateCheck == DateTime.MinValue ? "Never" : settings.LastUpdateCheck.ToLocalTime().ToString("g"))}";
     }
@@ -160,6 +177,7 @@ public partial class SettingsViewModel : ObservableObject
         _settings.PinnedToTaskbar = PinnedToTaskbar;
         _settings.AutoUpdate  = AutoUpdate;
         _settings.AutoInstall = AutoInstall;
+        _settings.SingleClickToLaunch = SingleClickToLaunch;
         _startupService.SyncWithSetting(StartWithWindows);
         await _persistenceService.SaveSettingsImmediateAsync(_settings);
 
@@ -467,5 +485,6 @@ public partial class SettingsViewModel : ObservableObject
         ShowDebugMenu = d.ShowDebugMenu;
         AutoUpdate  = d.AutoUpdate;
         AutoInstall = d.AutoInstall;
+        SingleClickToLaunch = d.SingleClickToLaunch;
     }
 }

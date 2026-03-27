@@ -363,6 +363,16 @@
                 <TextBlock Text="When enabled, DeskGroup will notify you when new shortcuts appear on your desktop so you can sort them into groups."
                            Style="{StaticResource SettingDesc}"/>
 
+                <!-- Single-click to launch -->
+                <DockPanel Style="{StaticResource SettingRow}">
+                    <TextBlock Text="Single-click to open" Style="{StaticResource SettingLabel}"
+                               DockPanel.Dock="Left" Width="160"/>
+                    <CheckBox IsChecked="{Binding SingleClickToLaunch}"
+                              VerticalAlignment="Center"/>
+                </DockPanel>
+                <TextBlock Text="When enabled, shortcuts open with a single click. Default (unchecked) requires a double-click."
+                           Style="{StaticResource SettingDesc}"/>
+
                 <!-- Multi-monitor -->
                 <DockPanel Style="{StaticResource SettingRow}">
                     <TextBlock Text="Multi-monitor support" Style="{StaticResource SettingLabel}"
@@ -443,7 +453,7 @@
                            Margin="0,16,0,8"/>
 
                 <TextBlock x:Name="VersionText"
-                           Text="Version 1.2.0"
+                           Text="Version 1.3.0"
                            FontFamily="{DynamicResource DefaultFont}"
                            FontSize="{DynamicResource FontSizeNormal}"
                            Foreground="{DynamicResource ForegroundSecondary}"

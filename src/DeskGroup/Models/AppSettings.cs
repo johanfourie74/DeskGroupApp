@@ -36,6 +36,9 @@ public class AppSettings
     public string SkippedUpdateVersion { get; set; } = string.Empty;
     public DateTime LastUpdateCheck { get; set; } = DateTime.MinValue;
 
+    // Launch behavior
+    public bool SingleClickToLaunch { get; set; } = false;
+
     // Settings Window Position
     public double SettingsWindowLeft { get; set; } = double.NaN;
     public double SettingsWindowTop { get; set; } = double.NaN;

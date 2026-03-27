@@ -1,0 +1,141 @@
+<Window x:Class="DeskGroup.Views.PerGroupAppearanceDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:converters="clr-namespace:DeskGroup.Converters"
+        Title="Group Appearance"
+        Width="300" Height="Auto"
+        SizeToContent="Height"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ShowInTaskbar="False"
+        Topmost="True"
+        ResizeMode="NoResize">
+
+    <Window.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVis"/>
+    </Window.Resources>
+
+    <Border Background="{DynamicResource BackgroundPrimary}"
+            BorderBrush="{DynamicResource BorderBrush}"
+            BorderThickness="1"
+            CornerRadius="10"
+            Padding="20,16">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="16" ShadowDepth="4" Opacity="0.3"/>
+        </Border.Effect>
+        <StackPanel>
+            <!-- Header -->
+            <DockPanel Margin="0,0,0,16"
+                       MouseLeftButtonDown="Header_MouseLeftButtonDown"
+                       Cursor="SizeAll">
+                <Button DockPanel.Dock="Right"
+                        Width="28" Height="22"
+                        Click="Close_Click"
+                        Cursor="Hand"
+                        Focusable="False">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Bd"
+                                    Background="Transparent"
+                                    CornerRadius="4">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource BackgroundTertiary}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                    <TextBlock Text="✕" Foreground="{DynamicResource ForegroundSecondary}" FontSize="11"/>
+                </Button>
+                <TextBlock Text="Group Appearance"
+                           FontFamily="{DynamicResource DefaultFont}"
+                           FontSize="{DynamicResource FontSizeLarge}"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource ForegroundPrimary}"
+                           VerticalAlignment="Center"/>
+            </DockPanel>
+
+            <!-- Icon Size row -->
+            <DockPanel Margin="0,0,0,4">
+                <TextBlock DockPanel.Dock="Left"
+                           Text="Icon Size"
+                           FontFamily="{DynamicResource DefaultFont}"
+                           FontSize="{DynamicResource FontSizeNormal}"
+                           Foreground="{DynamicResource ForegroundPrimary}"
+                           VerticalAlignment="Center"
+                           Width="80"/>
+                <TextBlock DockPanel.Dock="Right"
+                           Text="{Binding DisplayIconSize, StringFormat={}{0}px}"
+                           FontFamily="{DynamicResource DefaultFont}"
+                           FontSize="{DynamicResource FontSizeSmall}"
+                           Foreground="{DynamicResource ForegroundSecondary}"
+                           VerticalAlignment="Center"
+                           Width="40"
+                           TextAlignment="Right"/>
+                <Slider Value="{Binding DisplayIconSize, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                        Minimum="16"
+                        Maximum="96"
+                        TickFrequency="8"
+                        IsSnapToTickEnabled="False"
+                        SmallChange="2"
+                        LargeChange="8"
+                        VerticalAlignment="Center"
+                        PreviewMouseWheel="Slider_MouseWheel"/>
+            </DockPanel>
+            <TextBlock Text="0 = follow global setting"
+                       FontFamily="{DynamicResource DefaultFont}"
+                       FontSize="{DynamicResource FontSizeSmall}"
+                       Foreground="{DynamicResource ForegroundSecondary}"
+                       Margin="0,0,0,12"/>
+
+            <!-- Opacity row -->
+            <DockPanel Margin="0,0,0,4">
+                <TextBlock DockPanel.Dock="Left"
+                           Text="Opacity"
+                           FontFamily="{DynamicResource DefaultFont}"
+                           FontSize="{DynamicResource FontSizeNormal}"
+                           Foreground="{DynamicResource ForegroundPrimary}"
+                           VerticalAlignment="Center"
+                           Width="80"/>
+                <TextBlock DockPanel.Dock="Right"
+                           Text="{Binding DisplayOpacity, StringFormat={}{0:P0}}"
+                           FontFamily="{DynamicResource DefaultFont}"
+                           FontSize="{DynamicResource FontSizeSmall}"
+                           Foreground="{DynamicResource ForegroundSecondary}"
+                           VerticalAlignment="Center"
+                           Width="40"
+                           TextAlignment="Right"/>
+                <Slider Value="{Binding DisplayOpacity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                        Minimum="0.0"
+                        Maximum="1.0"
+                        SmallChange="0.05"
+                        LargeChange="0.25"
+                        VerticalAlignment="Center"
+                        PreviewMouseWheel="Slider_MouseWheel"/>
+            </DockPanel>
+            <TextBlock Text="−1 = follow global setting"
+                       FontFamily="{DynamicResource DefaultFont}"
+                       FontSize="{DynamicResource FontSizeSmall}"
+                       Foreground="{DynamicResource ForegroundSecondary}"
+                       Margin="0,0,0,16"/>
+
+            <!-- Buttons -->
+            <DockPanel>
+                <Button Content="Reset to Global"
+                        DockPanel.Dock="Left"
+                        Click="Reset_Click"
+                        Style="{DynamicResource DefaultButton}"
+                        Padding="10,6"/>
+                <Button Content="Close"
+                        DockPanel.Dock="Right"
+                        HorizontalAlignment="Right"
+                        Click="Close_Click"
+                        Style="{DynamicResource AccentButton}"
+                        Padding="10,6"/>
+            </DockPanel>
+        </StackPanel>
+    </Border>
+</Window>

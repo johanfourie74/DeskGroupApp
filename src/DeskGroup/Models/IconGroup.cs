@@ -25,6 +25,8 @@ public class IconGroup
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public bool IsVisible { get; set; } = true;
     public int SortOrder { get; set; } = 0;
+    public int PerGroupIconSize { get; set; } = 0;       // 0 = use global setting
+    public double PerGroupOpacity { get; set; } = -1.0;  // -1 = use global setting
 }
 
 public enum GroupViewMode

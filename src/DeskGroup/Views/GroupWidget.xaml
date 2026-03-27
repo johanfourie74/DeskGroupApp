@@ -356,10 +356,11 @@
                                 <controls:IconTile 
                                     Icon="{Binding IconImage}"
                                     DisplayName="{Binding DisplayName}"
-                                    IconSize="24"
-                                    Height="32"
+                                    IconSize="{Binding DataContext.EffectiveListIconSize, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    Height="{Binding DataContext.EffectiveListTileHeight, RelativeSource={RelativeSource AncestorType=Window}}"
                                     LayoutOrientation="Horizontal"
                                     Margin="2,2,2,2"
+                                    SingleClickToLaunch="{Binding DataContext.Settings.SingleClickToLaunch, RelativeSource={RelativeSource AncestorType=Window}}"
                                     AccentColor="{Binding DataContext.AccentBrush, RelativeSource={RelativeSource AncestorType=Window}}"
                                     LaunchCommand="{Binding LaunchCommand}"/>
                             </DataTemplate>
@@ -463,10 +464,9 @@
                                 <controls:IconTile 
                                     Icon="{Binding IconImage}"
                                     DisplayName="{Binding DisplayName}"
-                                    IconSize="48"
-                                    Width="90"
-                                    Height="100"
+                                    IconSize="{Binding DataContext.EffectiveIconSize, RelativeSource={RelativeSource AncestorType=Window}}"
                                     Margin="4"
+                                    SingleClickToLaunch="{Binding DataContext.Settings.SingleClickToLaunch, RelativeSource={RelativeSource AncestorType=Window}}"
                                     AccentColor="{Binding DataContext.AccentBrush, RelativeSource={RelativeSource AncestorType=Window}}"
                                     LaunchCommand="{Binding LaunchCommand}"/>
                             </DataTemplate>
@@ -567,10 +567,9 @@
                                 <controls:IconTile 
                                     Icon="{Binding IconImage}"
                                     DisplayName="{Binding DisplayName}"
-                                    IconSize="64"
-                                    Width="130"
-                                    Height="130"
+                                    IconSize="{Binding DataContext.EffectiveIconSize, RelativeSource={RelativeSource AncestorType=Window}}"
                                     Margin="8"
+                                    SingleClickToLaunch="{Binding DataContext.Settings.SingleClickToLaunch, RelativeSource={RelativeSource AncestorType=Window}}"
                                     AccentColor="{Binding DataContext.AccentBrush, RelativeSource={RelativeSource AncestorType=Window}}"
                                     LaunchCommand="{Binding LaunchCommand}"/>
                             </DataTemplate>
@@ -684,6 +683,19 @@
                           Click="MenuChangeIcon_Click">
                     <MenuItem.Icon>
                         <TextBlock Text="🖼️" FontSize="12"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <Separator/>
+                <MenuItem Header="Icon Size &amp; Opacity..." x:Name="MenuGroupAppearance"
+                          Click="MenuGroupAppearance_Click">
+                    <MenuItem.Icon>
+                        <TextBlock Text="🎛️" FontSize="12"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="Reset Appearance" x:Name="MenuResetGroupAppearance"
+                          Click="MenuResetGroupAppearance_Click">
+                    <MenuItem.Icon>
+                        <TextBlock Text="↩️" FontSize="12"/>
                     </MenuItem.Icon>
                 </MenuItem>
             </MenuItem>

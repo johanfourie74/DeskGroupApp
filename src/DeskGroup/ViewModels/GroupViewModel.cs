@@ -30,24 +30,89 @@ public partial class GroupViewModel : ObservableObject
     // Expose GroupBackgroundOpacity as observable property for live binding updates
     public double GroupBackgroundOpacity => Settings.GroupBackgroundOpacity;
 
+    // Per-group appearance overrides (0/negative = use global settings)
+    [ObservableProperty] private int _perGroupIconSize = 0;
+    [ObservableProperty] private double _perGroupOpacity = -1.0;
+
+    // Effective values — per-group takes priority over global settings
+    public int EffectiveIconSize =>
+        _perGroupIconSize > 0 ? _perGroupIconSize :
+        (Settings.IconSizeMode == IconSizeMode.Custom ? Settings.CustomIconSize : 48);
+
+    public int EffectiveListIconSize => Math.Clamp(EffectiveIconSize / 2, 16, 32);
+    public double EffectiveListTileHeight => EffectiveListIconSize + 8;
+
+    public double EffectiveOpacity =>
+        _perGroupOpacity >= 0.0 ? _perGroupOpacity : Settings.GroupBackgroundOpacity;
+
+    // Proxy read/write properties for TwoWay slider binding in context menu
+    public int DisplayIconSize
+    {
+        get => EffectiveIconSize;
+        set { PerGroupIconSize = value; OnPropertyChanged(nameof(DisplayIconSize)); }
+    }
+
+    public double DisplayOpacity
+    {
+        get => EffectiveOpacity;
+        set { PerGroupOpacity = value; OnPropertyChanged(nameof(DisplayOpacity)); }
+    }
+
+    partial void OnPerGroupIconSizeChanged(int value)
+    {
+        if (_isInitializing) return;
+        OnPropertyChanged(nameof(EffectiveIconSize));
+        OnPropertyChanged(nameof(EffectiveListIconSize));
+        OnPropertyChanged(nameof(EffectiveListTileHeight));
+        OnPropertyChanged(nameof(DisplayIconSize));
+        SyncToModel();
+    }
+
+    partial void OnPerGroupOpacityChanged(double value)
+    {
+        if (_isInitializing) return;
+        OnPropertyChanged(nameof(EffectiveOpacity));
+        OnPropertyChanged(nameof(DisplayOpacity));
+        UpdateTransparentAccentBrush();
+        SyncToModel();
+    }
+
     // Method to refresh opacity when settings change
     public void RefreshOpacity()
     {
         OnPropertyChanged(nameof(GroupBackgroundOpacity));
+        OnPropertyChanged(nameof(EffectiveOpacity));
+        OnPropertyChanged(nameof(DisplayOpacity));
         UpdateTransparentAccentBrush();
+    }
+
+    // Method to refresh icon sizes when global settings change
+    public void RefreshIconSize()
+    {
+        OnPropertyChanged(nameof(EffectiveIconSize));
+        OnPropertyChanged(nameof(EffectiveListIconSize));
+        OnPropertyChanged(nameof(EffectiveListTileHeight));
+        OnPropertyChanged(nameof(DisplayIconSize));
+    }
+
+    // Reset per-group appearance overrides back to global defaults
+    public void ResetGroupAppearance()
+    {
+        PerGroupIconSize = 0;
+        PerGroupOpacity = -1.0;
     }
 
     private void UpdateTransparentAccentBrush()
     {
-        // Create a new brush with the accent color but with opacity applied
+        // Create a new brush with the accent color but with effective opacity applied
         var color = AccentBrush.Color;
-        var alpha = (byte)(Settings.GroupBackgroundOpacity * 255);
+        var alpha = (byte)(EffectiveOpacity * 255);
         var transparentColor = Color.FromArgb(alpha, color.R, color.G, color.B);
         TransparentAccentBrush = new SolidColorBrush(transparentColor);
 
         // Border fades at slower rate: borderAlpha = (opacity * 0.8) + 0.2
         // So at 100% background → 100% border, at 0% background → 20% border
-        var borderOpacity = (Settings.GroupBackgroundOpacity * 0.8) + 0.2;
+        var borderOpacity = (EffectiveOpacity * 0.8) + 0.2;
         var borderAlpha = (byte)(borderOpacity * 255);
         var borderColor = Color.FromArgb(borderAlpha, color.R, color.G, color.B);
         TransparentBorderBrush = new SolidColorBrush(borderColor);
@@ -222,6 +287,10 @@ public partial class GroupViewModel : ObservableObject
         DockMode = model.DockMode;
         ViewMode = model.ViewMode; // Set ViewMode LAST so SyncToModel doesn't overwrite positions
 
+        // Load per-group overrides BEFORE ApplyAccentColor so EffectiveOpacity is correct
+        PerGroupIconSize = model.PerGroupIconSize;
+        PerGroupOpacity = model.PerGroupOpacity;
+
         ApplyAccentColor(model.AccentColor);
         LoadGroupIcon();
         LoadShortcuts();
@@ -370,6 +439,8 @@ public partial class GroupViewModel : ObservableObject
         _model.GridViewWidth = GridViewWidth; _model.GridViewHeight = GridViewHeight;
         _model.MonitorDeviceName = MonitorDeviceName;
         _model.IsVisible = IsVisible; _model.AccentColor = AccentColorHex;
+        _model.PerGroupIconSize = PerGroupIconSize;
+        _model.PerGroupOpacity = PerGroupOpacity;
     }
 
     public void RequestSave(List<IconGroup> allGroups)

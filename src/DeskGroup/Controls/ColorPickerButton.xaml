@@ -14,8 +14,6 @@
             <!-- Windows 11 Accent Colors -->
             <sys:String>#0078D4</sys:String>
             <sys:String>#0099BC</sys:String>
-            <sys:String>#7A7574</sys:String>
-            <sys:String>#767676</sys:String>
             <sys:String>#FF8C00</sys:String>
             <sys:String>#E81123</sys:String>
             <sys:String>#D13438</sys:String>
@@ -39,9 +37,9 @@
         </x:Array>
 
         <Style x:Key="ColorSwatchButton" TargetType="Button">
-            <Setter Property="Width" Value="28"/>
-            <Setter Property="Height" Value="28"/>
-            <Setter Property="Margin" Value="2"/>
+            <Setter Property="Width" Value="14"/>
+            <Setter Property="Height" Value="14"/>
+            <Setter Property="Margin" Value="1"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -131,14 +129,14 @@
                     <ItemsControl ItemsSource="{StaticResource PresetColors}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
-                                <WrapPanel MaxWidth="200"/>
+                                <WrapPanel MaxWidth="128"/>
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <Button Style="{StaticResource ColorSwatchButton}"
-                                        Width="28"
-                                        Height="28"
+                                        Width="14"
+                                        Height="14"
                                         Click="ColorSwatch_Click"
                                         Tag="{Binding}">
                                     <Button.Background>
