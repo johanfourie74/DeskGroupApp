@@ -542,7 +542,7 @@
                     <Run Text=" Drag desktop icons onto a group, or right-click group → Add shortcut" Foreground="{DynamicResource ForegroundSecondary}"/>
                     <LineBreak/>
                     <Run Text="3. Customize:"/>
-                    <Run Text=" Right-click group → Appearance to change color or icon; Rename to rename" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <Run Text=" Right-click group → Appearance to change color, icon, per-group icon size or opacity; Rename to rename" Foreground="{DynamicResource ForegroundSecondary}"/>
                     <LineBreak/>
                     <Run Text="4. Choose how it looks:"/>
                     <Run Text=" Right-click group → View Mode (Minimized, Compact, Normal, Grid, Fullscreen)" Foreground="{DynamicResource ForegroundSecondary}"/>
@@ -599,7 +599,19 @@
                     <Run Text=" Browse and add a .lnk, .url or .exe file" Foreground="{DynamicResource ForegroundSecondary}"/>
                     <LineBreak/>
                     <Run FontWeight="SemiBold" Text="Appearance &#x2192;"/>
-                    <Run Text=" Change color (22 Windows 11 accent colors + custom hex) or icon" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <Run Text=" Sub-menu with four options:" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run Text="        Change color... " FontWeight="SemiBold"/>
+                    <Run Text="Pick from 22 Windows 11 accent colors or enter a custom hex color" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run Text="        Change icon... " FontWeight="SemiBold"/>
+                    <Run Text="Set a custom emoji or text icon shown in the group header" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run Text="        Icon Size &amp; Opacity... " FontWeight="SemiBold"/>
+                    <Run Text="Override icon size (16–96 px) and background opacity for this group only; set to minimum to follow the global setting" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run Text="        Reset Appearance " FontWeight="SemiBold"/>
+                    <Run Text="Restore this group's color, icon, size and opacity to global defaults" Foreground="{DynamicResource ForegroundSecondary}"/>
                     <LineBreak/>
                     <Run FontWeight="SemiBold" Text="Position &#x2192;"/>
                     <Run Text=" Pin position, toggle snap-to-grid, or switch Sticky/Float layer" Foreground="{DynamicResource ForegroundSecondary}"/>
@@ -714,6 +726,12 @@
                     <Run Text="• Enable Snap to Grid for perfectly aligned group layouts" Foreground="{DynamicResource ForegroundSecondary}"/>
                     <LineBreak/>
                     <Run Text="• Use Sticky mode to keep groups behind your windows like classic desktop gadgets" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run Text="• Right-click group → Appearance → Icon Size &amp; Opacity to give a specific group its own icon size and transparency that overrides the global setting" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run Text="• Enable Single-click to open in Settings so shortcuts launch on a single click instead of a double-click" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run Text="• Enable Detect new desktop icons in Settings to get notified when new shortcuts appear on the desktop" Foreground="{DynamicResource ForegroundSecondary}"/>
                     <LineBreak/>
                     <Run Text="• Groups and positions are saved automatically; backups are kept in %LOCALAPPDATA%\DeskGroup" Foreground="{DynamicResource ForegroundSecondary}"/>
                 </TextBlock>
