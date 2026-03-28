@@ -128,6 +128,32 @@ Only after Steps 1–4. See BACKLOG.md. Top candidates:
 - Every feature/fix must update: Help panel, README.md, BACKLOG.md in the same commit
 - See BACKLOG.md "NOTE B" for full checklist
 
+**Bug C — Tray icon first-click vanishes:**
+- Click tray icon → it disappears immediately, need second click. Had this before — check records.
+- Suspected: `Deactivated` auto-hide firing before user sees the window
+- See BACKLOG.md "BUG C"
+
+**Bug D — Icon shortcut single/double click unreliable:**
+- Click on group icon → sometimes nothing happens. Fix: remove + re-add icon to group.
+- Suspected: stale path or silent launch exception
+- See BACKLOG.md "BUG D"
+
+**Bug E — Drag-to-reorder icons unreliable:**
+- Dragging icons in a group to reorder needs 2–3 attempts to stick
+- Suspected: drop hit-test or collection update not firing on first drop
+- See BACKLOG.md "BUG E"
+
+**Note F — Installer: surface key Settings as install-time preferences:**
+- Autostart, default view mode, dock position, hotkey, tray icon visibility
+- Write chosen values to settings.json before first launch
+- See BACKLOG.md "NOTE F"
+
+**Note G — Window alignment & spacing tool (significant feature, v1.5+):**
+- Select 2+ windows → align edges (Top/Bottom/Left/Right) or distribute evenly
+- Place first + last, auto-space the middle ones horizontally or vertically
+- Extend Win32Interop.cs (GetWindowRect/SetWindowPos), new WindowAlignmentHelper.cs
+- See BACKLOG.md "NOTE G"
+
 ---
 
 ## ⚡ QUICK REFERENCE COMMANDS

@@ -1,8 +1,8 @@
 # DeskGroup - Development Backlog
 
-**Last Updated:** 2025-07-13  
+**Last Updated:** 2025-07-13 (session 2)  
 **Status:** ✅ **v1.4.1 SHIPPED — NEXT: public repo setup + bug reporting (v1.4.2)**  
-**Commit:** `75683f1`
+**Commit:** `6a1e3f9`
 
 ---
 
@@ -72,6 +72,84 @@ After Steps 1–3 complete.
 > 4. **START_HERE_NEXT_SESSION.md** — update at session end (existing handover rule).
 
 This is now a standing checklist item for every PR/commit that ships user-facing changes.
+
+---
+
+### 🐛 BUG C — Tray icon: first click hides it, need second click to keep it visible
+**Reported:** 2025-07-13
+
+**Behaviour:** App is running → click tray icon → icon/flyout immediately disappears → must click again for it to stay visible. Had this problem before — check session records for prior fix, may be the same root cause.
+
+**Suspected cause:** `LostFocus` or `Deactivated` event firing immediately after the click and auto-hiding the window before the user sees it. Check `App.xaml.cs` and `MainViewModel.cs` tray icon click handler + any `Deactivated` hide logic.
+
+**Files to investigate:** `App.xaml.cs`, `MainViewModel.cs`, tray icon click/activate handlers.
+
+---
+
+### 🐛 BUG D — Single/double click on group shortcuts unreliable
+**Reported:** 2025-07-13
+
+**Behaviour:** Clicking (single or double) on an icon shortcut inside a group sometimes does nothing. Workaround: remove the icon from the group, put it back on the desktop, re-add to group — then it works. Suggests the stored path/target becomes stale or the launch handler silently fails.
+
+**Suspected cause:** Stale shortcut path resolution, silent exception swallowed in launch handler, or icon target resolved at add-time but not re-verified at click-time.
+
+**Files to investigate:** `GroupWidget.xaml.cs` (icon click handler), `IconGroup.cs` / `IconViewModel.cs` (stored path), `ShellContextMenuHelper.cs`.
+
+---
+
+### 🐛 BUG E — Drag-to-reorder icons in group unreliable
+**Reported:** 2025-07-13
+
+**Behaviour:** Dragging icons within a group to reorder them does not always register. Sometimes requires 2–3 attempts before the new order sticks.
+
+**Suspected cause:** Drop target hit-testing intermittent (overlapping transparent areas), drag threshold too sensitive, or the collection update not triggering on first drop. Check `DragThumb.xaml.cs` and the drop handler in `GroupWidget.xaml.cs`.
+
+**Files to investigate:** `DragThumb.xaml.cs`, `GroupWidget.xaml.cs` (drag/drop handlers), `GroupViewModel.cs` (collection reorder logic).
+
+---
+
+### 💡 NOTE F — Installer: add user-preference questions from Settings 🛠️
+**Requested:** 2025-07-13
+
+**Goal:** During installation (Inno Setup questionnaire pages) surface a small set of key preferences from `AppSettings` so the user can configure them at install time instead of hunting through Settings afterwards.
+
+**Candidate settings to expose (pull from `AppSettings.cs`):**
+- Start with Windows (autostart) — already in Settings, natural install-time question
+- Default view mode (Minimized / Compact / Normal / Grid)
+- Default dock position (Left / Right / Top / Bottom / Floating)
+- Global hotkey (Toggle All) — let user set or skip
+- Show tray icon (yes/no)
+- Theme (if/when dark mode is added)
+
+**Implementation notes:**
+- Add new Inno Setup wizard pages in `build\installer.iss` (or equivalent `.iss` file).
+- On finish, write chosen values into the JSON settings file (`%APPDATA%\DeskGroup\settings.json`) before first launch, so the app starts pre-configured.
+- Alternatively: pass values as CLI args to the app on first run and let the app write them.
+- Keep it to 1–2 pages max — don't overwhelm the user.
+- **Must update Help panel + README** when implemented.
+
+---
+
+### 💡 NOTE G — Window alignment & spacing tool 📐
+**Requested:** 2025-07-13
+
+**Goal:** Select 2 or more open application windows and:
+1. **Align** them — Top / Bottom / Left / Right edge alignment of selected windows.
+2. **Space evenly** — place first and last windows manually, then distribute the middle ones with equal spacing between them, both horizontally and vertically.
+
+**UX concept:**
+- Multi-select windows (e.g. hold Ctrl + click icons in group, or a dedicated "select mode").
+- Alignment toolbar / floating mini-panel appears with alignment and distribute buttons.
+- Buttons: Align Left, Align Right, Align Top, Align Bottom, Distribute Horizontally, Distribute Vertically.
+- "Distribute" uses outermost selected window bounds as the min/max anchors, spaces all middle windows evenly between them.
+
+**Implementation notes:**
+- Use `GetWindowRect` / `SetWindowPos` Win32 APIs (already have `Win32Interop.cs` — extend it).
+- Need to track selected window handles — may require a new "selection mode" UX concept.
+- Could live in `GroupWidget` as a multi-select context menu action, or as a standalone floating toolbar.
+- New helper: `WindowAlignmentHelper.cs` in `src\DeskGroup\Helpers\`.
+- This is a significant feature — size it as a separate minor version (v1.5.x or v1.6.x).
+- **Must update Help panel + README** when implemented.
 
 ---
 
