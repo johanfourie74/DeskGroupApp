@@ -1,8 +1,39 @@
 # DeskGroup - Development Backlog
 
 **Last Updated:** 2025-07-12  
-**Status:** ✅ **v1.4.1 SHIPPED — DOCS UPDATED — AWAITING USER TEST RESULTS**  
-**Commit:** `bc3f21d`
+**Status:** ✅ **v1.4.1 SHIPPED — NEXT: public repo setup + bug reporting (v1.4.2)**  
+**Commit:** `7189b1b`
+
+---
+
+## 🔜 LOCKED IN — DO THESE NEXT SESSION (in order)
+
+### 1. Fix any v1.4.1 test bugs 🐛
+Address confirmed bugs from user testing before publishing anything publicly.
+
+### 2. Set up public GitHub repo 🌐
+- Create new **public** GitHub repo (name TBD, suggest `DeskGroup`)
+- Add as second git remote: `git remote add public <url>`
+- Push only `src/`, `build/`, `README.md`, `LICENSE` — NO session notes/backlog
+- Create GitHub Release `v1.4.1` with installer + portable zip attached
+- Enable GitHub Issues on public repo
+- See `START_HERE_NEXT_SESSION.md` for full step-by-step
+
+### 3. Add "Report a Bug" + crash handler → v1.4.2 📬
+**Manual (About tab button):**
+- Button opens browser → pre-filled GitHub Issues URL
+- Auto-includes: app version, Windows build, .NET version, architecture
+
+**Automatic (crash handler):**
+- Hook `DispatcherUnhandledException` + `AppDomain.UnhandledException` in `App.xaml.cs`
+- Write crash log → `%LOCALAPPDATA%\DeskGroup\crash-reports\crash-<timestamp>.txt`
+- Show "Would you like to report this?" dialog → Yes opens pre-filled GitHub Issues URL
+- Keep logs 30 days, max 10 files (auto-clean)
+- New file: `src\DeskGroup\Helpers\CrashReporter.cs`
+- Touch: `App.xaml.cs`, `SettingsWindow.xaml`, `SettingsWindow.xaml.cs`
+
+### 4. Bump to v1.4.2 + rebuild 🔢
+After Steps 1–3 complete.
 
 ---
 

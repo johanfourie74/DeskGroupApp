@@ -37,20 +37,82 @@
 
 ---
 
-## 🎯 WHAT'S NEXT
+## 🎯 WHAT'S NEXT — LOCKED IN FOR NEXT SESSION
 
-### **Priority 1: Test v1.4.1 artifacts** 🧪
-User is testing now. If issues found → patch list will be provided next session.
+> ⚠️ **Do these in order. Do not skip steps.**
 
-### **Priority 2: Post-test bug fixes** 🐛
-Address any issues found during testing of v1.4.1.
+---
 
-### **Priority 3: Feature Backlog** 📋
-See BACKLOG.md. Top candidates after testing:
+### **STEP 1 — Fix any bugs found during v1.4.1 testing** 🐛
+User tested v1.4.1. Address any confirmed bugs first before publishing anything.
+Suspected issues may be PC-specific — confirm before coding.
+
+---
+
+### **STEP 2 — Set up the public GitHub repository** 🌐
+**Decision locked in:** Two separate repos (Option A).
+
+| Repo | Visibility | Contents |
+|---|---|---|
+| `johanfourie74/DeskGroup` (current) | **Private** | Everything — source, session notes, backlog, build artifacts |
+| New public repo (name TBD — suggest `DeskGroup`) | **Public** | `src/`, `build/`, `README.md`, `LICENSE` only — NO session notes, NO backlog |
+
+**Steps to execute:**
+1. Create new empty public repo on GitHub (go to github.com → New repository)
+   - Name: `DeskGroup` (or `DeskGroup-App` if `DeskGroup` is taken by current private repo)
+   - Set to **Public**, no README, no .gitignore (we push our own)
+2. Add it as a second remote on the local machine:
+   ```powershell
+   git remote add public https://github.com/johanfourie74/<NEW-PUBLIC-REPO>.git
+   ```
+3. Create a clean branch with only public files and push it:
+   ```powershell
+   # We will script this step-by-step when we start
+   ```
+4. Create a **GitHub Release** on the public repo tagged `v1.4.1`:
+   - Attach `build\output\DeskGroup-Setup-1.4.1.exe`
+   - Attach `build\output\DeskGroup-Portable-1.4.1.zip`
+   - Write release notes from `SESSION_SUMMARY_2025_07_12.md`
+5. Enable **GitHub Issues** on the public repo (Settings → Features → Issues ✅)
+
+> The private repo stays completely untouched. Nothing changes there.
+
+---
+
+### **STEP 3 — Add "Report a Bug" + crash handler (v1.4.2)** 🐛📬
+**Decision locked in:** Custom lightweight approach — no third-party services.
+
+**Part A — Manual "Report a Bug" button (About tab):**
+- Add button to `SettingsWindow.xaml` About tab
+- On click: open browser to pre-filled GitHub Issues URL:
+  `https://github.com/johanfourie74/<PUBLIC-REPO>/issues/new?template=bug_report.md&title=...&body=...`
+- Body auto-includes: App version, Windows build, .NET version, machine architecture
+
+**Part B — Automatic crash handler:**
+- Hook `App.xaml.cs` `DispatcherUnhandledException` + `AppDomain.CurrentDomain.UnhandledException`
+- On crash: write log to `%LOCALAPPDATA%\DeskGroup\crash-reports\crash-<timestamp>.txt`
+  - Include: stack trace, app version, OS version, timestamp
+- Show dialog: *"DeskGroup ran into a problem. Would you like to report this?"*
+  - **Yes** → open same pre-filled GitHub Issues URL with stack trace in body
+  - **No** → close silently
+- Crash logs kept for 30 days, max 10 files (auto-clean old ones)
+
+**Files to touch:** `App.xaml.cs`, `SettingsWindow.xaml`, `SettingsWindow.xaml.cs`, new `CrashReporter.cs` helper
+
+> ⚠️ **Requires Step 2 to be done first** — needs the public repo Issues URL.
+
+---
+
+### **STEP 4 — Bump to v1.4.2 + rebuild** 🔢
+After Steps 1–3 are complete, bump version and produce new installers.
+
+---
+
+### **Priority 5: Feature Backlog** 📋
+Only after Steps 1–4. See BACKLOG.md. Top candidates:
 - Configurable hover delay (currently 300ms hardcoded)
 - Drag shortcuts between groups
 - Visual feedback during drag (highlight drop zones)
-- CI/CD pipeline (GitHub Actions for automated builds)
 
 ---
 
