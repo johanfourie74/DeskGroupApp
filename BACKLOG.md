@@ -1,8 +1,8 @@
 # DeskGroup - Development Backlog
 
-**Last Updated:** 2025-07-12  
+**Last Updated:** 2025-07-13  
 **Status:** ✅ **v1.4.1 SHIPPED — NEXT: public repo setup + bug reporting (v1.4.2)**  
-**Commit:** `7189b1b`
+**Commit:** `75683f1`
 
 ---
 
@@ -34,6 +34,44 @@ Address confirmed bugs from user testing before publishing anything publicly.
 
 ### 4. Bump to v1.4.2 + rebuild 🔢
 After Steps 1–3 complete.
+
+---
+
+## 📝 INCOMING NOTES — Queue for next work session
+
+> These are captured ideas/requests — NOT yet scheduled. Will be sized and slotted in when we get back to work.
+
+### 💡 NOTE A — Functional desktop & taskbar icon 🖥️
+**Requested:** 2025-07-13
+
+**Goal:** Make the `.exe` shortcut on the desktop (and taskbar pin) smart:
+
+| Action | App NOT running | App already running |
+|--------|----------------|---------------------|
+| **Left-click** (desktop/taskbar icon) | Launch app normally | Show all groups (same as tray left-click) |
+| **Right-click** (desktop/taskbar icon) | Launch app | Show the tray context menu (or equivalent) |
+
+**Implementation notes:**
+- Use **named mutex** or **single-instance check** (already exists?) to detect if app is running.
+- If a second instance is launched, pass a signal to the running instance (e.g. `WM_COPYDATA` or a named pipe/IPC message) telling it to "show all".
+- The running instance listens, calls its existing `ShowAll()` logic, and the new instance exits immediately.
+- Right-click on taskbar icon showing a Jump List with key actions (Show All, Hide All, Settings, Exit) would be the cleanest solution — uses `JumpList` API (`System.Windows.Shell.JumpList`).
+- Touch: `App.xaml.cs` (single-instance guard + IPC listener), possibly new `SingleInstanceHelper.cs`.
+- **Must update Help panel + README** when implemented.
+
+---
+
+### 💡 NOTE B — Standing rule: always update docs when a feature is done 📄
+**Requested:** 2025-07-13
+
+**Rule (applies to every feature going forward):**
+> When any feature or fix is marked complete, the following docs MUST be updated in the same commit (or immediately after):
+> 1. **In-app Help panel** (`SettingsWindow.xaml` Help tab) — add/update the relevant section.
+> 2. **README.md** — update feature list, hotkey table, or screenshots section as needed.
+> 3. **BACKLOG.md** — mark task `[x]` + add ✓ VERIFIED once tested.
+> 4. **START_HERE_NEXT_SESSION.md** — update at session end (existing handover rule).
+
+This is now a standing checklist item for every PR/commit that ships user-facing changes.
 
 ---
 

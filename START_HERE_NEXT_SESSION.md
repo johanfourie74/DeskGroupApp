@@ -116,6 +116,20 @@ Only after Steps 1–4. See BACKLOG.md. Top candidates:
 
 ---
 
+### **📝 Incoming Notes (captured 2025-07-13 — not yet scheduled)**
+
+**Note A — Functional desktop/taskbar icon:**
+- Left-click when already running → Show all groups (same as tray left-click)
+- Right-click → tray context menu / Jump List (Show All, Hide All, Settings, Exit)
+- Needs single-instance guard + IPC (named pipe or WM_COPYDATA)
+- See BACKLOG.md "NOTE A" for full spec
+
+**Note B — Standing doc-update rule:**
+- Every feature/fix must update: Help panel, README.md, BACKLOG.md in the same commit
+- See BACKLOG.md "NOTE B" for full checklist
+
+---
+
 ## ⚡ QUICK REFERENCE COMMANDS
 ```powershell
 # Build installer
