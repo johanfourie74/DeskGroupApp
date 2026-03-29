@@ -115,6 +115,23 @@ Access via **tray icon > Settings** or right-click any group widget.
 
 ---
 
+## Changelog
+
+### v1.4.2
+- ✅ Added: Crash logs written to `%LOCALAPPDATA%\DeskGroup\crash-reports\` on unexpected errors (max 10 files, 30-day retention)
+- ✅ Added: **🐛 Report a Bug** button in the **About** tab — opens a pre-filled GitHub issue with version, OS, and .NET runtime info
+
+### v1.4.1
+- ✅ Fixed: Desktop icons now immediately update in Windows Explorer after being hidden/restored on Windows 11 (`SHChangeNotify` refresh)
+- ✅ Fixed: Stale hotkeys from older versions (`Ctrl+Alt+G`) auto-migrate to the correct default (`Ctrl+F2`) on first run after upgrading
+- ✅ Fixed: First tray-click after launch no longer incorrectly hides groups that were saved as hidden at last exit
+- ✅ Fixed: Rename, color picker, hotkey warning, and first-run dialogs now center correctly over their parent window instead of appearing behind it
+- ✅ Added: Loading cursor spinner when launching a shortcut — gives visual feedback for slow-starting apps
+- ✅ Added: **Restart DeskGroup** option in the tray right-click menu (saves all groups before restarting)
+- ✅ Added: Double-clicking the DeskGroup taskbar or desktop shortcut while the app is already running now shows all groups
+
+---
+
 ## Building from Source
 
 ### Prerequisites

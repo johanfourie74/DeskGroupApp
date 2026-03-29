@@ -299,6 +299,28 @@ public partial class SettingsWindow : Window
         }
     }
 
+    private void ReportBug_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var url = Helpers.CrashReporter.BuildManualIssueUrl();
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = url,
+                UseShellExecute = true
+            });
+        }
+        catch
+        {
+            MessageBox.Show(
+                "Could not open browser.\n\n" +
+                "Please visit: https://github.com/johanfourie74/DeskGroupApp/issues/new",
+                "DeskGroup Report Bug",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+        }
+    }
+
     // ====================================================================
     // WINDOW LIFECYCLE
     // ====================================================================

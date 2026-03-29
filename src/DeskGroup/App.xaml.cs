@@ -1159,12 +1159,8 @@ public partial class App : Application
     {
         System.Diagnostics.Debug.WriteLine($"Unhandled UI exception: {e.Exception}");
 
-        MessageBox.Show(
-            $"An unexpected error occurred:\n\n{e.Exception.Message}\n\n" +
-            "DeskGroup will try to continue running.",
-            "DeskGroup Error",
-            MessageBoxButton.OK,
-            MessageBoxImage.Warning);
+        Helpers.CrashReporter.WriteCrashLog(e.Exception, "UI dispatcher");
+        Helpers.CrashReporter.ShowCrashDialog(e.Exception);
 
         e.Handled = true; // Don't crash the app
     }
@@ -1174,6 +1170,8 @@ public partial class App : Application
         if (e.ExceptionObject is Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Fatal domain exception: {ex}");
+
+            Helpers.CrashReporter.WriteCrashLog(ex, "AppDomain unhandled");
 
             try
             {
