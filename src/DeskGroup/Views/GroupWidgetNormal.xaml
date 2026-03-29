@@ -1,0 +1,269 @@
+﻿<UserControl x:Class="DeskGroup.Views.GroupWidgetNormal"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="clr-namespace:DeskGroup.Controls"
+             xmlns:conv="clr-namespace:DeskGroup.Converters"
+             xmlns:behaviors="clr-namespace:DeskGroup.Behaviors"
+             xmlns:local="clr-namespace:DeskGroup.Models"
+             mc:Ignorable="d"
+             d:DesignWidth="320" d:DesignHeight="400"
+             AllowDrop="True">
+
+    <!--
+    Normal view: A resizable window showing ALL shortcuts in the group.
+    Window title = group name. Supports drag-and-drop to add shortcuts.
+    -->
+
+    <UserControl.Resources>
+        <conv:BoolToVisibilityConverter x:Key="BoolToVis" />
+        <conv:BoolToVisibilityConverter x:Key="BoolToVisInvert" Invert="True" />
+    </UserControl.Resources>
+
+    <Border CornerRadius="{DynamicResource WidgetCornerRadius}"
+            Background="{DynamicResource BackgroundWidget}"
+            BorderBrush="{Binding AccentBrush}"
+            BorderThickness="1.5">
+
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="12" ShadowDepth="3" Opacity="0.2"
+                              Color="Black" Direction="270"/>
+        </Border.Effect>
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>   <!-- Drag handle -->
+                <RowDefinition Height="Auto"/>   <!-- Title bar -->
+                <RowDefinition Height="Auto"/>   <!-- Separator -->
+                <RowDefinition Height="*"/>      <!-- Icon grid (scrollable) -->
+                <RowDefinition Height="Auto"/>   <!-- Status bar -->
+            </Grid.RowDefinitions>
+
+            <!-- Drag Handle -->
+            <controls:DragThumb Grid.Row="0"
+                                IsPinned="{Binding IsPinned}"/>
+
+            <!-- Title Bar -->
+            <DockPanel Grid.Row="1" Margin="12,2,8,4">
+
+                <!-- Window controls (right side) -->
+                <StackPanel DockPanel.Dock="Right"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Center">
+
+                    <!-- Minimize to pill -->
+                    <Button Content="-"
+                            ToolTip="Minimize"
+                            Command="{Binding SetMinimizedCommand}"
+                            FontSize="11"
+                            Width="28" Height="28"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Foreground="{DynamicResource ForegroundSecondary}"
+                            Cursor="Hand"
+                            Margin="2,0"/>
+
+                    <!-- Fullscreen -->
+                    <Button Content="FullScreen"
+                            ToolTip="Fullscreen (F11)"
+                            Command="{Binding ToggleFullscreenCommand}"
+                            FontSize="13"
+                            Width="28" Height="28"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Foreground="{DynamicResource ForegroundSecondary}"
+                            Cursor="Hand"
+                            Margin="2,0"/>
+                </StackPanel>
+
+                <!-- Color picker -->
+                <controls:ColorPickerButton DockPanel.Dock="Right"
+                                            SelectedColor="{Binding AccentColorHex, Mode=TwoWay}"
+                                            Width="24" Height="24"
+                                            Margin="4,0"
+                                            VerticalAlignment="Center"
+                                            ToolTip="Group color"/>
+
+                <!-- Group icon -->
+                <Image Source="{Binding GroupIcon}"
+                       Width="20" Height="20"
+                       Margin="0,0,8,0"
+                       Stretch="Uniform"
+                       VerticalAlignment="Center"
+                       RenderOptions.BitmapScalingMode="HighQuality">
+                    <Image.Style>
+                        <Style TargetType="Image">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding GroupIcon}" Value="{x:Null}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Image.Style>
+                </Image>
+
+                <!-- Group Name (editable on double-click) -->
+                <TextBlock x:Name="GroupNameText"
+                           Text="{Binding Name}"
+                           Foreground="{DynamicResource ForegroundPrimary}"
+                           FontFamily="{DynamicResource DefaultFont}"
+                           FontSize="{DynamicResource FontSizeLarge}"
+                           FontWeight="SemiBold"
+                           VerticalAlignment="Center"
+                           TextTrimming="CharacterEllipsis"
+                           MouseLeftButtonDown="GroupNameText_MouseLeftButtonDown"
+                           Visibility="{Binding IsRenaming, Converter={StaticResource BoolToVisInvert}}"/>
+
+                <!-- Rename TextBox -->
+                <TextBox x:Name="GroupNameEdit"
+                         Text="{Binding Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         FontFamily="{DynamicResource DefaultFont}"
+                         FontSize="{DynamicResource FontSizeLarge}"
+                         FontWeight="SemiBold"
+                         VerticalAlignment="Center"
+                         Visibility="{Binding IsRenaming, Converter={StaticResource BoolToVis}}"
+                         KeyDown="GroupNameEdit_KeyDown"
+                         LostFocus="GroupNameEdit_LostFocus"
+                         behaviors:FocusBehavior.FocusOnTrue="{Binding IsRenaming}"/>
+            </DockPanel>
+
+            <!-- Separator -->
+            <Border Grid.Row="2"
+                    Height="1"
+                    Background="{DynamicResource BorderSubtle}"
+                    Margin="8,0"/>
+
+            <!-- Scrollable icon grid -->
+            <ScrollViewer Grid.Row="3"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          Padding="4">
+
+                <ItemsControl ItemsSource="{Binding AllShortcuts}"
+                              x:Name="IconGrid">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Horizontal"
+                                       Margin="4"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <controls:IconTile
+                                Icon="{Binding Icon}"
+                                DisplayName="{Binding DisplayName}"
+                                LaunchCommand="{Binding LaunchCommand}"
+                                IsSelected="{Binding IsSelected}"
+                                IconSize="48"
+                                Margin="4"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+
+            <!-- Empty state + drop zone -->
+             <Border Grid.Row="3"
+                     Margin="12"
+                     CornerRadius="8"
+                     BorderThickness="2"
+                     Background="Transparent"
+                     Cursor="Hand">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding AllShortcuts.Count}" Value="0">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <Border.BorderBrush>
+                    <VisualBrush>
+                        <VisualBrush.Visual>
+                            <Rectangle StrokeDashArray="4 2"
+                                       Stroke="{DynamicResource ForegroundDisabled}"
+                                       StrokeThickness="2"
+                                       Width="100" Height="100"
+                                       RadiusX="8" RadiusY="8"/>
+                        </VisualBrush.Visual>
+                    </VisualBrush>
+                </Border.BorderBrush>
+
+                <StackPanel HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Margin="20">
+                    <TextBlock Text="Addi"
+                               FontSize="32"
+                               HorizontalAlignment="Center"
+                               Margin="0,0,0,8"/>
+                    <TextBlock Text="Drop shortcuts here"
+                               Foreground="{DynamicResource ForegroundSecondary}"
+                               FontFamily="{DynamicResource DefaultFont}"
+                               FontSize="{DynamicResource FontSizeNormal}"
+                               HorizontalAlignment="Center"/>
+                    <TextBlock Text="or right-click to add"
+                               Foreground="{DynamicResource ForegroundDisabled}"
+                               FontFamily="{DynamicResource DefaultFont}"
+                               FontSize="{DynamicResource FontSizeSmall}"
+                               HorizontalAlignment="Center"
+                               Margin="0,4,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Status bar -->
+            <DockPanel Grid.Row="4"
+                       Margin="12,4,12,8">
+
+                <TextBlock Foreground="{DynamicResource ForegroundSecondary}"
+                           FontFamily="{DynamicResource DefaultFont}"
+                           FontSize="{DynamicResource FontSizeSmall}"
+                           VerticalAlignment="Center">
+                    <Run Text="{Binding AllShortcuts.Count, Mode=OneWay}"/>
+                    <Run Text=" items"/>
+                </TextBlock>
+
+                <!-- Dock mode indicator -->
+                <TextBlock DockPanel.Dock="Right"
+                           HorizontalAlignment="Right"
+                           Foreground="{DynamicResource ForegroundDisabled}"
+                           FontFamily="{DynamicResource DefaultFont}"
+                           FontSize="{DynamicResource FontSizeSmall}"
+                           VerticalAlignment="Center">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Text" Value="Sticky"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding DockMode}"
+                                             Value="{x:Static local:GroupDockMode.Float}">
+                                    <Setter Property="Text" Value="Float"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </DockPanel>
+
+            <!-- Resize grip (bottom-right corner) -->
+            <Thumb Grid.Row="4"
+                   Width="12" Height="12"
+                   HorizontalAlignment="Right"
+                   VerticalAlignment="Bottom"
+                   Cursor="SizeNWSE"
+                   DragDelta="ResizeGrip_DragDelta"
+                   Margin="0,0,4,4">
+                <Thumb.Template>
+                    <ControlTemplate TargetType="Thumb">
+                        <Grid Background="Transparent">
+                            <Path Data="M 0,10 L 10,0 M 4,10 L 10,4 M 8,10 L 10,8"
+                                  Stroke="{DynamicResource ForegroundDisabled}"
+                                  StrokeThickness="1"/>
+                        </Grid>
+                    </ControlTemplate>
+                </Thumb.Template>
+            </Thumb>
+
+        </Grid>
+    </Border>
+</UserControl>

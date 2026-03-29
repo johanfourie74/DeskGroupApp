@@ -1,0 +1,40 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <!-- Upgraded target framework to .NET 10.0 for security updates and long-term support -->
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>false</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Professional application icon (auto-cropped from master PNG) -->
+    <ApplicationIcon>Assets\DG_Color_.ico</ApplicationIcon>
+    <AssemblyName>DeskGroup</AssemblyName>
+    <RootNamespace>DeskGroup</RootNamespace>
+    <Version>1.4.1</Version>
+    <Authors>DeskGroup</Authors>
+    <Description>Desktop Icon Organizer - Group your desktop shortcuts into clean, widget-like containers.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="2.0.1" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <!-- Use CsWin32 to generate Win32 P/Invoke bindings for required APIs -->
+    <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.269" />
+        <!-- Reverted CsWin32 package to available version; GeneratedPInvoke.cs will be restored. -->
+        <!-- Reverted CsWin32 package to available version. Vendored GeneratedPInvoke.cs will be used until a public-generation CsWin32 release is available. -->
+        <!-- Upgraded CsWin32 to attempt generation of public PInvoke types; if build fails the vendored shim will be restored. -->
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Professional icon resources -->
+    <Resource Include="Assets\dg_icon.png" Condition="Exists('Assets\dg_icon.png')" />
+    <Resource Include="Assets\tray-icon.ico" Condition="Exists('Assets\tray-icon.ico')" />
+    <Resource Include="Assets\DG_Color_.ico" Condition="Exists('Assets\DG_Color_.ico')" />
+    <Resource Include="Assets\DG_Gray_256x256.ico" Condition="Exists('Assets\DG_Gray_256x256.ico')" />
+    <Resource Include="Assets\tray-icon-backup.ico" Condition="Exists('Assets\tray-icon-backup.ico')" />
+    <Resource Include="Assets\default-group-icon.ico" Condition="Exists('Assets\default-group-icon.ico')" />
+  </ItemGroup>
+
+</Project>

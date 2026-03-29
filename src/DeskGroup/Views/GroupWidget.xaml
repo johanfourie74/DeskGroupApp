@@ -1,0 +1,765 @@
+﻿<Window x:Class="DeskGroup.Views.GroupWidget"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:controls="clr-namespace:DeskGroup.Controls"
+        mc:Ignorable="d"
+        Title="{Binding Name}"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ShowInTaskbar="False"
+        ResizeMode="NoResize"
+        SizeToContent="Manual"
+        Topmost="False"
+        AllowDrop="True"
+        d:DesignWidth="320" d:DesignHeight="400">
+
+    <Grid x:Name="RootContainer">
+
+        <!-- MINIMIZED VIEW - Compact button -->
+        <Border x:Name="MinimizedView"
+                CornerRadius="8" 
+                Background="{Binding TransparentAccentBrush, FallbackValue=#FF0078D4}"
+                BorderBrush="{Binding TransparentBorderBrush, FallbackValue=#FF0078D4}"
+                BorderThickness="1"
+                Padding="4"
+                MinWidth="200"
+                Cursor="SizeAll"
+                MouseEnter="MinimizedView_MouseEnter"
+                MouseLeave="MinimizedView_MouseLeave"
+                MouseLeftButtonDown="Header_MouseLeftButtonDown"
+                MouseLeftButtonUp="Header_MouseLeftButtonUp"
+                MouseMove="Header_MouseMove">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Main Content -->
+                <StackPanel Grid.Row="0" Orientation="Horizontal">
+                    <!-- Group Icon -->
+                    <Image Source="{Binding GroupIcon}"
+                           Width="16"
+                           Height="16"
+                           Margin="0,0,6,0"
+                           VerticalAlignment="Center"/>
+                    <!-- Group Name -->
+                    <TextBlock Text="{Binding Name, FallbackValue='Group'}" 
+                               Foreground="White"
+                               FontSize="14"
+                               FontWeight="SemiBold"
+                               VerticalAlignment="Center"/>
+                    <!-- Shortcut Count -->
+                    <TextBlock Text=" (" 
+                               Foreground="#CCFFFFFF"
+                               FontSize="12"
+                               VerticalAlignment="Center"
+                               Margin="4,0,0,0"/>
+
+                    <TextBlock Text="{Binding AllShortcuts.Count, FallbackValue=0}" 
+                               Foreground="#CCFFFFFF"
+                               FontSize="12"
+                               VerticalAlignment="Center"/>
+
+                    <TextBlock Text=")" 
+                               Foreground="#CCFFFFFF"
+                               FontSize="12"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Footer with status indicators -->
+                <Border Grid.Row="1"
+                        Background="#28000000"
+                        BorderBrush="#30FFFFFF"
+                        BorderThickness="0,1,0,0"
+                        CornerRadius="4"
+                        Padding="6,3"
+                        Margin="0,6,0,0"
+                        Cursor="Hand"
+                        MouseLeftButtonDown="Footer_MouseLeftButtonDown">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Left: View Mode -->
+                        <TextBlock Grid.Column="0"
+                                   HorizontalAlignment="Left"
+                                   Foreground="#CCFFFFFF"
+                                   FontSize="10"
+                                   VerticalAlignment="Center">
+                            <Run Text="View: "/>
+                            <Run Text="{Binding ViewMode, FallbackValue='Minimized'}" FontWeight="SemiBold"/>
+                        </TextBlock>
+
+                        <!-- Right: Dock Mode -->
+                        <TextBlock Grid.Column="1"
+                                   HorizontalAlignment="Right"
+                                   Foreground="#CCFFFFFF"
+                                   FontSize="10"
+                                   VerticalAlignment="Center">
+                            <Run Text="Layer: "/>
+                            <Run Text="{Binding DockMode, FallbackValue='Float'}" FontWeight="SemiBold"/>
+                        </TextBlock>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- HOVER VIEW - Quick preview with top shortcuts -->
+        <Border x:Name="HoverView"
+                CornerRadius="8"
+                Background="{Binding TransparentAccentBrush, FallbackValue=#FF0078D4}"
+                BorderBrush="{Binding TransparentBorderBrush, FallbackValue=#FF0078D4}"
+                BorderThickness="2"
+                Padding="4"
+                MinWidth="200"
+                Visibility="Collapsed"
+                MouseLeave="HoverView_MouseLeave"
+                MouseLeftButtonDown="Header_MouseLeftButtonDown"
+                MouseLeftButtonUp="Header_MouseLeftButtonUp"
+                MouseMove="Header_MouseMove"
+                Cursor="SizeAll">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Header (no drag handlers - Border handles it) -->
+                <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
+                    <!-- Group Icon -->
+                    <Image Source="{Binding GroupIcon}"
+                           Width="24"
+                           Height="24"
+                           Margin="0,0,8,0"
+                           VerticalAlignment="Center"/>
+                    <!-- Group Name -->
+                    <TextBlock Text="{Binding Name, FallbackValue='Group'}"
+                               Foreground="White"
+                               FontSize="16"
+                               FontWeight="Bold"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Top Shortcuts Preview (max 5) -->
+                <ItemsControl Grid.Row="1"
+                              ItemsSource="{Binding TopUsedShortcuts}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <controls:IconTile 
+                                Icon="{Binding IconImage}"
+                                DisplayName="{Binding DisplayName}"
+                                IconSize="20"
+                                Height="32"
+                                LayoutOrientation="Horizontal"
+                                Margin="2,2,8,2"
+                                AccentColor="{Binding DataContext.AccentBrush, RelativeSource={RelativeSource AncestorType=Window}}"
+                                LaunchCommand="{Binding LaunchCommand}"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- Footer with status indicators -->
+                <Border Grid.Row="2"
+                        Background="#28000000"
+                        BorderBrush="#30FFFFFF"
+                        BorderThickness="0,1,0,0"
+                        CornerRadius="4"
+                        Padding="6,3"
+                        Margin="0,6,0,0"
+                        Cursor="Hand"
+                        MouseLeftButtonDown="Footer_MouseLeftButtonDown">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Left: View Mode -->
+                        <TextBlock Grid.Column="0"
+                                   HorizontalAlignment="Left"
+                                   Foreground="#CCFFFFFF"
+                                   FontSize="10"
+                                   VerticalAlignment="Center">
+                            <Run Text="View: "/>
+                            <Run Text="{Binding ViewMode, FallbackValue='Hover'}" FontWeight="SemiBold"/>
+                        </TextBlock>
+
+                        <!-- Right: Dock Mode -->
+                        <TextBlock Grid.Column="1"
+                                   HorizontalAlignment="Right"
+                                   Foreground="#CCFFFFFF"
+                                   FontSize="10"
+                                   VerticalAlignment="Center">
+                            <Run Text="Layer: "/>
+                            <Run Text="{Binding DockMode, FallbackValue='Float'}" FontWeight="SemiBold"/>
+                        </TextBlock>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- COMPACT VIEW - Fixed small grid (4-6 icons) -->
+        <Border x:Name="CompactView"
+                CornerRadius="8"
+                Background="{Binding TransparentAccentBrush, FallbackValue=#FF0078D4}"
+                BorderBrush="{Binding TransparentBorderBrush, FallbackValue=#FF0078D4}"
+                BorderThickness="2"
+                Padding="4"
+                Visibility="Collapsed"
+                MouseLeftButtonDown="Header_MouseLeftButtonDown"
+                MouseLeftButtonUp="Header_MouseLeftButtonUp"
+                MouseMove="Header_MouseMove"
+                Cursor="SizeAll">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Header (draggable) -->
+                <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
+                    <!-- Group Icon -->
+                    <Image Source="{Binding GroupIcon}"
+                           Width="24"
+                           Height="24"
+                           Margin="0,0,8,0"
+                           VerticalAlignment="Center"/>
+                    <!-- Group Name -->
+                    <TextBlock Text="{Binding Name, FallbackValue='Group'}"
+                               Foreground="White"
+                               FontSize="16"
+                               FontWeight="Bold"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Fixed horizontal rows (max 6 per row, 2 rows max = 12 total, icons only) -->
+                <ItemsControl Grid.Row="1"
+                              ItemsSource="{Binding TopUsedShortcuts}"
+                              Width="204">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Horizontal"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <controls:IconTile 
+                                Icon="{Binding IconImage}"
+                                DisplayName="{Binding DisplayName}"
+                                IconSize="24"
+                                Width="32"
+                                Height="32"
+                                ShowLabel="False"
+                                Margin="1"
+                                AccentColor="{Binding DataContext.AccentBrush, RelativeSource={RelativeSource AncestorType=Window}}"
+                                LaunchCommand="{Binding LaunchCommand}"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- Footer with status indicators -->
+                <Border Grid.Row="2"
+                        Background="#28000000"
+                        BorderBrush="#30FFFFFF"
+                        BorderThickness="0,1,0,0"
+                        CornerRadius="4"
+                        Padding="6,3"
+                        Margin="0,6,0,0"
+                        Cursor="Hand"
+                        MouseLeftButtonDown="Footer_MouseLeftButtonDown">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Left: View Mode -->
+                        <TextBlock Grid.Column="0"
+                                   HorizontalAlignment="Left"
+                                   Foreground="#CCFFFFFF"
+                                   FontSize="10"
+                                   VerticalAlignment="Center">
+                            <Run Text="View: "/>
+                            <Run Text="{Binding ViewMode, FallbackValue='Compact'}" FontWeight="SemiBold"/>
+                        </TextBlock>
+
+                        <!-- Right: Dock Mode -->
+                        <TextBlock Grid.Column="1"
+                                   HorizontalAlignment="Right"
+                                   Foreground="#CCFFFFFF"
+                                   FontSize="10"
+                                   VerticalAlignment="Center">
+                            <Run Text="Layer: "/>
+                            <Run Text="{Binding DockMode, FallbackValue='Float'}" FontWeight="SemiBold"/>
+                        </TextBlock>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- NORMAL VIEW - Full icon grid -->
+        <Border x:Name="NormalView"
+                CornerRadius="8"
+                Background="{Binding TransparentAccentBrush, FallbackValue=#FF0078D4}"
+                BorderBrush="{Binding TransparentBorderBrush, FallbackValue=#FF0078D4}"
+                BorderThickness="2"
+                Padding="4"
+                Visibility="Collapsed">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Header with drag handle -->
+                <Grid Grid.Row="0" Margin="0,0,0,10">
+                    <StackPanel Orientation="Horizontal"
+                                HorizontalAlignment="Left"
+                                MouseLeftButtonDown="Header_MouseLeftButtonDown"
+                                MouseLeftButtonUp="Header_MouseLeftButtonUp"
+                                MouseMove="Header_MouseMove"
+                                Cursor="SizeAll">
+                        <!-- Group Icon -->
+                        <Image Source="{Binding GroupIcon}"
+                               Width="24"
+                               Height="24"
+                               Margin="0,0,8,0"
+                               VerticalAlignment="Center"/>
+                        <!-- Group Name -->
+                        <TextBlock Text="{Binding Name, FallbackValue='Group'}"
+                                   Foreground="White"
+                                   FontSize="16"
+                                   FontWeight="Bold"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Shortcuts Grid -->
+                <ScrollViewer Grid.Row="1"
+                              VerticalScrollBarVisibility="Auto"
+                              MaxHeight="400"
+                              Padding="0,0,8,0">
+                    <ItemsControl ItemsSource="{Binding AllShortcuts}"
+                                  AllowDrop="True"
+                                  Drop="OnIconDropInternal">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <controls:IconTile 
+                                    Icon="{Binding IconImage}"
+                                    DisplayName="{Binding DisplayName}"
+                                    IconSize="{Binding DataContext.EffectiveListIconSize, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    Height="{Binding DataContext.EffectiveListTileHeight, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    LayoutOrientation="Horizontal"
+                                    Margin="2,2,2,2"
+                                    SingleClickToLaunch="{Binding DataContext.Settings.SingleClickToLaunch, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    AccentColor="{Binding DataContext.AccentBrush, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    LaunchCommand="{Binding LaunchCommand}"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+
+                <!-- Footer with status indicators -->
+                <Border Grid.Row="2"
+                        Background="#28000000"
+                        BorderBrush="#30FFFFFF"
+                        BorderThickness="0,1,0,0"
+                        CornerRadius="4"
+                        Padding="6,3"
+                        Margin="0,6,0,0"
+                        Cursor="Hand"
+                        MouseLeftButtonDown="Footer_MouseLeftButtonDown">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Left: View Mode -->
+                        <TextBlock Grid.Column="0"
+                                   HorizontalAlignment="Left"
+                                   Foreground="#CCFFFFFF"
+                                   FontSize="10"
+                                   VerticalAlignment="Center">
+                            <Run Text="View: "/>
+                            <Run Text="{Binding ViewMode, FallbackValue='Normal'}" FontWeight="SemiBold"/>
+                        </TextBlock>
+
+                        <!-- Right: Dock Mode -->
+                        <TextBlock Grid.Column="1"
+                                   HorizontalAlignment="Right"
+                                   Foreground="#CCFFFFFF"
+                                   FontSize="10"
+                                   VerticalAlignment="Center">
+                            <Run Text="Layer: "/>
+                            <Run Text="{Binding DockMode, FallbackValue='Float'}" FontWeight="SemiBold"/>
+                        </TextBlock>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- GRID VIEW - Compact tile grid (between Normal and Fullscreen) -->
+        <Border x:Name="GridView"
+                CornerRadius="8"
+                Background="{Binding TransparentAccentBrush, FallbackValue=#FF0078D4}"
+                BorderBrush="{Binding TransparentBorderBrush, FallbackValue=#FF0078D4}"
+                BorderThickness="2"
+                Padding="4"
+                Visibility="Collapsed">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Header with drag handle -->
+                <Grid Grid.Row="0" Margin="0,0,0,10">
+                    <StackPanel Orientation="Horizontal"
+                                HorizontalAlignment="Left"
+                                MouseLeftButtonDown="Header_MouseLeftButtonDown"
+                                MouseLeftButtonUp="Header_MouseLeftButtonUp"
+                                MouseMove="Header_MouseMove"
+                                Cursor="SizeAll">
+                        <!-- Group Icon -->
+                        <Image Source="{Binding GroupIcon}"
+                               Width="24"
+                               Height="24"
+                               Margin="0,0,8,0"
+                               VerticalAlignment="Center"/>
+                        <!-- Group Name -->
+                        <TextBlock Text="{Binding Name, FallbackValue='Group'}"
+                                   Foreground="White"
+                                   FontSize="16"
+                                   FontWeight="Bold"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Shortcuts in compact grid -->
+                <ScrollViewer Grid.Row="1"
+                              VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled"
+                              MaxHeight="500">
+                    <ItemsControl ItemsSource="{Binding AllShortcuts}"
+                                  AllowDrop="True"
+                                  Drop="OnIconDropInternal">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <controls:IconTile 
+                                    Icon="{Binding IconImage}"
+                                    DisplayName="{Binding DisplayName}"
+                                    IconSize="{Binding DataContext.EffectiveIconSize, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    Margin="4"
+                                    SingleClickToLaunch="{Binding DataContext.Settings.SingleClickToLaunch, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    AccentColor="{Binding DataContext.AccentBrush, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    LaunchCommand="{Binding LaunchCommand}"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+
+                <!-- Footer with status indicators -->
+                <Border Grid.Row="2"
+                        Background="#28000000"
+                        BorderBrush="#30FFFFFF"
+                        BorderThickness="0,1,0,0"
+                        CornerRadius="4"
+                        Padding="6,3"
+                        Margin="0,6,0,0"
+                        Cursor="Hand"
+                        MouseLeftButtonDown="Footer_MouseLeftButtonDown">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Left: View Mode -->
+                        <TextBlock Grid.Column="0"
+                                   HorizontalAlignment="Left"
+                                   Foreground="#CCFFFFFF"
+                                   FontSize="10"
+                                   VerticalAlignment="Center">
+                            <Run Text="View: "/>
+                            <Run Text="{Binding ViewMode, FallbackValue='Grid'}" FontWeight="SemiBold"/>
+                        </TextBlock>
+
+                        <!-- Right: Dock Mode -->
+                        <TextBlock Grid.Column="1"
+                                   HorizontalAlignment="Right"
+                                   Foreground="#CCFFFFFF"
+                                   FontSize="10"
+                                   VerticalAlignment="Center">
+                            <Run Text="Layer: "/>
+                            <Run Text="{Binding DockMode, FallbackValue='Float'}" FontWeight="SemiBold"/>
+                        </TextBlock>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- FULLSCREEN VIEW - Entire screen coverage -->
+        <Border x:Name="FullscreenView"
+                Background="{Binding AccentBrush, FallbackValue=#FF0078D4}"
+                Visibility="Collapsed">
+            <Grid Margin="40">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Header with close button -->
+                <Grid Grid.Row="0" Margin="0,0,0,20">
+                    <StackPanel Orientation="Horizontal"
+                                HorizontalAlignment="Left">
+                        <!-- Group Icon (larger for fullscreen) -->
+                        <Image Source="{Binding GroupIcon}"
+                               Width="48"
+                               Height="48"
+                               Margin="0,0,12,0"
+                               VerticalAlignment="Center"/>
+                        <!-- Group Name -->
+                        <TextBlock Text="{Binding Name, FallbackValue='Group'}"
+                                   Foreground="White"
+                                   FontSize="32"
+                                   FontWeight="Bold"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <TextBlock Text="Press ESC to exit fullscreen"
+                               Foreground="#CCFFFFFF"
+                               FontSize="16"
+                               HorizontalAlignment="Right"
+                               VerticalAlignment="Center"/>
+                </Grid>
+
+                <!-- Shortcuts in large grid -->
+                <ScrollViewer Grid.Row="1"
+                              VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled">
+                    <ItemsControl ItemsSource="{Binding AllShortcuts}"
+                                  AllowDrop="True"
+                                  Drop="OnIconDropInternal">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <controls:IconTile 
+                                    Icon="{Binding IconImage}"
+                                    DisplayName="{Binding DisplayName}"
+                                    IconSize="{Binding DataContext.EffectiveIconSize, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    Margin="8"
+                                    SingleClickToLaunch="{Binding DataContext.Settings.SingleClickToLaunch, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    AccentColor="{Binding DataContext.AccentBrush, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    LaunchCommand="{Binding LaunchCommand}"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+
+                <!-- Shortcut count info -->
+                <TextBlock Grid.Row="2"
+                           Text="{Binding AllShortcuts.Count, StringFormat='{}{0} shortcuts'}"
+                           Foreground="#CCFFFFFF"
+                           FontSize="16"
+                           HorizontalAlignment="Center"
+                           Margin="0,10,0,0"/>
+
+                <!-- Footer with status indicators -->
+                <Border Grid.Row="3"
+                        Background="#28000000"
+                        BorderBrush="#30FFFFFF"
+                        BorderThickness="0,1,0,0"
+                        CornerRadius="4"
+                        Padding="6,3"
+                        Margin="0,6,0,0"
+                        Cursor="Hand"
+                        MouseLeftButtonDown="Footer_MouseLeftButtonDown">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Left: View Mode -->
+                        <TextBlock Grid.Column="0"
+                                   HorizontalAlignment="Left"
+                                   Foreground="#CCFFFFFF"
+                                   FontSize="11"
+                                   VerticalAlignment="Center">
+                            <Run Text="View: "/>
+                            <Run Text="{Binding ViewMode, FallbackValue='Fullscreen'}" FontWeight="SemiBold"/>
+                        </TextBlock>
+
+                        <!-- Right: Dock Mode -->
+                        <TextBlock Grid.Column="1"
+                                   HorizontalAlignment="Right"
+                                   Foreground="#CCFFFFFF"
+                                   FontSize="11"
+                                   VerticalAlignment="Center">
+                            <Run Text="Layer: "/>
+                            <Run Text="{Binding DockMode, FallbackValue='Float'}" FontWeight="SemiBold"/>
+                        </TextBlock>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Border>
+
+    </Grid>
+
+    <!-- Context menu -->
+    <Window.ContextMenu>
+        <ContextMenu>
+            <!-- View Mode -->
+            <MenuItem Header="View Mode">
+                <MenuItem Header="Minimized" Click="SetMinimized_Click">
+                    <MenuItem.Icon>
+                        <TextBlock Text="⬜" FontSize="12"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="Compact" Click="SetCompact_Click">
+                    <MenuItem.Icon>
+                        <TextBlock Text="⊟" FontSize="12"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="Normal" Click="SetNormal_Click">
+                    <MenuItem.Icon>
+                        <TextBlock Text="🗖" FontSize="12"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="Grid" Click="SetGrid_Click">
+                    <MenuItem.Icon>
+                        <TextBlock Text="▦" FontSize="12"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="Fullscreen (F11)" Click="SetFullscreen_Click">
+                    <MenuItem.Icon>
+                        <TextBlock Text="⛶" FontSize="12"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+            </MenuItem>
+
+            <Separator/>
+
+            <!-- Add shortcut -->
+            <MenuItem Header="Add shortcut..." x:Name="MenuAddShortcut"
+                      Click="MenuAddShortcut_Click">
+                <MenuItem.Icon>
+                    <TextBlock Text="➕" FontSize="12"/>
+                </MenuItem.Icon>
+            </MenuItem>
+
+            <Separator/>
+
+            <!-- Appearance -->
+            <MenuItem Header="Appearance">
+                <MenuItem Header="Change color..." x:Name="MenuChangeColor"
+                          Click="MenuChangeColor_Click">
+                    <MenuItem.Icon>
+                        <TextBlock Text="🎨" FontSize="12"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="Change icon..." x:Name="MenuChangeIcon"
+                          Click="MenuChangeIcon_Click">
+                    <MenuItem.Icon>
+                        <TextBlock Text="🖼️" FontSize="12"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <Separator/>
+                <MenuItem Header="Icon Size &amp; Opacity..." x:Name="MenuGroupAppearance"
+                          Click="MenuGroupAppearance_Click">
+                    <MenuItem.Icon>
+                        <TextBlock Text="🎛️" FontSize="12"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="Reset Appearance" x:Name="MenuResetGroupAppearance"
+                          Click="MenuResetGroupAppearance_Click">
+                    <MenuItem.Icon>
+                        <TextBlock Text="↩️" FontSize="12"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+            </MenuItem>
+
+            <!-- Position -->
+            <MenuItem Header="Position">
+                <MenuItem Header="📌 Pin position"
+                          Command="{Binding TogglePinCommand}"
+                          IsCheckable="True"
+                          IsChecked="{Binding IsPinned, Mode=OneWay}"/>
+                <MenuItem Header="Snap to grid"
+                          Command="{Binding ToggleSnapToGridCommand}"
+                          IsCheckable="True"
+                          IsChecked="{Binding SnapToGrid, Mode=OneWay}"/>
+                <Separator/>
+                <MenuItem Header="Toggle Sticky/Float Mode"
+                          Command="{Binding ToggleDockModeCommand}">
+                    <MenuItem.Icon>
+                        <TextBlock Text="📌" FontSize="12"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+            </MenuItem>
+
+            <Separator/>
+
+            <!-- Group settings -->
+            <MenuItem Header="Rename..." x:Name="MenuRename"
+                      Click="MenuRename_Click">
+                <MenuItem.Icon>
+                    <TextBlock Text="✏️" FontSize="12"/>
+                </MenuItem.Icon>
+            </MenuItem>
+
+            <Separator/>
+
+            <!-- Show / Hide All -->
+            <MenuItem Header="Show All Groups" Click="MenuShowAllGroups_Click">
+                <MenuItem.Icon>
+                    <TextBlock Text="👁️" FontSize="12"/>
+                </MenuItem.Icon>
+            </MenuItem>
+            <MenuItem Header="Hide All Groups" Click="MenuHideAllGroups_Click">
+                <MenuItem.Icon>
+                    <TextBlock Text="🙈" FontSize="12"/>
+                </MenuItem.Icon>
+            </MenuItem>
+
+            <Separator/>
+
+            <!-- Delete group -->
+            <MenuItem Header="Delete group" x:Name="MenuDeleteGroup"
+                      Click="MenuDeleteGroup_Click">
+                <MenuItem.Icon>
+                    <TextBlock Text="🗑️" FontSize="12"/>
+                </MenuItem.Icon>
+            </MenuItem>
+
+            <Separator/>
+
+            <!-- Settings -->
+            <MenuItem Header="⚙️ Settings" x:Name="MenuSettings"
+                      Click="MenuSettings_Click">
+            </MenuItem>
+        </ContextMenu>
+    </Window.ContextMenu>
+
+</Window>

@@ -1,0 +1,78 @@
+<UserControl x:Class="DeskGroup.Controls.HotkeyBox"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignWidth="240" d:DesignHeight="52">
+
+    <StackPanel>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Hotkey text — read-only in detect mode, editable when not detecting -->
+            <TextBox x:Name="HotkeyTextBox"
+                     Grid.Column="0"
+                     Padding="6,4"
+                     VerticalContentAlignment="Center"
+                     FontFamily="Consolas"
+                     TextChanged="HotkeyTextBox_TextChanged"
+                     KeyDown="HotkeyTextBox_KeyDown"
+                     ToolTip="Type a hotkey (e.g. Ctrl+F2, F11, XButton1) or use 🎯 to detect"/>
+
+            <!-- Detect toggle button -->
+            <ToggleButton x:Name="DetectButton"
+                          Grid.Column="1"
+                          Width="32"
+                          Margin="4,0,0,0"
+                          Padding="2"
+                          VerticalAlignment="Stretch"
+                          ToolTip="Click, then press any key combo, side mouse button, or scroll wheel to detect"
+                          Cursor="Hand"
+                          Focusable="False"
+                          Click="DetectButton_Click">
+                <ToggleButton.Style>
+                    <Style TargetType="ToggleButton">
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ToggleButton">
+                                    <Border x:Name="Bd"
+                                            Background="{DynamicResource BackgroundSecondary}"
+                                            BorderBrush="{DynamicResource BorderBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="4">
+                                        <ContentPresenter HorizontalAlignment="Center"
+                                                          VerticalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Bd" Property="Opacity" Value="0.80"/>
+                                        </Trigger>
+                                        <Trigger Property="IsChecked" Value="True">
+                                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource AccentBrush}"/>
+                                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                        </Trigger>
+                                        <Trigger Property="IsPressed" Value="True">
+                                            <Setter TargetName="Bd" Property="Opacity" Value="0.65"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </ToggleButton.Style>
+                <TextBlock Text="🎯" FontSize="14"/>
+            </ToggleButton>
+        </Grid>
+
+        <!-- Status / warning line -->
+        <TextBlock x:Name="StatusText"
+                   FontSize="11"
+                   Margin="0,3,0,0"
+                   TextWrapping="Wrap"
+                   Visibility="Collapsed"/>
+    </StackPanel>
+</UserControl>

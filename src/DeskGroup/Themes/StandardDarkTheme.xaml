@@ -1,0 +1,35 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ====================================================================== -->
+    <!-- STANDARD WINDOWS 11 DARK THEME -->
+    <!-- Native Windows appearance for group windows -->
+    <!-- ====================================================================== -->
+
+    <!-- Background Colors -->
+    <SolidColorBrush x:Key="BackgroundPrimary" Color="#202020"/>
+    <SolidColorBrush x:Key="BackgroundSecondary" Color="#2B2B2B"/>
+    <SolidColorBrush x:Key="BackgroundTertiary" Color="#333333"/>
+
+    <!-- Foreground Colors -->
+    <SolidColorBrush x:Key="ForegroundPrimary" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="ForegroundSecondary" Color="#C8C8C8"/>
+    <SolidColorBrush x:Key="ForegroundDisabled" Color="#8A8A8A"/>
+
+    <!-- Border Colors -->
+    <SolidColorBrush x:Key="BorderBrush" Color="#3F3F3F"/>
+    <SolidColorBrush x:Key="BorderSubtle" Color="#333333"/>
+
+    <!-- Accent Colors (Windows 11 Blue) -->
+    <SolidColorBrush x:Key="AccentPrimary" Color="#60CDFF"/>
+    <SolidColorBrush x:Key="AccentHover" Color="#4CB3E5"/>
+    <SolidColorBrush x:Key="AccentPressed" Color="#3899CC"/>
+
+    <!-- Fonts -->
+    <FontFamily x:Key="DefaultFont">Segoe UI</FontFamily>
+    <system:Double x:Key="FontSizeSmall" xmlns:system="clr-namespace:System;assembly=mscorlib">12</system:Double>
+    <system:Double x:Key="FontSizeNormal" xmlns:system="clr-namespace:System;assembly=mscorlib">14</system:Double>
+    <system:Double x:Key="FontSizeLarge" xmlns:system="clr-namespace:System;assembly=mscorlib">16</system:Double>
+    <system:Double x:Key="FontSizeTitle" xmlns:system="clr-namespace:System;assembly=mscorlib">20</system:Double>
+
+</ResourceDictionary>

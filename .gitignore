@@ -1,0 +1,23 @@
+﻿## .NET
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.dll
+*.exe
+*.pdb
+.vs/
+packages/
+
+## DeskGroup
+DeskGroupData/
+portable.marker
+
+## Build outputs (keep locally, not in remote)
+build/output/
+
+## OS
+Thumbs.db
+desktop.ini
+.DS_Store

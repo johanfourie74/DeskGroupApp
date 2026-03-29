@@ -1,0 +1,245 @@
+﻿<UserControl x:Class="DeskGroup.Views.GroupWidgetFullscreen"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="clr-namespace:DeskGroup.Controls"
+             mc:Ignorable="d"
+             d:DesignWidth="1920" d:DesignHeight="1080"
+             AllowDrop="True">
+
+    <!--
+    Fullscreen view: Full-screen overlay showing all shortcuts in a large grid.
+    Press F11 or Escape to exit. Background is semi-transparent blurred overlay.
+    -->
+
+    <UserControl.Resources>
+        <Storyboard x:Key="FadeIn">
+            <DoubleAnimation Storyboard.TargetName="RootGrid"
+                             Storyboard.TargetProperty="Opacity"
+                             From="0" To="1" Duration="0:0:0.25"/>
+        </Storyboard>
+        <Storyboard x:Key="FadeOut">
+            <DoubleAnimation Storyboard.TargetName="RootGrid"
+                             Storyboard.TargetProperty="Opacity"
+                             From="1" To="0" Duration="0:0:0.2"/>
+        </Storyboard>
+    </UserControl.Resources>
+
+    <UserControl.InputBindings>
+        <KeyBinding Key="Escape" Command="{Binding ToggleFullscreenCommand}"/>
+        <KeyBinding Key="F11" Command="{Binding ToggleFullscreenCommand}"/>
+    </UserControl.InputBindings>
+
+    <Grid x:Name="RootGrid" Background="#E8000000">
+
+        <Grid.Triggers>
+            <EventTrigger RoutedEvent="Loaded">
+                <BeginStoryboard Storyboard="{StaticResource FadeIn}"/>
+            </EventTrigger>
+        </Grid.Triggers>
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>   <!-- Top bar -->
+            <RowDefinition Height="*"/>      <!-- Icon grid -->
+            <RowDefinition Height="Auto"/>   <!-- Bottom bar -->
+        </Grid.RowDefinitions>
+
+        <!-- Top bar -->
+        <Border Grid.Row="0"
+                Background="#30FFFFFF"
+                Padding="24,16">
+            <DockPanel>
+
+                <!-- Close / Exit fullscreen button -->
+                <Button DockPanel.Dock="Right"
+                        Content="Exit Fullscreen"
+                        Command="{Binding ToggleFullscreenCommand}"
+                        Foreground="White"
+                        Background="#40FFFFFF"
+                        BorderThickness="0"
+                        FontFamily="{DynamicResource DefaultFont}"
+                        FontSize="{DynamicResource FontSizeNormal}"
+                        Padding="16,8"
+                        Cursor="Hand"
+                        VerticalAlignment="Center">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="BtnBorder"
+                                    Background="{TemplateBinding Background}"
+                                    CornerRadius="6"
+                                    Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="BtnBorder" Property="Background" Value="#60FFFFFF"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="BtnBorder" Property="Background" Value="#80FFFFFF"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+
+                <!-- Normal view button -->
+                <Button DockPanel.Dock="Right"
+                        Content="Normal"
+                        Command="{Binding SetNormalCommand}"
+                        Foreground="White"
+                        Background="#30FFFFFF"
+                        BorderThickness="0"
+                        FontFamily="{DynamicResource DefaultFont}"
+                        FontSize="{DynamicResource FontSizeNormal}"
+                        Padding="16,8"
+                        Cursor="Hand"
+                        VerticalAlignment="Center"
+                        Margin="0,0,8,0">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="BtnBorder"
+                                    Background="{TemplateBinding Background}"
+                                    CornerRadius="6"
+                                    Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="BtnBorder" Property="Background" Value="#50FFFFFF"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+
+                <!-- Group icon -->
+                <Image Source="{Binding GroupIcon}"
+                       Width="32" Height="32"
+                       Margin="0,0,12,0"
+                       Stretch="Uniform"
+                       VerticalAlignment="Center"
+                       RenderOptions.BitmapScalingMode="HighQuality">
+                    <Image.Style>
+                        <Style TargetType="Image">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding GroupIcon}" Value="{x:Null}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Image.Style>
+                </Image>
+
+                <!-- Folder fallback -->
+                <TextBlock Text="FolderFallbacki"
+                           FontSize="24"
+                           Margin="0,0,12,0"
+                           VerticalAlignment="Center">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding GroupIcon}" Value="{x:Null}">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+
+                <!-- Group name -->
+                <TextBlock Text="{Binding Name}"
+                           Foreground="White"
+                           FontFamily="{DynamicResource DefaultFont}"
+                           FontSize="{DynamicResource FontSizeTitle}"
+                           FontWeight="Bold"
+                           VerticalAlignment="Center"
+                           TextTrimming="CharacterEllipsis"/>
+            </DockPanel>
+        </Border>
+
+        <!-- Scrollable large icon grid -->
+        <ScrollViewer Grid.Row="1"
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled"
+                      Margin="40,20">
+
+            <ItemsControl ItemsSource="{Binding AllShortcuts}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal"
+                                   HorizontalAlignment="Center"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <controls:IconTile
+                            Icon="{Binding Icon}"
+                            DisplayName="{Binding DisplayName}"
+                            LaunchCommand="{Binding LaunchCommand}"
+                            IsSelected="{Binding IsSelected}"
+                            IconSize="64"
+                            Margin="8"/>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+        <!-- Empty state -->
+        <StackPanel Grid.Row="1"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center">
+            <StackPanel.Style>
+                <Style TargetType="StackPanel">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding AllShortcuts.Count}" Value="0">
+                            <Setter Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </StackPanel.Style>
+            <TextBlock Text="Stacki"
+                       FontSize="64"
+                       HorizontalAlignment="Center"
+                       Margin="0,0,0,16"/>
+            <TextBlock Text="This group is empty"
+                       Foreground="#AAFFFFFF"
+                       FontFamily="{DynamicResource DefaultFont}"
+                       FontSize="{DynamicResource FontSizeTitle}"
+                       HorizontalAlignment="Center"/>
+            <TextBlock Text="Drop shortcuts here or right-click to add"
+                       Foreground="#66FFFFFF"
+                       FontFamily="{DynamicResource DefaultFont}"
+                       FontSize="{DynamicResource FontSizeNormal}"
+                       HorizontalAlignment="Center"
+                       Margin="0,8,0,0"/>
+        </StackPanel>
+
+        <!-- Bottom bar: hint + count -->
+        <Border Grid.Row="2"
+                Background="#20FFFFFF"
+                Padding="24,10">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Right"
+                           Foreground="#88FFFFFF"
+                           FontFamily="{DynamicResource DefaultFont}"
+                           FontSize="{DynamicResource FontSizeSmall}"
+                           VerticalAlignment="Center">
+                    <Run Text="{Binding AllShortcuts.Count, Mode=OneWay}"/>
+                    <Run Text=" items"/>
+                </TextBlock>
+
+                <TextBlock Foreground="#66FFFFFF"
+                           FontFamily="{DynamicResource DefaultFont}"
+                           FontSize="{DynamicResource FontSizeSmall}"
+                           VerticalAlignment="Center"
+                           Text="Press F11 or Esc to exit fullscreen  â€¢  Double-click an icon to open"/>
+            </DockPanel>
+        </Border>
+
+    </Grid>
+</UserControl>
