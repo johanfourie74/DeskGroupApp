@@ -1,8 +1,8 @@
 # DeskGroup - Development Backlog
 
-**Last Updated:** 2025-07-13 (session 4)  
+**Last Updated:** 2025-07-13 (session 5)  
 **Status:** ✅ **v1.4.1 SHIPPED — NEXT: public repo setup + bug reporting (v1.4.2)**  
-**Commit:** `f369831`
+**Commit:** `d749259`
 
 ---
 
@@ -216,6 +216,61 @@ This is now a standing checklist item for every PR/commit that ships user-facing
 **Files to investigate:** `AppSettings.cs`, `PersistenceService.cs`, `build\installer.iss` (if it seeds a settings file).
 
 **Priority:** Medium — confusing to users on fresh install; breaks expected hotkey out of the box.
+
+---
+
+### 💡 NOTE K — Tray icon context menu: add Restart option 🔄
+**Requested:** 2025-07-13
+
+**Goal:** Add a **Restart** item to the tray icon right-click context menu, with a confirmation step before acting.
+
+**UX flow:**
+1. User right-clicks tray icon → context menu appears.
+2. User clicks **Restart**.
+3. A small confirm dialog appears: *“Restart DeskGroup? All groups will be saved.”* with **Restart** / **Cancel** buttons.
+4. On confirm: save all state → exit the process → re-launch `DeskGroup.exe` (same path as running instance).
+5. On cancel: dismiss dialog, app keeps running.
+
+**Implementation notes:**
+- Locate tray context menu definition in `App.xaml.cs` or `MainViewModel.cs` (wherever other tray items like Exit are wired).
+- Restart logic: `Process.Start(Environment.ProcessPath!)` then `Application.Current.Shutdown()`.
+- Important: call `PersistenceService.Save()` (or equivalent) **before** shutdown so no data is lost.
+- Confirm dialog: reuse existing `InputDialog` / simple `MessageBox`, or a small custom dialog consistent with the app style.
+- Add to tray menu just above or below the existing **Exit** item.
+- **Must update Help panel + README** (Tray icon section) when implemented.
+
+**Files to touch:** `App.xaml.cs` or `MainViewModel.cs` (tray menu), optionally a new small confirm dialog.
+
+**Priority:** Low-Medium — nice QoL, low risk, low effort.
+
+---
+
+### 💡 NOTE L — Launch feedback: cursor changes to wait/spinner when opening a shortcut ⏳
+**Requested:** 2025-07-13
+
+**Goal:** When the user clicks an icon/shortcut in a group to launch a program, immediately change the mouse cursor to a **wait/spinner** (or `Cursors.AppStarting`) to indicate “I heard you, it’s loading” — especially important for slow-launching apps where there is a multi-second delay with no visible feedback.
+
+**UX behaviour:**
+- User clicks icon → cursor immediately becomes `Cursors.AppStarting` (arrow + spinning ring, the standard Windows “working in background” cursor).
+- Cursor returns to normal after a short timeout (e.g. 3–5 seconds) OR when the launched process’s main window becomes visible (advanced).
+- Simple version: just use a fixed 3–5 second timeout — matches Windows’ own behaviour for app launches.
+- Should NOT block the UI — use `DispatcherTimer` or `Task.Delay` for the reset, not `Thread.Sleep`.
+
+**Implementation notes:**
+- In the icon click handler (likely `GroupWidget.xaml.cs` or `IconTile`), after calling `Process.Start()` (or equivalent):
+  ```csharp
+  Mouse.OverrideCursor = Cursors.AppStarting;
+  var resetTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(4) };
+  resetTimer.Tick += (_, _) => { Mouse.OverrideCursor = null; resetTimer.Stop(); };
+  resetTimer.Start();
+  ```
+- Advanced option: watch for the launched process’s `MainWindowHandle` to become non-zero, then reset (more accurate but adds complexity — do the simple version first).
+- Edge case: if the click fails / throws, ensure cursor is always reset in a `finally` block.
+- **Must update Help panel + README** when implemented.
+
+**Files to touch:** `GroupWidget.xaml.cs` (icon click handler), possibly `IconTile.xaml.cs`.
+
+**Priority:** Low-Medium — small effort, noticeable UX improvement for slow-launching apps.
 
 ---
 

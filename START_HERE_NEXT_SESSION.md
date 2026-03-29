@@ -176,6 +176,20 @@ Only after Steps 1–4. See BACKLOG.md. Top candidates:
 - Files: `AppSettings.cs`, `PersistenceService.cs`, `build\installer.iss`
 - See BACKLOG.md "BUG J" — **Priority: Medium**
 
+**Note K — Tray icon context menu: add Restart option:**
+- Right-click tray → Restart → confirm dialog ("Restart DeskGroup? All groups will be saved.") → save state → re-launch exe → shutdown
+- Use `Process.Start(Environment.ProcessPath!)` then `Application.Current.Shutdown()`
+- Must save via `PersistenceService` before shutdown. Add above/below existing Exit item.
+- Files: `App.xaml.cs` or `MainViewModel.cs`
+- See BACKLOG.md "NOTE K" — **Priority: Low-Med**
+
+**Note L — Launch feedback: cursor → AppStarting spinner when opening a shortcut:**
+- Click icon → `Mouse.OverrideCursor = Cursors.AppStarting` immediately → reset after ~4s via `DispatcherTimer`
+- Prevents "did it work?" confusion for slow-launching apps
+- Simple fixed-timeout first; advanced: watch for process `MainWindowHandle` (later)
+- Files: `GroupWidget.xaml.cs` (click handler), possibly `IconTile.xaml.cs`
+- See BACKLOG.md "NOTE L" — **Priority: Low-Med**
+
 ---
 
 ## ⚡ QUICK REFERENCE COMMANDS
