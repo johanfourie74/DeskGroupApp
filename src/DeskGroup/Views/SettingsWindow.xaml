@@ -490,7 +490,7 @@
                            Margin="0,16,0,8"/>
 
                 <TextBlock x:Name="VersionText"
-                           Text="Version 1.4.1"
+                           Text="Version 1.4.2"
                            FontFamily="{DynamicResource DefaultFont}"
                            FontSize="{DynamicResource FontSizeNormal}"
                            Foreground="{DynamicResource ForegroundSecondary}"
@@ -539,6 +539,11 @@
                             Margin="0,0,8,0"/>
                     <Button Content="📧 Contact"
                             Click="Contact_Click"
+                            Style="{DynamicResource DefaultButton}"
+                            Padding="12,6"
+                            Margin="0,0,8,0"/>
+                    <Button Content="🐛 Report a Bug"
+                            Click="ReportBug_Click"
                             Style="{DynamicResource DefaultButton}"
                             Padding="12,6"/>
                 </StackPanel>
