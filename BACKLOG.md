@@ -1,8 +1,8 @@
 # DeskGroup - Development Backlog
 
-**Last Updated:** 2025-07-13 (session 7)  
-**Status:** ✅ **7 FIXES COMMITTED (b47fe1d) — NEXT: public repo + CrashReporter + v1.4.2**  
-**Commit:** `b47fe1d`
+**Last Updated:** 2025-07-14 (session 8)  
+**Status:** ✅ **3 FIXES COMMITTED (b9ecd1f) — Bug D/E/M fixed — v1.4.3 built**  
+**Commit:** `b9ecd1f`
 
 ---
 
@@ -85,7 +85,7 @@ This is now a standing checklist item for every PR/commit that ships user-facing
 
 ---
 
-### 🐛 BUG D — Single/double click on group shortcuts unreliable
+### ✅ BUG D — Single/double click on group shortcuts unreliable ← FIXED (b9ecd1f)
 **Reported:** 2025-07-13
 
 **Behaviour:** Clicking (single or double) on an icon shortcut inside a group sometimes does nothing. Workaround: remove the icon from the group, put it back on the desktop, re-add to group — then it works. Suggests the stored path/target becomes stale or the launch handler silently fails.
@@ -96,7 +96,7 @@ This is now a standing checklist item for every PR/commit that ships user-facing
 
 ---
 
-### 🐛 BUG E — Drag-to-reorder icons in group unreliable
+### ✅ BUG E — Drag-to-reorder icons in group unreliable ← FIXED (b9ecd1f)
 **Reported:** 2025-07-13
 
 **Behaviour:** Dragging icons within a group to reorder them does not always register. Sometimes requires 2–3 attempts before the new order sticks.
@@ -290,7 +290,7 @@ This is now a standing checklist item for every PR/commit that ships user-facing
 
 ---
 
-### 🐛 BUG M — Drag icon directly from one group to another fails
+### ✅ BUG M — Drag icon directly from one group to another fails ← FIXED (b9ecd1f)
 **Reported:** 2025-07-13
 
 **Behaviour:** Dragging an icon/shortcut tile from Group A and dropping it onto Group B fails silently — the icon stays in Group A and does not appear in Group B. Workaround: drag the icon to the desktop first, then drag from the desktop into Group B. Direct group-to-group drag must work.
