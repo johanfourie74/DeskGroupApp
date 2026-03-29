@@ -1,8 +1,8 @@
 # DeskGroup - Development Backlog
 
-**Last Updated:** 2025-07-13 (session 2)  
+**Last Updated:** 2025-07-13 (session 3)  
 **Status:** ✅ **v1.4.1 SHIPPED — NEXT: public repo setup + bug reporting (v1.4.2)**  
-**Commit:** `6a1e3f9`
+**Commit:** `1e5586f`
 
 ---
 
@@ -150,6 +150,48 @@ This is now a standing checklist item for every PR/commit that ships user-facing
 - New helper: `WindowAlignmentHelper.cs` in `src\DeskGroup\Helpers\`.
 - This is a significant feature — size it as a separate minor version (v1.5.x or v1.6.x).
 - **Must update Help panel + README** when implemented.
+
+---
+
+### 🐛 BUG H — Secondary/child popup panels appear behind their parent window
+**Reported:** 2025-07-13
+
+**Behaviour:** When a dialog or popup is opened from inside another dialog/window, the new popup appears *behind* the parent instead of on top of it. The same issue was previously fixed for one specific dialog — but the fix was not applied globally. Affects all remaining secondary dialogs/popups.
+
+**Suspected cause:** `Owner` not set (or set incorrectly) when calling `ShowDialog()` / `Show()` on child windows. The previously fixed dialog had `Owner = this` or `WindowStartupLocation = CenterOwner` added — the rest were missed.
+
+**Action plan:**
+1. Audit every `ShowDialog()` / `Show()` call across all `*.xaml.cs` files.
+2. Confirm each child window has `Owner` set to its logical parent before showing.
+3. Ensure `WindowStartupLocation="CenterOwner"` is set in XAML for each dialog.
+4. Files likely involved: `SettingsWindow.xaml.cs`, `GroupWidget.xaml.cs`, `MainViewModel.cs`, `ColorPickerDialog.cs`, `HotkeyWarningDialog.xaml`, `InputDialog` (if any).
+
+**Priority:** High — affects UX of every dialog in the app.
+
+---
+
+### 🐛 BUG I — Desktop icon not hidden after adding shortcut to a group (Windows 11)
+**Reported:** 2025-07-13  
+**OS:** Windows 11 confirmed
+
+**Behaviour:** After adding a desktop shortcut/icon to a group via any available method:
+- The original desktop icon stays visible — it does NOT hide automatically.
+- User must press `F5` to refresh the desktop before the icon disappears.
+- In some cases the icon never hides even after `F5`, and it appears duplicated (original still there + now also in the group), requiring manual deletion.
+
+**Suspected cause:** The shell `SHFileOperation` / `File.Move` to move the shortcut into the DeskGroup managed folder is completing successfully, but the Windows 11 desktop `SHChangeNotify` refresh notification is either:
+  - Not being called after the move, or
+  - Being called with the wrong flags/PIDL so Explorer does not repaint.
+- Windows 11 Explorer is stricter about desktop refresh notifications than Windows 10.
+
+**Action plan:**
+1. Locate where the icon/shortcut file is moved or copied when added to a group (likely `ShellContextMenuHelper.cs` or `GroupViewModel.cs`).
+2. After the file operation, ensure `SHChangeNotify(SHCNE_DESKTOPENUM | SHCNE_ASSOCCHANGED, SHCNF_IDLIST | SHCNF_FLUSH, IntPtr.Zero, IntPtr.Zero)` is called — or at minimum `SHCNE_DELETE` on the source path.
+3. Also call `SHChangeNotify(0x8000000, 0x1000, IntPtr.Zero, IntPtr.Zero)` (global refresh) as a fallback.
+4. Add `SHChangeNotify` P/Invoke to `Win32Interop.cs` if not already present.
+5. Test: add icon → desktop should auto-refresh with no manual F5 needed. Test 3–4 icons in a row.
+
+**Priority:** High — looks like a data-loss/duplication bug to the user, very bad first impression.
 
 ---
 

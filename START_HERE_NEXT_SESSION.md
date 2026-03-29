@@ -154,6 +154,20 @@ Only after Steps 1–4. See BACKLOG.md. Top candidates:
 - Extend Win32Interop.cs (GetWindowRect/SetWindowPos), new WindowAlignmentHelper.cs
 - See BACKLOG.md "NOTE G"
 
+**Bug H — Secondary popups appear behind their parent (all remaining dialogs):**
+- Same root cause as the previously fixed dialog — `Owner` not set before `ShowDialog()`
+- Audit every `ShowDialog()` / `Show()` call in all `*.xaml.cs` files
+- Add `Owner = this` + `WindowStartupLocation="CenterOwner"` to every child dialog
+- Files to check: `SettingsWindow.xaml.cs`, `GroupWidget.xaml.cs`, `ColorPickerDialog.cs`, `HotkeyWarningDialog.xaml`, `MainViewModel.cs`
+- See BACKLOG.md "BUG H" — **Priority: High**
+
+**Bug I — Desktop icon not hidden after adding to group (Windows 11):**
+- Original shortcut stays on desktop after add; needs F5 refresh or never hides at all
+- Looks like duplication to user — very bad first impression
+- Fix: call `SHChangeNotify` with correct flags after file move (Win32Interop.cs)
+- Files: `ShellContextMenuHelper.cs` or `GroupViewModel.cs` (wherever file move happens) + `Win32Interop.cs`
+- See BACKLOG.md "BUG I" — **Priority: High**
+
 ---
 
 ## ⚡ QUICK REFERENCE COMMANDS
