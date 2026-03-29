@@ -738,6 +738,9 @@
                     <Run FontWeight="SemiBold" Text="Right-click &#x2192; Settings:"/>
                     <Run Text=" Open this Settings window" Foreground="{DynamicResource ForegroundSecondary}"/>
                     <LineBreak/>
+                    <Run FontWeight="SemiBold" Text="Right-click &#x2192; Restart DeskGroup:"/>
+                    <Run Text=" Save all groups and restart the app" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
                     <Run FontWeight="SemiBold" Text="Right-click &#x2192; Exit DeskGroup:"/>
                     <Run Text=" Close the application completely" Foreground="{DynamicResource ForegroundSecondary}"/>
                 </TextBlock>
@@ -785,6 +788,10 @@
                     <Run Text="• In Settings &#x2192; Hotkeys, choose Keyboard / Mouse / Both for each action — assign a mouse button (MiddleClick, XButton1, ScrollUp, etc.) as an alternative or combined trigger" Foreground="{DynamicResource ForegroundSecondary}"/>
                     <LineBreak/>
                     <Run Text="• Enable Shell context menu in Settings then Apply; right-click any .lnk or .url file and choose 'Add to DeskGroup' (on Windows 11: right-click &#x2192; Show more options first)" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run Text="• A loading cursor appears briefly when launching a shortcut — normal for slow-starting apps; it resets automatically after a few seconds" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run Text="• If DeskGroup is already running, double-clicking its taskbar or desktop shortcut will show all your groups instead of silently doing nothing" Foreground="{DynamicResource ForegroundSecondary}"/>
                 </TextBlock>
             </StackPanel>
         </ScrollViewer>
