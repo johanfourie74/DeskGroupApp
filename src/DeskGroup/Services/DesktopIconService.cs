@@ -59,6 +59,7 @@ public class DesktopIconService
                 storedPath = Path.Combine(_storagePath, $"{shortcut.Id}_{Guid.NewGuid():N}_{fileName}");
 
             File.Move(originalPath, storedPath);
+            shortcut.StoredFilePath = storedPath;
             shortcut.OriginalIconHidden = true;
             NotifyShellDeleted(originalPath);
 
