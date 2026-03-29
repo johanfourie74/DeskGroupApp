@@ -148,11 +148,20 @@ Only after Steps 1–4. See BACKLOG.md. Top candidates:
 - Write chosen values to settings.json before first launch
 - See BACKLOG.md "NOTE F"
 
-**Note G — Window alignment & spacing tool (significant feature, v1.5+):**
-- Select 2+ windows → align edges (Top/Bottom/Left/Right) or distribute evenly
-- Place first + last, auto-space the middle ones horizontally or vertically
+**Note G — Window alignment, spacing & sizing tool (significant feature, v1.5+):**
+- Select 2+ windows → align edges (Top/Bottom/Left/Right), distribute evenly, OR match size
+- **First selected = anchor** — all others align/resize to match it; anchor never moves
+- New sizing buttons: Same Width, Same Height, Same Size (matched to anchor)
 - Extend Win32Interop.cs (GetWindowRect/SetWindowPos), new WindowAlignmentHelper.cs
-- See BACKLOG.md "NOTE G"
+- See BACKLOG.md "NOTE G" for full button table — **updated 2025-07-13**
+
+**Bug M — Drag icon directly from one group to another fails:**
+- Drag from Group A → drop on Group B → nothing happens; icon stays in A
+- Workaround: drag to desktop first, then into Group B (unacceptable UX)
+- Root cause: drop handler likely only accepts `DataFormats.FileDrop` (shell), rejects internal `DragThumb` format; also transparent-window hit-testing may block the drop
+- Fix: define custom `"DeskGroup.IconDrop"` format in `DragThumb`; accept it in `GroupWidget` drop handler; move icon between groups on success
+- Files: `DragThumb.xaml.cs`, `GroupWidget.xaml.cs`, `GroupViewModel.cs`
+- See BACKLOG.md "BUG M" — **Priority: High**
 
 **Bug H — Secondary popups appear behind their parent (all remaining dialogs):**
 - Same root cause as the previously fixed dialog — `Owner` not set before `ShowDialog()`

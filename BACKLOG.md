@@ -1,8 +1,8 @@
 # DeskGroup - Development Backlog
 
-**Last Updated:** 2025-07-13 (session 5)  
+**Last Updated:** 2025-07-13 (session 6)  
 **Status:** ✅ **v1.4.1 SHIPPED — NEXT: public repo setup + bug reporting (v1.4.2)**  
-**Commit:** `d749259`
+**Commit:** `5eeb0dd`
 
 ---
 
@@ -130,26 +130,43 @@ This is now a standing checklist item for every PR/commit that ships user-facing
 
 ---
 
-### 💡 NOTE G — Window alignment & spacing tool 📐
-**Requested:** 2025-07-13
+### 💡 NOTE G — Window alignment, spacing & sizing tool 📐
+**Requested:** 2025-07-13 (updated 2025-07-13)
 
 **Goal:** Select 2 or more open application windows and:
-1. **Align** them — Top / Bottom / Left / Right edge alignment of selected windows.
-2. **Space evenly** — place first and last windows manually, then distribute the middle ones with equal spacing between them, both horizontally and vertically.
+1. **Align edges** — Top / Bottom / Left / Right edge alignment.
+2. **Space evenly** — place first and last windows, distribute middle ones with equal spacing (horizontal or vertical).
+3. **Match size** — make all selected windows the same width and/or height as the **anchor** (first selected).
+
+**Anchor rule (critical):**
+> The **first** window selected is always the **anchor**. All other windows align to it, space relative to it, or resize to match it. The anchor itself never moves or resizes.
+
+**Full button set:**
+
+| Button | Action |
+|--------|--------|
+| Align Left | Left edges align to anchor's left edge |
+| Align Right | Right edges align to anchor's right edge |
+| Align Top | Top edges align to anchor's top edge |
+| Align Bottom | Bottom edges align to anchor's bottom edge |
+| Distribute Horizontally | Even horizontal spacing between first and last |
+| Distribute Vertically | Even vertical spacing between first and last |
+| Same Width | Resize all to match anchor's width |
+| Same Height | Resize all to match anchor's height |
+| Same Size | Both width + height matched to anchor |
 
 **UX concept:**
-- Multi-select windows (e.g. hold Ctrl + click icons in group, or a dedicated "select mode").
-- Alignment toolbar / floating mini-panel appears with alignment and distribute buttons.
-- Buttons: Align Left, Align Right, Align Top, Align Bottom, Distribute Horizontally, Distribute Vertically.
-- "Distribute" uses outermost selected window bounds as the min/max anchors, spaces all middle windows evenly between them.
+- Multi-select: hold Ctrl + click icons in group (or dedicated "select mode").
+- First clicked = anchor (visually marked, e.g. highlighted border).
+- Alignment/sizing toolbar / floating mini-panel appears when 2+ are selected.
+- Anchor indicator shown clearly so user knows which is the reference.
 
 **Implementation notes:**
-- Use `GetWindowRect` / `SetWindowPos` Win32 APIs (already have `Win32Interop.cs` — extend it).
-- Need to track selected window handles — may require a new "selection mode" UX concept.
-- Could live in `GroupWidget` as a multi-select context menu action, or as a standalone floating toolbar.
+- `GetWindowRect` / `SetWindowPos` Win32 APIs — already have `Win32Interop.cs`, extend it.
+- Same-size operations use `SetWindowPos` with the anchor's `cx`/`cy` values.
 - New helper: `WindowAlignmentHelper.cs` in `src\DeskGroup\Helpers\`.
-- This is a significant feature — size it as a separate minor version (v1.5.x or v1.6.x).
-- **Must update Help panel + README** when implemented.
+- This is a significant feature — size as a separate minor version (v1.5.x or v1.6.x).
+- **Must update Help panel + README** when implemented (full button reference table).
 
 ---
 
@@ -271,6 +288,31 @@ This is now a standing checklist item for every PR/commit that ships user-facing
 **Files to touch:** `GroupWidget.xaml.cs` (icon click handler), possibly `IconTile.xaml.cs`.
 
 **Priority:** Low-Medium — small effort, noticeable UX improvement for slow-launching apps.
+
+---
+
+### 🐛 BUG M — Drag icon directly from one group to another fails
+**Reported:** 2025-07-13
+
+**Behaviour:** Dragging an icon/shortcut tile from Group A and dropping it onto Group B fails silently — the icon stays in Group A and does not appear in Group B. Workaround: drag the icon to the desktop first, then drag from the desktop into Group B. Direct group-to-group drag must work.
+
+**Suspected cause:**
+- The drop handler on `GroupWidget` only accepts drops originating from the desktop shell (`DataFormats.FileDrop`) — it likely rejects the internal drag format emitted by `DragThumb`.
+- Cross-window hit-testing may also fail because each `GroupWidget` is a separate `Window` with `AllowsTransparency=True` and `WindowStyle=None`; WPF drag-drop can miss transparent windows as drop targets.
+
+**Action plan:**
+1. Check `DragThumb.xaml.cs` — what `DataObject` format is set when a drag starts from a group icon.
+2. Check the drop handler in `GroupWidget.xaml.cs` (`Window_Drop` or equivalent) — confirm it rejects the internal format.
+3. Define a custom drag format (e.g. `"DeskGroup.IconDrop"`) carrying the source `IconViewModel` + source `GroupViewModel`.
+4. In `DragThumb`, set both the custom format AND `DataFormats.FileDrop` (for desktop drops) on the `DataObject`.
+5. In `GroupWidget` drop handler, check for `"DeskGroup.IconDrop"` first; if present, move the icon from source group to destination group.
+6. On successful cross-group drop: `DestGroup.Icons.Add(icon)`, `SourceGroup.Icons.Remove(icon)`, persist both.
+7. Ensure `AllowDrop=True` on `GroupWidget` root element and that `DragOver` sets `e.Effects = DragDropEffects.Move`.
+8. Test: drag A→B, drag B→A, drag to desktop, drag from desktop. No duplicates. Persists after restart.
+
+**Files to touch:** `DragThumb.xaml.cs` (drag data format), `GroupWidget.xaml.cs` (drop handler + cross-group logic), `GroupViewModel.cs` (add/remove icons).
+
+**Priority:** High — core UX is broken for direct group-to-group moves; workaround is awkward and unintuitive.
 
 ---
 
