@@ -1,10 +1,119 @@
 # 🚀 START HERE - Next Session
 
-**Last Session Date:** 2025-07-13  
-**Status:** ✅ **CLEAN BUILD — 7 FIXES COMMITTED — READY FOR PUBLIC REPO + v1.4.2**  
+**Last Session Date:** 2025-07-14  
+**Status:** ✅ **CLEAN BUILD — Bug D/E/M FIXED — v1.4.3 BUILT & PUSHED — GitHub Release pending (manual)**  
 **Current Branch:** `Dev`  
-**Latest Commit:** `b47fe1d` (fix: Bug J/H/I/C, Note A/K/L — hotkey migration, dialog owners, cursor spinner, SHChangeNotify, tray sync, IPC show-all, restart menu)  
-**Restore Point:** `b47fe1d` ← **USE THIS**
+**Latest Commit:** `241c83a` (chore: bump version to 1.4.3...)  
+**Restore Point:** `241c83a` ← **USE THIS**
+
+---
+
+## 📍 WHERE WE ARE
+
+### ✅ COMPLETED THIS SESSION (Session 8 — 3 bug fixes, 2 commits)
+
+1. **Bug D ✅** (`b9ecd1f`) — `ShortcutItem.cs`: added `StoredFilePath` property. `DesktopIconService.cs`: populates `StoredFilePath` after `File.Move`. `ShortcutItemViewModel.cs`: `BuildLaunchInfo()` priority chain — 1) `StoredFilePath` (.lnk in HiddenIcons), 2) `OriginalShortcutPath` (desktop), 3) `TargetPath` (exe fallback). `Launch()` shows `MessageBox` on failure instead of swallowing silently.
+
+2. **Bug E ✅** (`b9ecd1f`) — `GroupWidget.xaml.cs` `OnDragEnter` + new `OnDragOver`: now accept `"DeskGroupShortcut"` format with `DragDropEffects.Move`. Previously returned `None` → Drop event never fired → reorder silently failed.
+
+3. **Bug M ✅** (`b9ecd1f`) — `GroupViewModel.cs`: `TransferShortcutToGroup()` transfers `OriginalIconState` to destination + removes from source + adds to destination (no desktop ops). `GroupWidget.xaml.cs` `OnDrop` + `OnIconDropInternal`: cross-group branch calls `TransferShortcutToGroup`; same-group branch calls existing `MoveShortcut`.
+
+4. **Version bump ✅** (`241c83a`) — `DeskGroup.csproj` → `1.4.3`. `SettingsWindow.xaml` VersionText → `Version 1.4.3`. README changelog + BACKLOG + Help Tips all updated.
+
+5. **Artifacts ✅** — `DeskGroup-Setup-1.4.3.exe` + `DeskGroup-Portable-1.4.3.zip` built to `build\output\`.
+
+6. **Pushed ✅** — `origin/Dev` pushed. `public/main` (DeskGroupApp) synced. Tags `v1.4.3` pushed to both remotes.
+
+---
+
+## ⏳ ONE MANUAL STEP REMAINING
+
+### 🔴 GitHub Release on DeskGroup (private) — MUST DO MANUALLY
+
+`gh` CLI not installed. Create the release manually:
+
+1. Go to: **https://github.com/johanfourie74/DeskGroup/releases/new**
+2. Tag: `v1.4.3` (already exists)
+3. Title: `v1.4.3 — Bug Fixes: cross-group drag, drag-to-reorder, stale launch path`
+4. Release notes:
+   ```
+   ## What's fixed in v1.4.3
+
+   - **Bug D — Stale launch path**: Shortcuts that failed to launch after reinstall/upgrade now work correctly. DeskGroup tracks the managed `.lnk` path and always re-resolves via shell rather than using a cached executable path.
+   - **Bug E — Drag-to-reorder**: Dragging icons within a group to reorder them now works first time, every time. The drag-enter handler was incorrectly rejecting the internal drag format, preventing the drop event from firing.
+   - **Bug M — Cross-group drag**: Drag an icon from one group window and drop it onto another — it moves cleanly, preserving desktop-restore state.
+   ```
+5. Attach: `build\output\DeskGroup-Setup-1.4.3.exe`
+6. Attach: `build\output\DeskGroup-Portable-1.4.3.zip`
+7. Click **Publish release**
+
+> ℹ️ DeskGroupApp (public) already has the tag `v1.4.3` pushed — that's source only, no binaries there.
+
+---
+
+## 🎯 WHAT'S NEXT AFTER RELEASE
+
+### Backlog items (no locked order — pick by priority):
+
+| Priority | Item | Notes |
+|---|---|---|
+| High | **Bug N — Desktop icon refresh** | `SHChangeNotify` not repaint-triggering in all cases on Win 11; icons sometimes duplicate visually |
+| Medium | **Note F — Installer prefs** | Inno Setup: expose key settings (autostart, view mode, hotkey) during install |
+| Medium | **Note G — Alignment/snap helper** | Visual guides when dragging groups near screen edges or other groups |
+| Low | **Note H — First Run wizard polish** | Review FirstRunSetupDialog UX after real-world testing |
+
+---
+
+## 🔧 QUICK REFERENCE COMMANDS
+
+```powershell
+# Status
+cd C:\Dev\DeskGroup; git status; git log --oneline -5
+
+# Build
+.\build\build-installer.ps1
+.\build\build-portable.ps1
+
+# Push private
+git push origin Dev
+
+# Sync public
+git checkout public-main
+git checkout Dev -- src/ build/ README.md
+git commit -m "chore: sync vX.Y.Z to public release branch"
+git push public public-main:main
+git tag vX.Y.Z
+git push public vX.Y.Z
+git push origin vX.Y.Z
+git checkout Dev
+
+# Artifacts location
+build\output\DeskGroup-Setup-1.4.3.exe
+build\output\DeskGroup-Portable-1.4.3.zip
+```
+
+---
+
+## ⚠️ KNOWN ISSUES / GOTCHAS
+
+- `UpdateService.cs` `Repo = "DeskGroup"` — **DO NOT CHANGE**. DeskGroup (private) is the release repo. DeskGroupApp is source-only.
+- `gh` CLI is NOT installed — GitHub Releases must be created via browser.
+- Drag-drop `"DeskGroupShortcut"` format: `IconTile.OnPreviewMouseMove` initiates; `GroupWidget.OnDragEnter/Over/Drop` accept; result `== None` removes from source.
+- Position save guard: positions outside `-5000..10000` are never saved (hide/show transition artifacts).
+- `_isInitializing = true` during `GroupViewModel` constructor — all `partial void OnXxxChanged` return early, so no `SyncToModel` during load.
+
+---
+
+## 📁 GIT STATE
+
+```
+Branch:    Dev
+HEAD:      241c83a
+origin:    https://github.com/johanfourie74/DeskGroup  (private, releases here)
+public:    https://github.com/johanfourie74/DeskGroupApp  (source only)
+Tags:      v1.4.3 on both remotes
+Clean:     yes (no unstaged changes)
+```
 
 ---
 
