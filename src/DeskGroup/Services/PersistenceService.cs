@@ -133,14 +133,23 @@ public class PersistenceService
                 return defaults;
             }
             var json = await File.ReadAllTextAsync(_settingsFilePath);
-            var settings = JsonSerializer.Deserialize<AppSettings>(json, JsonOptions);
-            return settings ?? new AppSettings();
+            var settings = JsonSerializer.Deserialize<AppSettings>(json, JsonOptions) ?? new AppSettings();
+            MigrateSettings(settings);
+            return settings;
         }
         catch (Exception ex)
         {
             ErrorOccurred?.Invoke(this, new PersistenceErrorEventArgs("Failed to load settings. Using defaults.", ex));
             return new AppSettings();
         }
+    }
+
+    // One-time migrations applied whenever settings are loaded from an older version.
+    private static void MigrateSettings(AppSettings settings)
+    {
+        // v1.4.1 → v1.4.2: default hotkey changed from Ctrl+Alt+G to Ctrl+F2
+        if (settings.ToggleAllHotkey == "Ctrl+Alt+G")
+            settings.ToggleAllHotkey = "Ctrl+F2";
     }
 
     public async Task SaveSettingsImmediateAsync(AppSettings settings)

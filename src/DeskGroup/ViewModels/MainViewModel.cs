@@ -85,6 +85,9 @@ public partial class MainViewModel : ObservableObject
 
         _desktopIconService.CleanupOrphans(_groupModels);
 
+        // Sync AllGroupsVisible with actual loaded state so first tray-click toggles correctly
+        AllGroupsVisible = _groupModels.Count == 0 || _groupModels.Any(g => g.IsVisible);
+
         if (_settings.IsFirstRun)
         {
             WasFirstRun = true;
@@ -143,6 +146,11 @@ public partial class MainViewModel : ObservableObject
             var dialog = new DeskGroup.Views.HotkeyWarningDialog(
                 "Hotkey Registration Failed",
                 message);
+
+            // Set owner to the active window so the dialog appears on top
+            dialog.Owner = Application.Current?.Windows.OfType<System.Windows.Window>()
+                .FirstOrDefault(w => w.IsActive)
+                ?? Application.Current?.MainWindow;
 
             // Change button texts and styles for this scenario
             dialog.CancelButtonControl.Content = "IGNORE";

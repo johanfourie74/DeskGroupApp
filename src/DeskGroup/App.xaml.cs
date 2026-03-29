@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -62,6 +63,7 @@ public partial class App : Application
 
         // Handle special launch modes before any other initialization
         string? addToGroupPath = null;
+        bool showAllGroups = e.Args.Contains("--show-all");
         for (int i = 0; i < e.Args.Length - 1; i++)
             if (e.Args[i] == "--add-to-group") { addToGroupPath = e.Args[i + 1]; break; }
 
@@ -78,6 +80,8 @@ public partial class App : Application
         {
             if (addToGroupPath != null)
                 NamedPipeServer.TrySend(addToGroupPath);
+            else if (showAllGroups)
+                NamedPipeServer.TrySend("--show-all");
             else
                 MessageBox.Show(
                     "DeskGroup is already running.\n\nCheck your system tray.",
@@ -145,10 +149,15 @@ public partial class App : Application
         else
             ShellContextMenuHelper.UnregisterContextMenu();
 
-        // Start IPC pipe server for --add-to-group messages from shell context menu
+        // Start IPC pipe server for --add-to-group and --show-all messages
         _pipeServer = new NamedPipeServer();
-        _pipeServer.MessageReceived += (s, path) =>
-            Dispatcher.Invoke(() => ShowUngroupedIconsDialog(new List<string> { path }));
+        _pipeServer.MessageReceived += (s, msg) => Dispatcher.Invoke(() =>
+        {
+            if (msg == "--show-all")
+                _mainViewModel?.ShowAllGroupsCommand.Execute(null);
+            else
+                ShowUngroupedIconsDialog(new List<string> { msg });
+        });
         _pipeServer.Start();
 
         // Create Helper Window for Hotkeys
@@ -233,6 +242,8 @@ public partial class App : Application
             var setupDialog = new FirstRunSetupDialog(
                 _mainViewModel.Settings,
                 new Services.PersistenceService());
+            setupDialog.Owner = _helperWindow;
+            setupDialog.WindowStartupLocation = WindowStartupLocation.CenterScreen;
             setupDialog.ShowDialog();
         }
 
@@ -619,6 +630,29 @@ public partial class App : Application
         menu.Items.Add(settings);
 
         menu.Items.Add(new System.Windows.Controls.Separator());
+
+        // Restart
+        var restart = new System.Windows.Controls.MenuItem { Header = "Restart DeskGroup" };
+        restart.Click += async (s, e) =>
+        {
+            var result = MessageBox.Show(
+                "Restart DeskGroup?\n\nAll groups will be saved.",
+                "Restart",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+            if (result == MessageBoxResult.Yes)
+            {
+                if (_mainViewModel != null)
+                    await _mainViewModel.SaveAllAsync();
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = Environment.ProcessPath ?? System.AppContext.BaseDirectory + "DeskGroup.exe",
+                    UseShellExecute = true
+                });
+                Shutdown();
+            }
+        };
+        menu.Items.Add(restart);
 
         // Exit
         var exit = new System.Windows.Controls.MenuItem { Header = "Exit DeskGroup" };

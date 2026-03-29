@@ -256,6 +256,11 @@ public partial class ShortcutItemViewModel : ObservableObject
     [RelayCommand]
     private void Launch()
     {
+        System.Windows.Input.Mouse.OverrideCursor = System.Windows.Input.Cursors.AppStarting;
+        var resetTimer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(4) };
+        resetTimer.Tick += (_, _) => { System.Windows.Input.Mouse.OverrideCursor = null; resetTimer.Stop(); };
+        resetTimer.Start();
+
         try
         {
             var startInfo = new ProcessStartInfo
@@ -273,6 +278,8 @@ public partial class ShortcutItemViewModel : ObservableObject
         }
         catch (Exception ex)
         {
+            resetTimer.Stop();
+            System.Windows.Input.Mouse.OverrideCursor = null;
             Debug.WriteLine($"Failed to launch shortcut: {ex.Message}");
         }
     }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using DeskGroup.Models;
 
 namespace DeskGroup.Services;
@@ -59,6 +60,7 @@ public class DesktopIconService
 
             File.Move(originalPath, storedPath);
             shortcut.OriginalIconHidden = true;
+            NotifyShellDeleted(originalPath);
 
             return new OriginalIconState
             {
@@ -89,6 +91,7 @@ public class DesktopIconService
                 return true;
             }
             File.Move(state.StoredFilePath, state.OriginalFilePath);
+            NotifyShellCreated(state.OriginalFilePath);
             return true;
         }
         catch { return false; }
@@ -117,7 +120,7 @@ public class DesktopIconService
                     try
                     {
                         var desktopPath = Path.Combine(_desktopPath, ExtractOriginalFileName(file));
-                        if (!File.Exists(desktopPath)) File.Move(file, desktopPath);
+                        if (!File.Exists(desktopPath)) { File.Move(file, desktopPath); NotifyShellCreated(desktopPath); }
                         else File.Delete(file);
                     }
                     catch { }
@@ -134,5 +137,36 @@ public class DesktopIconService
         if (underscoreIndex > 0 && underscoreIndex < fileName.Length - 1)
             return fileName[(underscoreIndex + 1)..];
         return fileName;
+    }
+
+    // Shell notification — forces Windows Explorer to refresh immediately (no F5 needed)
+    [DllImport("shell32.dll")]
+    private static extern void SHChangeNotify(int wEventId, uint uFlags, IntPtr dwItem1, IntPtr dwItem2);
+
+    private const int SHCNE_CREATE = 0x00000002;
+    private const int SHCNE_DELETE = 0x00000004;
+    private const uint SHCNF_PATH  = 0x0005;
+    private const uint SHCNF_FLUSH = 0x1000;
+
+    private static void NotifyShellDeleted(string path)
+    {
+        try
+        {
+            var ptr = Marshal.StringToCoTaskMemUni(path);
+            SHChangeNotify(SHCNE_DELETE, SHCNF_PATH | SHCNF_FLUSH, ptr, IntPtr.Zero);
+            Marshal.FreeCoTaskMem(ptr);
+        }
+        catch { }
+    }
+
+    private static void NotifyShellCreated(string path)
+    {
+        try
+        {
+            var ptr = Marshal.StringToCoTaskMemUni(path);
+            SHChangeNotify(SHCNE_CREATE, SHCNF_PATH | SHCNF_FLUSH, ptr, IntPtr.Zero);
+            Marshal.FreeCoTaskMem(ptr);
+        }
+        catch { }
     }
 }

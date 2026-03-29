@@ -773,9 +773,10 @@ public partial class GroupWidget : Window
 
     private void MenuRename_Click(object sender, RoutedEventArgs e)
     {
-        // Simple input dialog
         var inputDialog = new InputDialog("Rename Group", "Enter new group name:",
             _viewModel?.Name ?? "");
+        inputDialog.Owner = this;
+        inputDialog.WindowStartupLocation = WindowStartupLocation.CenterOwner;
 
         if (inputDialog.ShowDialog() == true && !string.IsNullOrWhiteSpace(inputDialog.ResponseText))
         {
@@ -799,8 +800,9 @@ public partial class GroupWidget : Window
 
     private void MenuChangeColor_Click(object sender, RoutedEventArgs e)
     {
-        // Simple color picker dialog
         var colorDialog = new ColorPickerDialog(_viewModel?.AccentColorHex ?? "#0078D4");
+        colorDialog.Owner = this;
+        colorDialog.WindowStartupLocation = WindowStartupLocation.CenterOwner;
 
         if (colorDialog.ShowDialog() == true)
         {
