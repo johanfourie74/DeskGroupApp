@@ -12,7 +12,7 @@ namespace DeskGroup.Services;
 public sealed class UpdateService
 {
     private const string Owner = "johanfourie74";
-    private const string Repo  = "DeskGroup";
+    private const string Repo  = "DeskGroupApp";
     private const string ApiLatest = $"https://api.github.com/repos/{Owner}/{Repo}/releases/latest";
 
     public sealed record UpdateInfo(
