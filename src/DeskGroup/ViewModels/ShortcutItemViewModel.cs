@@ -263,16 +263,7 @@ public partial class ShortcutItemViewModel : ObservableObject
 
         try
         {
-            var startInfo = new ProcessStartInfo
-            {
-                UseShellExecute = true,
-                FileName = !string.IsNullOrEmpty(_model.TargetPath)
-                    ? _model.TargetPath : _model.OriginalShortcutPath
-            };
-            if (!string.IsNullOrEmpty(_model.Arguments)) startInfo.Arguments = _model.Arguments;
-            if (!string.IsNullOrEmpty(_model.WorkingDirectory)) startInfo.WorkingDirectory = _model.WorkingDirectory;
-
-            Process.Start(startInfo);
+            Process.Start(BuildLaunchInfo());
             _usageTracker.RecordLaunch(_model);
             LaunchCount = _model.LaunchCount;
         }
@@ -281,7 +272,35 @@ public partial class ShortcutItemViewModel : ObservableObject
             resetTimer.Stop();
             System.Windows.Input.Mouse.OverrideCursor = null;
             Debug.WriteLine($"Failed to launch shortcut: {ex.Message}");
+            System.Windows.MessageBox.Show(
+                $"Could not open \"{_model.DisplayName}\".\n\n{ex.Message}\n\nTry removing and re-adding the shortcut.",
+                "Launch Failed",
+                System.Windows.MessageBoxButton.OK,
+                System.Windows.MessageBoxImage.Warning);
         }
+    }
+
+    private ProcessStartInfo BuildLaunchInfo()
+    {
+        // 1. Prefer managed .lnk/.url in HiddenIcons storage — shell re-resolves the target
+        //    fresh every launch, so this survives app reinstalls and path changes.
+        if (!string.IsNullOrEmpty(_model.StoredFilePath) && System.IO.File.Exists(_model.StoredFilePath))
+            return new ProcessStartInfo { UseShellExecute = true, FileName = _model.StoredFilePath };
+
+        // 2. Try the original desktop path (.lnk still on the desktop when HideGroupedIcons=false)
+        if (!string.IsNullOrEmpty(_model.OriginalShortcutPath) && System.IO.File.Exists(_model.OriginalShortcutPath))
+            return new ProcessStartInfo { UseShellExecute = true, FileName = _model.OriginalShortcutPath };
+
+        // 3. Fall back to the resolved TargetPath captured at add-time (may be stale after reinstall)
+        if (!string.IsNullOrEmpty(_model.TargetPath))
+        {
+            var info = new ProcessStartInfo { UseShellExecute = true, FileName = _model.TargetPath };
+            if (!string.IsNullOrEmpty(_model.Arguments)) info.Arguments = _model.Arguments;
+            if (!string.IsNullOrEmpty(_model.WorkingDirectory)) info.WorkingDirectory = _model.WorkingDirectory;
+            return info;
+        }
+
+        throw new InvalidOperationException("No valid launch path found. The shortcut may have been moved or uninstalled.");
     }
 
     [RelayCommand]

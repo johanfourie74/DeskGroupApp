@@ -109,6 +109,7 @@ public partial class GroupWidget : Window
         DataContextChanged += OnDataContextChanged;
         Drop += OnDrop;
         DragEnter += OnDragEnter;
+        DragOver += OnDragOver;
         KeyDown += OnKeyDown; // Keyboard shortcuts
         PreviewMouseLeftButtonDown += OnAnyMouseClick; // Catch ALL clicks to restore sticky mode
         MouseLeftButtonUp += OnMouseUpSyncPosition; // Sync position after ANY mouse release
@@ -637,19 +638,43 @@ public partial class GroupWidget : Window
 
     private void OnDragEnter(object sender, DragEventArgs e)
     {
-        if (e.Data.GetDataPresent(DataFormats.FileDrop))
-        {
+        if (e.Data.GetDataPresent("DeskGroupShortcut"))
+            e.Effects = DragDropEffects.Move;
+        else if (e.Data.GetDataPresent(DataFormats.FileDrop))
             e.Effects = DragDropEffects.Copy;
-        }
         else
-        {
             e.Effects = DragDropEffects.None;
-        }
+        e.Handled = true;
+    }
+
+    private void OnDragOver(object sender, DragEventArgs e)
+    {
+        if (e.Data.GetDataPresent("DeskGroupShortcut"))
+            e.Effects = DragDropEffects.Move;
+        else if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            e.Effects = DragDropEffects.Copy;
+        else
+            e.Effects = DragDropEffects.None;
         e.Handled = true;
     }
 
     private void OnDrop(object sender, DragEventArgs e)
     {
+        // Cross-group shortcut transfer — dropped on header, compact, or hover area
+        if (e.Data.GetDataPresent("DeskGroupShortcut"))
+        {
+            var source = e.Data.GetData("DeskGroupShortcut") as ShortcutItemViewModel;
+            if (source != null && _viewModel != null && !_viewModel.AllShortcuts.Contains(source))
+            {
+                var sourceGroup = GetMainViewModel()?.Groups.FirstOrDefault(g => g.AllShortcuts.Contains(source));
+                if (sourceGroup != null)
+                    sourceGroup.TransferShortcutToGroup(source, _viewModel);
+            }
+            e.Effects = DragDropEffects.Move;
+            e.Handled = true;
+            return;
+        }
+
         if (e.Data.GetDataPresent(DataFormats.FileDrop))
         {
             var files = (string[])e.Data.GetData(DataFormats.FileDrop);
@@ -1540,11 +1565,21 @@ public partial class GroupWidget : Window
         var source = e.Data.GetData("DeskGroupShortcut") as ShortcutItemViewModel;
         if (source == null) { e.Handled = true; return; }
 
-        var dropPoint = e.GetPosition(this);
-        var target = FindShortcutViewModelAtPoint(dropPoint);
-
-        if (target != null && !ReferenceEquals(source, target))
-            _viewModel.MoveShortcut(source, target);
+        if (!_viewModel.AllShortcuts.Contains(source))
+        {
+            // Cross-group: move the shortcut from its source group into this one
+            var sourceGroup = GetMainViewModel()?.Groups.FirstOrDefault(g => g.AllShortcuts.Contains(source));
+            if (sourceGroup != null)
+                sourceGroup.TransferShortcutToGroup(source, _viewModel);
+        }
+        else
+        {
+            // Same-group reorder
+            var dropPoint = e.GetPosition(this);
+            var target = FindShortcutViewModelAtPoint(dropPoint);
+            if (target != null && !ReferenceEquals(source, target))
+                _viewModel.MoveShortcut(source, target);
+        }
 
         e.Effects = DragDropEffects.Move;
         e.Handled = true;

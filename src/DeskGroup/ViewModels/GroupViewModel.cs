@@ -669,5 +669,34 @@ public partial class GroupViewModel : ObservableObject
         // and exit renaming mode
         IsRenaming = false;
     }
+
+    /// <summary>
+    /// Moves a shortcut from this group into <paramref name="destination"/> without touching
+    /// the desktop. The OriginalIconState ownership transfers with it so desktop restore
+    /// continues to work correctly on the new group.
+    /// </summary>
+    public void TransferShortcutToGroup(ShortcutItemViewModel vm, GroupViewModel destination)
+    {
+        // Transfer the OriginalIconState so desktop-restore still knows where the .lnk lives
+        var originalState = _model.OriginalIconStates.FirstOrDefault(s => s.ShortcutItemId == vm.Model.Id);
+        if (originalState != null)
+        {
+            _model.OriginalIconStates.Remove(originalState);
+            destination.Model.OriginalIconStates.Add(originalState);
+        }
+
+        // Remove from source (no desktop restore — file stays in HiddenIcons storage)
+        _model.Shortcuts.Remove(vm.Model);
+        AllShortcuts.Remove(vm);
+        for (int i = 0; i < _model.Shortcuts.Count; i++)
+            _model.Shortcuts[i].SortOrder = i;
+        RefreshTopUsed();
+
+        // Add to destination (no desktop hide — already hidden or not on desktop)
+        vm.Model.SortOrder = destination.Model.Shortcuts.Count;
+        destination.Model.Shortcuts.Add(vm.Model);
+        destination.AllShortcuts.Add(vm);
+        destination.RefreshTopUsed();
+    }
 }
 

@@ -18,4 +18,7 @@ public class ShortcutItem
     public string WorkingDirectory { get; set; } = string.Empty;
     public string Arguments { get; set; } = string.Empty;
     public bool OriginalIconHidden { get; set; } = false;
+    // Path where the .lnk/.url was stored when HideGroupedIcons moved it off the desktop.
+    // Empty when HideGroupedIcons=false (file stays on desktop).
+    public string StoredFilePath { get; set; } = string.Empty;
 }

@@ -490,7 +490,7 @@
                            Margin="0,16,0,8"/>
 
                 <TextBlock x:Name="VersionText"
-                           Text="Version 1.4.2"
+                           Text="Version 1.4.3"
                            FontFamily="{DynamicResource DefaultFont}"
                            FontSize="{DynamicResource FontSizeNormal}"
                            Foreground="{DynamicResource ForegroundSecondary}"
@@ -760,6 +760,8 @@
                     <Run Text="• Double-click the group header to toggle pin (lock/unlock position)" Foreground="{DynamicResource ForegroundSecondary}"/>
                     <LineBreak/>
                     <Run Text="• Drag an icon within a group to reorder it" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run Text="• Drag an icon from one group and drop it onto another group to move it between groups" Foreground="{DynamicResource ForegroundSecondary}"/>
                     <LineBreak/>
                     <Run Text="• Drag a desktop shortcut directly onto a group to add it" Foreground="{DynamicResource ForegroundSecondary}"/>
                     <LineBreak/>

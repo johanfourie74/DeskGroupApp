@@ -117,6 +117,11 @@ Access via **tray icon > Settings** or right-click any group widget.
 
 ## Changelog
 
+### v1.4.3
+- ✅ Fixed: Drag-to-reorder icons within a group now works reliably (DragEnter was incorrectly rejecting internal drag format)
+- ✅ Fixed: Dragging an icon directly from one group to another now moves it correctly (cross-group transfer with desktop-restore state preserved)
+- ✅ Fixed: Shortcut launch no longer silently fails after a re-install or upgrade — uses the managed `.lnk` path with shell re-resolution, falling back to desktop path then target executable
+
 ### v1.4.2
 - ✅ Added: Crash logs written to `%LOCALAPPDATA%\DeskGroup\crash-reports\` on unexpected errors (max 10 files, 30-day retention)
 - ✅ Added: **🐛 Report a Bug** button in the **About** tab — opens a pre-filled GitHub issue with version, OS, and .NET runtime info
