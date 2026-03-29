@@ -168,6 +168,14 @@ Only after Steps 1–4. See BACKLOG.md. Top candidates:
 - Files: `ShellContextMenuHelper.cs` or `GroupViewModel.cs` (wherever file move happens) + `Win32Interop.cs`
 - See BACKLOG.md "BUG I" — **Priority: High**
 
+**Bug J — Default hotkey still `Ctrl+Alt+G` on fresh Win 11 install of v1.4.1 (should be `Ctrl+F2`):**
+- User confirmed correct v1.4.1 build — hotkey default reverts to old value
+- Most likely: stale `settings.json` from prior install loaded on startup, overriding code default
+- Also check: installer-seeded settings file, and confirm AppSettings.cs default compiled correctly
+- One-time migration guard may be needed: if loaded value == `Ctrl+Alt+G` → reset to `Ctrl+F2`
+- Files: `AppSettings.cs`, `PersistenceService.cs`, `build\installer.iss`
+- See BACKLOG.md "BUG J" — **Priority: Medium**
+
 ---
 
 ## ⚡ QUICK REFERENCE COMMANDS

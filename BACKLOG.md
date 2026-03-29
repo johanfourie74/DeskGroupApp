@@ -1,8 +1,8 @@
 # DeskGroup - Development Backlog
 
-**Last Updated:** 2025-07-13 (session 3)  
+**Last Updated:** 2025-07-13 (session 4)  
 **Status:** ✅ **v1.4.1 SHIPPED — NEXT: public repo setup + bug reporting (v1.4.2)**  
-**Commit:** `1e5586f`
+**Commit:** `f369831`
 
 ---
 
@@ -192,6 +192,30 @@ This is now a standing checklist item for every PR/commit that ships user-facing
 5. Test: add icon → desktop should auto-refresh with no manual F5 needed. Test 3–4 icons in a row.
 
 **Priority:** High — looks like a data-loss/duplication bug to the user, very bad first impression.
+
+---
+
+### 🐛 BUG J — Default hotkey still shows `Ctrl+Alt+G` on fresh Win 11 install (should be `Ctrl+F2`)
+**Reported:** 2025-07-13  
+**OS:** Windows 11, v1.4.1 confirmed
+
+**Behaviour:** A fresh install of v1.4.1 on Win 11 still shows `Ctrl+Alt+G` as the Toggle All hotkey default, not `Ctrl+F2` which was supposedly changed in `AppSettings.cs`. User confirmed they were on the correct v1.4.1 build.
+
+**Suspected causes (check in this order):**
+1. **Stale `settings.json` from a prior install** — the persistence layer loads the saved file on startup and overwrites the code default. If `settings.json` existed in `%APPDATA%\DeskGroup\` from a previous version, the old `Ctrl+Alt+G` value is loaded and the new code default is never used. This is the most likely cause.
+2. **Default not saved to installer pre-seeded settings file** — if the installer drops a pre-filled `settings.json`, it may still contain the old value.
+3. **Code change not compiled into v1.4.1** — verify `AppSettings.cs` `ToggleAllHotkey` default is actually `Ctrl+F2` in the shipped binary (check `build\output`).
+
+**Action plan:**
+1. Open `src\DeskGroup\Models\AppSettings.cs` — confirm default is `Ctrl+F2` (was fixed in an earlier session).
+2. Check `PersistenceService.cs` load path — confirm there is no migration/upgrade path that would preserve old hotkey values on upgrade.
+3. Decide: should we **reset hotkey to default** if the loaded value matches the old legacy default `Ctrl+Alt+G`? That would be a one-time migration guard.
+4. If the installer seeds a `settings.json`, update it to match the new default.
+5. Document the migration behaviour in `AppSettings.cs` with a comment.
+
+**Files to investigate:** `AppSettings.cs`, `PersistenceService.cs`, `build\installer.iss` (if it seeds a settings file).
+
+**Priority:** Medium — confusing to users on fresh install; breaks expected hotkey out of the box.
 
 ---
 
