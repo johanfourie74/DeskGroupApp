@@ -1,51 +1,38 @@
 # 🚀 START HERE - Next Session
 
-**Last Session Date:** 2025-07-12  
-**Status:** ✅ **CLEAN BUILD — v1.4.1 SHIPPED — DOCS + IN-APP HELP FULLY UPDATED**  
+**Last Session Date:** 2025-07-13  
+**Status:** ✅ **CLEAN BUILD — 7 FIXES COMMITTED — READY FOR PUBLIC REPO + v1.4.2**  
 **Current Branch:** `Dev`  
-**Latest Commit:** `bc3f21d` (chore: bump to v1.4.1 — in-app help + About version fix)  
-**Restore Point:** `bc3f21d` ← **USE THIS**
+**Latest Commit:** `b47fe1d` (fix: Bug J/H/I/C, Note A/K/L — hotkey migration, dialog owners, cursor spinner, SHChangeNotify, tray sync, IPC show-all, restart menu)  
+**Restore Point:** `b47fe1d` ← **USE THIS**
 
 ---
 
 ## 📍 WHERE WE ARE
 
-### ✅ COMPLETED THIS SESSION (Phase 2 + v1.4.x docs/release)
+### ✅ COMPLETED THIS SESSION (Session 7 — 7 fixes, b47fe1d)
 
-1. **Phase 2 multi-fix** (commit `d8d290c`) — all 6 items:
-   - Win32 drag fix in `SettingsWindow.xaml.cs` (WM_NCLBUTTONDOWN)
-   - `HotkeyBox` — `CaptureMode` DP (KeyboardOnly/MouseOnly/All), Deactivated auto-cancel, duplicate detection
-   - `SettingsViewModel` — `OwnerWindow`, 4 new hotkey props, dialog owners set, `ValidateHotkeys` updated
-   - `SettingsWindow.xaml` — 2-row layout (mode ComboBox + ⌨️ + 🖱️ HotkeyBox per action)
-   - `HotkeyWarningDialog.xaml` — CenterOwner
-   - `HotkeyMode.cs` enum — Keyboard / Mouse / Both
+1. **Bug J ✅** — `PersistenceService.cs`: `MigrateSettings()` resets legacy `Ctrl+Alt+G` → `Ctrl+F2` on first load after upgrade.
 
-2. **⚙️ Settings in group body context menu** (commit `3d89aca`)
-   - Added to `GroupWidget.xaml` Window.ContextMenu + `MenuSettings_Click` handler
+2. **Bug H ✅** — Dialog owner audit: `GroupWidget.xaml.cs` (`MenuRename_Click`, `MenuChangeColor_Click`), `MainViewModel.cs` (`HotkeyWarningDialog`), `App.xaml.cs` (`FirstRunSetupDialog`) — all now have `Owner = this/window` + `CenterOwner`.
 
-3. **v1.4.0 version bump + build** (commit `db6dea1`)
-   - `DeskGroup-Setup-1.4.0.exe` (69 MB), `DeskGroup-Portable-1.4.0.zip` (68.6 MB)
+3. **Note L ✅** — `ShortcutItemViewModel.cs` `Launch()`: `Mouse.OverrideCursor = Cursors.AppStarting` + 4s `DispatcherTimer` reset. Cursor cleared immediately on exception.
 
-4. **README.md + in-app Help panel updated** (commit `453ecd7`)
-   - README: hotkey table corrected, new features documented, build markdown fixed
-   - Help panel: ⚙️ Settings entry, mouse hotkeys section, hotkey mode + shell context menu tips
+4. **Bug I ✅** — `DesktopIconService.cs`: Added `SHChangeNotify` P/Invoke (`SHCNE_DELETE` on hide, `SHCNE_CREATE` on restore/orphan-restore). Desktop now auto-refreshes without F5 on Win 11.
 
-5. **v1.4.1 version bump + build** (commit `bc3f21d`)
-   - About tab `VersionText` fixed (was stuck on 1.3.0)
-   - `DeskGroup-Setup-1.4.1.exe` (69 MB), `DeskGroup-Portable-1.4.1.zip` (68.6 MB)
-   - Both artifacts in `build\output\`
+5. **Note K ✅** — `App.xaml.cs` `BuildTrayContextMenu()`: Added "Restart DeskGroup" item above Exit, with `MessageBox` confirm → `SaveAllAsync` → `Process.Start` → `Shutdown`.
+
+6. **Note A ✅** — `--show-all` IPC wiring end-to-end: arg detection in `OnStartup`, `NamedPipeServer.TrySend("--show-all")` for second-instance, pipe receiver calls `ShowAllGroupsCommand.Execute(null)`.
+
+7. **Bug C ✅** — `MainViewModel.InitializeAsync()`: `AllGroupsVisible` now synced from loaded group state so first tray-click toggles the correct direction.
+
+**Build:** ✅ Clean — all 6 files, 102 insertions. Committed `b47fe1d`, pushed `origin/Dev`.
 
 ---
 
 ## 🎯 WHAT'S NEXT — LOCKED IN FOR NEXT SESSION
 
 > ⚠️ **Do these in order. Do not skip steps.**
-
----
-
-### **STEP 1 — Fix any bugs found during v1.4.1 testing** 🐛
-User tested v1.4.1. Address any confirmed bugs first before publishing anything.
-Suspected issues may be PC-specific — confirm before coding.
 
 ---
 
@@ -91,126 +78,48 @@ Suspected issues may be PC-specific — confirm before coding.
 **Part B — Automatic crash handler:**
 - Hook `App.xaml.cs` `DispatcherUnhandledException` + `AppDomain.CurrentDomain.UnhandledException`
 - On crash: write log to `%LOCALAPPDATA%\DeskGroup\crash-reports\crash-<timestamp>.txt`
-  - Include: stack trace, app version, OS version, timestamp
-- Show dialog: *"DeskGroup ran into a problem. Would you like to report this?"*
-  - **Yes** → open same pre-filled GitHub Issues URL with stack trace in body
-  - **No** → close silently
-- Crash logs kept for 30 days, max 10 files (auto-clean old ones)
-
-**Files to touch:** `App.xaml.cs`, `SettingsWindow.xaml`, `SettingsWindow.xaml.cs`, new `CrashReporter.cs` helper
+- Show dialog: *"DeskGroup ran into a problem. Would you like to report this?"* → Yes opens Issues URL
+- Crash logs kept for 30 days, max 10 files (auto-clean)
+- New file: `src\DeskGroup\Helpers\CrashReporter.cs`
 
 > ⚠️ **Requires Step 2 to be done first** — needs the public repo Issues URL.
 
 ---
 
 ### **STEP 4 — Bump to v1.4.2 + rebuild** 🔢
-After Steps 1–3 are complete, bump version and produce new installers.
+After Steps 2–3 complete.
 
 ---
 
-### **Priority 5: Feature Backlog** 📋
-Only after Steps 1–4. See BACKLOG.md. Top candidates:
-- Configurable hover delay (currently 300ms hardcoded)
-- Drag shortcuts between groups
-- Visual feedback during drag (highlight drop zones)
+### **STEP 5 — Note B: Update Help panel + README for all session-7 items** 📄
+Per the standing doc-update rule, all 7 completed fixes need Help panel + README updates.
+Items: Bug J (hotkey migration), Bug H (dialog owners), Bug I (SHChangeNotify), Bug C (tray sync),
+Note A (--show-all IPC), Note K (restart menu), Note L (cursor spinner).
 
 ---
 
-### **📝 Incoming Notes (captured 2025-07-13 — not yet scheduled)**
-
-**Note A — Functional desktop/taskbar icon:**
-- Left-click when already running → Show all groups (same as tray left-click)
-- Right-click → tray context menu / Jump List (Show All, Hide All, Settings, Exit)
-- Needs single-instance guard + IPC (named pipe or WM_COPYDATA)
-- See BACKLOG.md "NOTE A" for full spec
-
-**Note B — Standing doc-update rule:**
-- Every feature/fix must update: Help panel, README.md, BACKLOG.md in the same commit
-- See BACKLOG.md "NOTE B" for full checklist
-
-**Bug C — Tray icon first-click vanishes:**
-- Click tray icon → it disappears immediately, need second click. Had this before — check records.
-- Suspected: `Deactivated` auto-hide firing before user sees the window
-- See BACKLOG.md "BUG C"
-
-**Bug D — Icon shortcut single/double click unreliable:**
-- Click on group icon → sometimes nothing happens. Fix: remove + re-add icon to group.
-- Suspected: stale path or silent launch exception
-- See BACKLOG.md "BUG D"
-
-**Bug E — Drag-to-reorder icons unreliable:**
-- Dragging icons in a group to reorder needs 2–3 attempts to stick
-- Suspected: drop hit-test or collection update not firing on first drop
-- See BACKLOG.md "BUG E"
-
-**Note F — Installer: surface key Settings as install-time preferences:**
-- Autostart, default view mode, dock position, hotkey, tray icon visibility
-- Write chosen values to settings.json before first launch
-- See BACKLOG.md "NOTE F"
-
-**Note G — Window alignment, spacing & sizing tool (significant feature, v1.5+):**
-- Select 2+ windows → align edges (Top/Bottom/Left/Right), distribute evenly, OR match size
-- **First selected = anchor** — all others align/resize to match it; anchor never moves
-- New sizing buttons: Same Width, Same Height, Same Size (matched to anchor)
-- Extend Win32Interop.cs (GetWindowRect/SetWindowPos), new WindowAlignmentHelper.cs
-- See BACKLOG.md "NOTE G" for full button table — **updated 2025-07-13**
-
-**Bug M — Drag icon directly from one group to another fails:**
-- Drag from Group A → drop on Group B → nothing happens; icon stays in A
-- Workaround: drag to desktop first, then into Group B (unacceptable UX)
-- Root cause: drop handler likely only accepts `DataFormats.FileDrop` (shell), rejects internal `DragThumb` format; also transparent-window hit-testing may block the drop
-- Fix: define custom `"DeskGroup.IconDrop"` format in `DragThumb`; accept it in `GroupWidget` drop handler; move icon between groups on success
-- Files: `DragThumb.xaml.cs`, `GroupWidget.xaml.cs`, `GroupViewModel.cs`
-- See BACKLOG.md "BUG M" — **Priority: High**
-
-**Bug H — Secondary popups appear behind their parent (all remaining dialogs):**
-- Same root cause as the previously fixed dialog — `Owner` not set before `ShowDialog()`
-- Audit every `ShowDialog()` / `Show()` call in all `*.xaml.cs` files
-- Add `Owner = this` + `WindowStartupLocation="CenterOwner"` to every child dialog
-- Files to check: `SettingsWindow.xaml.cs`, `GroupWidget.xaml.cs`, `ColorPickerDialog.cs`, `HotkeyWarningDialog.xaml`, `MainViewModel.cs`
-- See BACKLOG.md "BUG H" — **Priority: High**
-
-**Bug I — Desktop icon not hidden after adding to group (Windows 11):**
-- Original shortcut stays on desktop after add; needs F5 refresh or never hides at all
-- Looks like duplication to user — very bad first impression
-- Fix: call `SHChangeNotify` with correct flags after file move (Win32Interop.cs)
-- Files: `ShellContextMenuHelper.cs` or `GroupViewModel.cs` (wherever file move happens) + `Win32Interop.cs`
-- See BACKLOG.md "BUG I" — **Priority: High**
-
-**Bug J — Default hotkey still `Ctrl+Alt+G` on fresh Win 11 install of v1.4.1 (should be `Ctrl+F2`):**
-- User confirmed correct v1.4.1 build — hotkey default reverts to old value
-- Most likely: stale `settings.json` from prior install loaded on startup, overriding code default
-- Also check: installer-seeded settings file, and confirm AppSettings.cs default compiled correctly
-- One-time migration guard may be needed: if loaded value == `Ctrl+Alt+G` → reset to `Ctrl+F2`
-- Files: `AppSettings.cs`, `PersistenceService.cs`, `build\installer.iss`
-- See BACKLOG.md "BUG J" — **Priority: Medium**
-
-**Note K — Tray icon context menu: add Restart option:**
-- Right-click tray → Restart → confirm dialog ("Restart DeskGroup? All groups will be saved.") → save state → re-launch exe → shutdown
-- Use `Process.Start(Environment.ProcessPath!)` then `Application.Current.Shutdown()`
-- Must save via `PersistenceService` before shutdown. Add above/below existing Exit item.
-- Files: `App.xaml.cs` or `MainViewModel.cs`
-- See BACKLOG.md "NOTE K" — **Priority: Low-Med**
-
-**Note L — Launch feedback: cursor → AppStarting spinner when opening a shortcut:**
-- Click icon → `Mouse.OverrideCursor = Cursors.AppStarting` immediately → reset after ~4s via `DispatcherTimer`
-- Prevents "did it work?" confusion for slow-launching apps
-- Simple fixed-timeout first; advanced: watch for process `MainWindowHandle` (later)
-- Files: `GroupWidget.xaml.cs` (click handler), possibly `IconTile.xaml.cs`
-- See BACKLOG.md "NOTE L" — **Priority: Low-Med**
+### **STEP 6 — Feature Backlog (deferred)** 📋
+See BACKLOG.md. Priority order:
+- Bug M — Cross-group icon drag (High)
+- Bug E — Drag-to-reorder unreliable (Medium)
+- Bug D — Shortcut click unreliable (Medium)
+- Note G — Window alignment tool (v1.5+)
+- Note F — Installer preference pages
 
 ---
 
 ## ⚡ QUICK REFERENCE COMMANDS
 ```powershell
+# Verify current commit
+git log --oneline -5
+
 # Build installer
 .\build\build-installer.ps1
 
-# Build portable zip
+# Build portable zip  
 .\build\build-portable.ps1
 
 # Git status
-git log --oneline -5
 git status
 
 # Open solution
@@ -218,26 +127,18 @@ start src\DeskGroup\DeskGroup.sln
 ```
 
 ---
-```
-DeskGroup/
-├── src/DeskGroup/
-│   ├── Models/
-│   │   └── IconGroup.cs              ← GridViewWidth/Height added here
-│   ├── Views/
-│   │   ├── GroupWidget.xaml.cs       ← All sizing logic, view switching
-│   │   ├── SettingsWindow.xaml       ← Tabbed settings UI
-│   │   └── SettingsWindow.xaml.cs    ← Tab switching, F1 hotkey
-│   ├── ViewModels/
-│   │   ├── GroupViewModel.cs         ← GridViewWidth/Height observable props
-│   │   ├── MainViewModel.cs
-│   │   └── SettingsViewModel.cs
-│   ├── Controls/
-│   │   └── IconTile.xaml.cs
-│   └── Helpers/
-│       └── Win32Interop.cs           ← WndProc hover jump fix
-├── BACKLOG.md
-├── SESSION_SUMMARY_SIZING_GRID_FIX.md   ← This session
-├── SESSION_SUMMARY_SETTINGS_WINDOW_COMPLETE.md
+
+## 🗂️ KEY FILES MODIFIED (b47fe1d — session 7)
+
+| File | Change |
+|---|---|
+| `src\DeskGroup\Services\PersistenceService.cs` | `MigrateSettings()` — reset legacy hotkey |
+| `src\DeskGroup\Services\DesktopIconService.cs` | `SHChangeNotify` P/Invoke + 3 call sites |
+| `src\DeskGroup\ViewModels\ShortcutItemViewModel.cs` | `Launch()` — AppStarting cursor + 4s timer |
+| `src\DeskGroup\ViewModels\MainViewModel.cs` | `AllGroupsVisible` sync + HotkeyWarning owner |
+| `src\DeskGroup\Views\GroupWidget.xaml.cs` | Rename/Color dialog owners |
+| `src\DeskGroup\App.xaml.cs` | --show-all IPC, Restart menu, FirstRun owner |
+
 └── FIX_HOVER_JUMP_WNDPROC_SOLUTION.md
 ```
 
@@ -245,67 +146,30 @@ DeskGroup/
 
 ## 🔑 KEY CONTEXT
 
-### 1. GridViewWidth/Height — New in This Session
-- `IconGroup.GridViewWidth` (default 400) and `GridViewHeight` (default 300)
-- JSON-backward-compatible (existing saves get defaults)
-- `GroupViewModel` exposes as `[ObservableProperty]`
-- `GroupWidget.xaml.cs` — `OnSizeChanged` routes by view mode (Normal vs Grid)
-- `ApplyViewMode(Grid)` reads from `GridViewWidth`/`GridViewHeight`
-- `EnterFullscreen` saves/restores per `_preFullscreenViewMode`
-
-### 2. Sizing Pattern (Critical — do not change)
-```csharp
-// CORRECT pattern for auto-sizing views:
-UpdateLayout();
-SomeView.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-int targetH = (int)Math.Ceiling(SomeView.DesiredSize.Height);
-// NO additive padding — Math.Ceiling already handles sub-pixel
-```
-
-### 3. Hover Jump Fix (WndProc — still working)
-- `_hasPendingPosition = true` → change visibility → WndProc intercepts WM_WINDOWPOSCHANGING
-- Documented in `FIX_HOVER_JUMP_WNDPROC_SOLUTION.md`
-
-### 4. Project Specifics
+### Project Specifics
 - **.NET 10**, WPF, `WindowStyle=None`, `AllowsTransparency=True`
-- MVVM — ViewModels hold state, Views are UI only
-- JSON persistence to AppData via `PersistenceService`
-- CommunityToolkit.Mvvm source generators for `[ObservableProperty]`
+- MVVM — CommunityToolkit.Mvvm source generators (`[ObservableProperty]`, `[RelayCommand]`)
+- JSON persistence to `%APPDATA%\DeskGroup\` via `PersistenceService`
+- Single-instance guard (mutex) + Named Pipe IPC (`NamedPipeServer`)
+- System tray via `Hardcodet.Wpf.TaskbarNotification`
+
+### Architecture Notes
+- `AllGroupsVisible` synced from loaded group state in `InitializeAsync()` (Bug C fix)
+- `SHChangeNotify` added to `DesktopIconService.cs` — NOT in `Win32Interop.cs`
+- `MigrateSettings()` runs once per load in `PersistenceService.LoadSettingsAsync()`
+- All dialogs must have `Owner = window` + `WindowStartupLocation = CenterOwner` before showing
 
 ---
 
-## 🧪 HOW TO TEST
+## 🚨 KNOWN ISSUES / DEFERRED BUGS
 
-```bash
-dotnet build
-dotnet run --project src/DeskGroup/DeskGroup.csproj
-```
-
-**Sizing fix checklist:**
-1. Create a group → set to Minimized → switch to Normal → switch back to Minimized  
-   **Expected:** Correct minimized height immediately, no hover cycle needed
-2. Hover over a Minimized group  
-   **Expected:** No blank gap below footer text
-3. Set group to Compact  
-   **Expected:** Correct compact height, no blank gap below footer
-4. Resize in Normal view → switch to Grid → resize in Grid → switch back to Normal  
-   **Expected:** Each view remembers its own size independently
-5. Enter fullscreen → press Escape/restore  
-   **Expected:** Returns to correct pre-fullscreen size and view mode
-
----
-
-## 🚨 KNOWN ISSUES / GOTCHAS
-
-### None Currently ✅
-- Sizing fixes: applied and build-verified (`457c79d`)
-- Hover jump: fixed (`FIX_HOVER_JUMP_WNDPROC_SOLUTION.md`)
-- Startup crash: fixed (defensive coding in SettingsWindow)
-- Settings window: working with tabs
-
-### Things to Watch
-- **Sizing fixes need user runtime testing** — build passes, not yet runtime-verified by user
-- **`partial void` methods with CommunityToolkit** — always include `(TypeName paramName)` in the signature or the source generator can't match and will cascade errors
+| ID | Description | Priority |
+|---|---|---|
+| Bug M | Cross-group icon drag fails silently | High |
+| Bug E | Drag-to-reorder icons unreliable (needs 2–3 attempts) | Medium |
+| Bug D | Icon shortcut click sometimes does nothing | Medium |
+| Note G | Window alignment/sizing tool | Low (v1.5+) |
+| Note F | Installer preference pages | Low |
 
 ---
 
@@ -313,13 +177,13 @@ dotnet run --project src/DeskGroup/DeskGroup.csproj
 
 ```
 Branch: Dev
-Sync: ✅ Local = Remote (90bd9b3)
+Sync: ✅ Local = Remote (b47fe1d)
 Working Tree: Clean
-Restore Point: 90bd9b3
+Restore Point: b47fe1d
 ```
 
 **Verify sync:**
-```bash
+```powershell
 git status
 git log --oneline -5
 ```
@@ -328,18 +192,15 @@ git log --oneline -5
 
 ## 🔖 QUICK REFERENCE
 
-**Build:** `dotnet build`  
-**Run:** `dotnet run --project src/DeskGroup/DeskGroup.csproj`  
+**Build:** `dotnet build src\DeskGroup\DeskGroup.sln`  
 **Status:** `git status`  
 **History:** `git log --oneline -8`  
-**Restore Point:** `git checkout 90bd9b3`  
+**Restore Point:** `git checkout b47fe1d`  
 **Latest:** `git checkout Dev`  
-**Sync:** `git pull origin Dev`  
+**Sync:** `git pull origin Dev`
 
-**Documentation:**
-- Task List: `BACKLOG.md`
-- This Session: `SESSION_SUMMARY_HELP_PANEL_POLISH.md`
-- Sizing Session: `SESSION_SUMMARY_SIZING_GRID_FIX.md`
-- Settings Session: `SESSION_SUMMARY_SETTINGS_WINDOW_COMPLETE.md`
-- WndProc Fix: `FIX_HOVER_JUMP_WNDPROC_SOLUTION.md`
-- This Guide: `START_HERE_NEXT_SESSION.md`
+**Session summaries:**
+- This session: `SESSION_SUMMARY_2025_07_13.md`
+- Prior session: `SESSION_SUMMARY_2025_07_12.md`
+- WndProc fix doc: `FIX_HOVER_JUMP_WNDPROC_SOLUTION.md`
+

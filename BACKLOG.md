@@ -1,15 +1,14 @@
 # DeskGroup - Development Backlog
 
-**Last Updated:** 2025-07-13 (session 6)  
-**Status:** ✅ **v1.4.1 SHIPPED — NEXT: public repo setup + bug reporting (v1.4.2)**  
-**Commit:** `5eeb0dd`
+**Last Updated:** 2025-07-13 (session 7)  
+**Status:** ✅ **7 FIXES COMMITTED (b47fe1d) — NEXT: public repo + CrashReporter + v1.4.2**  
+**Commit:** `b47fe1d`
 
 ---
 
 ## 🔜 LOCKED IN — DO THESE NEXT SESSION (in order)
 
-### 1. Fix any v1.4.1 test bugs 🐛
-Address confirmed bugs from user testing before publishing anything publicly.
+### 1. ✅ Fix v1.4.1 bugs — DONE (b47fe1d) — Bug J/H/I/C all fixed
 
 ### 2. Set up public GitHub repo 🌐
 - Create new **public** GitHub repo (name TBD, suggest `DeskGroup`)
@@ -41,7 +40,7 @@ After Steps 1–3 complete.
 
 > These are captured ideas/requests — NOT yet scheduled. Will be sized and slotted in when we get back to work.
 
-### 💡 NOTE A — Functional desktop & taskbar icon 🖥️
+### ✅ NOTE A — --show-all IPC: second-instance left-click shows all groups ← DONE (b47fe1d)
 **Requested:** 2025-07-13
 
 **Goal:** Make the `.exe` shortcut on the desktop (and taskbar pin) smart:
@@ -75,7 +74,7 @@ This is now a standing checklist item for every PR/commit that ships user-facing
 
 ---
 
-### 🐛 BUG C — Tray icon: first click hides it, need second click to keep it visible
+### ✅ BUG C — Tray icon: first click hides it, need second click ← FIXED (b47fe1d)
 **Reported:** 2025-07-13
 
 **Behaviour:** App is running → click tray icon → icon/flyout immediately disappears → must click again for it to stay visible. Had this problem before — check session records for prior fix, may be the same root cause.
@@ -170,7 +169,7 @@ This is now a standing checklist item for every PR/commit that ships user-facing
 
 ---
 
-### 🐛 BUG H — Secondary/child popup panels appear behind their parent window
+### ✅ BUG H — Secondary/child popup panels appear behind their parent window ← FIXED (b47fe1d)
 **Reported:** 2025-07-13
 
 **Behaviour:** When a dialog or popup is opened from inside another dialog/window, the new popup appears *behind* the parent instead of on top of it. The same issue was previously fixed for one specific dialog — but the fix was not applied globally. Affects all remaining secondary dialogs/popups.
@@ -187,8 +186,8 @@ This is now a standing checklist item for every PR/commit that ships user-facing
 
 ---
 
-### 🐛 BUG I — Desktop icon not hidden after adding shortcut to a group (Windows 11)
-**Reported:** 2025-07-13  
+### ✅ BUG I — Desktop icon not hidden after adding shortcut to a group (Windows 11) ← FIXED (b47fe1d)
+**Reported:** 2025-07-13
 **OS:** Windows 11 confirmed
 
 **Behaviour:** After adding a desktop shortcut/icon to a group via any available method:
@@ -212,8 +211,8 @@ This is now a standing checklist item for every PR/commit that ships user-facing
 
 ---
 
-### 🐛 BUG J — Default hotkey still shows `Ctrl+Alt+G` on fresh Win 11 install (should be `Ctrl+F2`)
-**Reported:** 2025-07-13  
+### ✅ BUG J — Default hotkey still shows `Ctrl+Alt+G` on fresh Win 11 install ← FIXED (b47fe1d)
+**Reported:** 2025-07-13
 **OS:** Windows 11, v1.4.1 confirmed
 
 **Behaviour:** A fresh install of v1.4.1 on Win 11 still shows `Ctrl+Alt+G` as the Toggle All hotkey default, not `Ctrl+F2` which was supposedly changed in `AppSettings.cs`. User confirmed they were on the correct v1.4.1 build.
@@ -236,7 +235,7 @@ This is now a standing checklist item for every PR/commit that ships user-facing
 
 ---
 
-### 💡 NOTE K — Tray icon context menu: add Restart option 🔄
+### ✅ NOTE K — Tray icon context menu: add Restart option 🔄 ← DONE (b47fe1d)
 **Requested:** 2025-07-13
 
 **Goal:** Add a **Restart** item to the tray icon right-click context menu, with a confirmation step before acting.
@@ -262,7 +261,7 @@ This is now a standing checklist item for every PR/commit that ships user-facing
 
 ---
 
-### 💡 NOTE L — Launch feedback: cursor changes to wait/spinner when opening a shortcut ⏳
+### ✅ NOTE L — Launch feedback: cursor changes to AppStarting spinner ⏳ ← DONE (b47fe1d)
 **Requested:** 2025-07-13
 
 **Goal:** When the user clicks an icon/shortcut in a group to launch a program, immediately change the mouse cursor to a **wait/spinner** (or `Cursors.AppStarting`) to indicate “I heard you, it’s loading” — especially important for slow-launching apps where there is a multi-second delay with no visible feedback.
