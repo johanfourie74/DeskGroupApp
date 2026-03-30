@@ -63,7 +63,10 @@ public partial class App : Application
 
         // Handle special launch modes before any other initialization
         string? addToGroupPath = null;
-        bool showAllGroups = e.Args.Contains("--show-all");
+        bool showAllGroups  = e.Args.Contains("--show-all");
+        bool newGroup        = e.Args.Contains("--new-group");
+        bool showSettings    = e.Args.Contains("--show-settings");
+        bool exitApp         = e.Args.Contains("--exit");
         for (int i = 0; i < e.Args.Length - 1; i++)
             if (e.Args[i] == "--add-to-group") { addToGroupPath = e.Args[i + 1]; break; }
 
@@ -82,6 +85,12 @@ public partial class App : Application
                 NamedPipeServer.TrySend(addToGroupPath);
             else if (showAllGroups)
                 NamedPipeServer.TrySend("--show-all");
+            else if (newGroup)
+                NamedPipeServer.TrySend("--new-group");
+            else if (showSettings)
+                NamedPipeServer.TrySend("--show-settings");
+            else if (exitApp)
+                NamedPipeServer.TrySend("--exit");
             else
                 MessageBox.Show(
                     "DeskGroup is already running.\n\nCheck your system tray.",
@@ -155,6 +164,12 @@ public partial class App : Application
         {
             if (msg == "--show-all")
                 _mainViewModel?.ShowAllGroupsCommand.Execute(null);
+            else if (msg == "--new-group")
+                _mainViewModel?.CreateGroupCommand.Execute(null);
+            else if (msg == "--show-settings")
+                ShowSettingsWindow();
+            else if (msg == "--exit")
+                Shutdown();
             else
                 ShowUngroupedIconsDialog(new List<string> { msg });
         });
@@ -210,6 +225,59 @@ public partial class App : Application
         }
 
         System.Diagnostics.Debug.WriteLine($"STARTUP: Creating windows for {_mainViewModel.Groups.Count} groups");
+
+        // Jump List for taskbar / desktop shortcut right-click (Note A)
+        try
+        {
+            var exePath = System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName ?? string.Empty;
+            if (!string.IsNullOrEmpty(exePath))
+            {
+                var jumpList = new System.Windows.Shell.JumpList();
+                jumpList.JumpItems.Add(new System.Windows.Shell.JumpTask
+                {
+                    Title = "New Group",
+                    ApplicationPath = exePath,
+                    Arguments = "--new-group",
+                    Description = "Create a new icon group",
+                    IconResourcePath = exePath,
+                    IconResourceIndex = 0
+                });
+                jumpList.JumpItems.Add(new System.Windows.Shell.JumpTask
+                {
+                    Title = "Show / Hide All Groups",
+                    ApplicationPath = exePath,
+                    Arguments = "--show-all",
+                    Description = "Toggle all groups visible or hidden",
+                    IconResourcePath = exePath,
+                    IconResourceIndex = 0
+                });
+                jumpList.JumpItems.Add(new System.Windows.Shell.JumpTask
+                {
+                    Title = "Settings",
+                    ApplicationPath = exePath,
+                    Arguments = "--show-settings",
+                    Description = "Open DeskGroup settings",
+                    IconResourcePath = exePath,
+                    IconResourceIndex = 0
+                });
+                jumpList.JumpItems.Add(new System.Windows.Shell.JumpTask
+                {
+                    Title = "Exit DeskGroup",
+                    ApplicationPath = exePath,
+                    Arguments = "--exit",
+                    Description = "Exit DeskGroup",
+                    IconResourcePath = exePath,
+                    IconResourceIndex = 0
+                });
+                jumpList.Apply();
+                System.Windows.Shell.JumpList.SetJumpList(this, jumpList);
+                System.Diagnostics.Debug.WriteLine("STARTUP: Jump List configured");
+            }
+        }
+        catch (Exception jlEx)
+        {
+            System.Diagnostics.Debug.WriteLine($"STARTUP: Jump List setup failed: {jlEx.Message}");
+        }
 
         // Create Widget Windows for Existing Groups
         int windowNum = 0;

@@ -573,10 +573,16 @@ public partial class GroupViewModel : ObservableObject
             var vm = new ShortcutItemViewModel(shortcutItem, _usageTracker, _iconExtractor);
             AllShortcuts.Add(vm);
 
-            System.Diagnostics.Debug.WriteLine($"  Hiding desktop icon");
-
-            var originalState = _desktopIconService.HideDesktopIcon(shortcutItem);
-            if (originalState != null) _model.OriginalIconStates.Add(originalState);
+            if (Settings.HideGroupedIcons)
+            {
+                System.Diagnostics.Debug.WriteLine($"  Hiding desktop icon");
+                var originalState = _desktopIconService.HideDesktopIcon(shortcutItem);
+                if (originalState != null) _model.OriginalIconStates.Add(originalState);
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"  HideGroupedIcons=false — leaving desktop icon in place");
+            }
 
             RefreshTopUsed();
 

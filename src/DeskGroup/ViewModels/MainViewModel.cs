@@ -290,10 +290,30 @@ public partial class MainViewModel : ObservableObject
 
     public void ToggleAllGroupsVisibility()
     {
-        if (AllGroupsVisible)
+        // Any group with SavedDockModeBeforeFloat set means ShowAllGroups() floated them —
+        // they are already visible on top, so the toggle should hide them.
+        bool anyTempFloated = Groups.Any(g => g.SavedDockModeBeforeFloat.HasValue);
+
+        if (anyTempFloated)
+        {
             HideAllGroups();
-        else
+        }
+        else if (!AllGroupsVisible || !Groups.Any(g => g.IsVisible))
+        {
+            // Groups are off-screen / hidden — bring them to front.
             ShowAllGroups();
+        }
+        else if (Groups.Any(g => g.IsVisible && g.DockMode == GroupDockMode.Float))
+        {
+            // Groups are visible in permanent Float mode — hide them.
+            HideAllGroups();
+        }
+        else
+        {
+            // Groups are visible but in Sticky mode (on the desktop layer, behind other windows).
+            // The user can't see them; bring them to the front by floating them temporarily.
+            ShowAllGroups();
+        }
     }
 
     private void ToggleFocusedGroupFullscreen()

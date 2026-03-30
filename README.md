@@ -117,6 +117,13 @@ Access via **tray icon > Settings** or right-click any group widget.
 
 ## Changelog
 
+### v1.4.6
+- ✅ Fixed: Tray icon first-click now correctly shows/floats Sticky groups rather than hiding them — toggle direction is based on actual visibility state, not a stale flag (Bug C)
+- ✅ Fixed: File dialogs (Add Shortcut, Change Icon) now open centred over their parent window instead of appearing behind it (Bug H)
+- ✅ Fixed: Desktop icons now respect the **Hide Grouped Icons** setting — icons are only moved to managed storage when the setting is enabled; when disabled the original `.lnk` remains on the desktop (Bug I)
+- ✅ Fixed: Desktop view now refreshes reliably on Windows 11 after an icon is hidden or restored — added `SHCNE_ASSOCCHANGED` broadcast alongside `SHCNE_UPDATEDIR` (Bug I)
+- ✅ Added: **Jump List** on taskbar and desktop shortcut right-click — quick access to New Group, Show/Hide All Groups, Settings, and Exit (Note A)
+
 ### v1.4.5
 - ✅ Added: **Expanded first-run setup wizard** — on first launch after installation a full multi-section wizard guides you through Appearance (theme, group transparency 15–85%), Desktop Integration (hide grouped icons, shell context menu), Hotkeys (preloaded with defaults), Startup & Behaviour (start with Windows, start minimized, multi-monitor, desktop shortcut, pin to Start/taskbar), and Updates (auto-update, auto-install, bug reporting opt-in)
 - ✅ Added: **Opt-in bug reporting** — new option in Settings → Developer; if enabled, a crash opens a pre-filled GitHub Issues page in your browser (no data sent automatically)

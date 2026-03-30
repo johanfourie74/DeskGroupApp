@@ -146,11 +146,14 @@ public class DesktopIconService
     [DllImport("shell32.dll")]
     private static extern void SHChangeNotify(int wEventId, uint uFlags, IntPtr dwItem1, IntPtr dwItem2);
 
-    private const int SHCNE_CREATE    = 0x00000002;
-    private const int SHCNE_DELETE    = 0x00000004;
-    private const int SHCNE_UPDATEDIR = 0x00001000;
-    private const uint SHCNF_PATH     = 0x0005;
-    private const uint SHCNF_FLUSH    = 0x1000;
+    private const int SHCNE_CREATE       = 0x00000002;
+    private const int SHCNE_DELETE       = 0x00000004;
+    private const int SHCNE_UPDATEDIR    = 0x00001000;
+    private const int SHCNE_ASSOCCHANGED = 0x08000000;
+    private const uint SHCNF_PATH        = 0x0005;
+    private const uint SHCNF_FLUSH       = 0x1000;
+    private const uint SHCNF_IDLIST      = 0x0000;
+    private const uint SHCNF_FLUSHNOWAIT = 0x2000;
 
     private static void NotifyShellDeleted(string path)
     {
@@ -175,7 +178,8 @@ public class DesktopIconService
     }
 
     // Signals Explorer to refresh the folder view — Win 11 doesn't always repaint on
-    // per-file SHCNE_CREATE/DELETE alone; a SHCNE_UPDATEDIR on the parent folder fixes it.
+    // per-file SHCNE_CREATE/DELETE alone; SHCNE_UPDATEDIR on the parent folder + a global
+    // SHCNE_ASSOCCHANGED broadcast covers all Explorer rendering paths on Win 10 & 11.
     private static void NotifyShellUpdateDir(string folderPath)
     {
         try
@@ -183,6 +187,8 @@ public class DesktopIconService
             var ptr = Marshal.StringToCoTaskMemUni(folderPath);
             SHChangeNotify(SHCNE_UPDATEDIR, SHCNF_PATH | SHCNF_FLUSH, ptr, IntPtr.Zero);
             Marshal.FreeCoTaskMem(ptr);
+            // Belt-and-suspenders: global shell refresh for Win 11 Explorer
+            SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST | SHCNF_FLUSHNOWAIT, IntPtr.Zero, IntPtr.Zero);
         }
         catch { }
     }

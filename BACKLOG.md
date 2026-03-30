@@ -1,8 +1,8 @@
 # DeskGroup - Development Backlog
 
-**Last Updated:** 2026-03-31 (session 12 — notes only)
+**Last Updated:** 2026-03-31 (session 12 — Bug C/H/I + Note A/L complete)
 **Current release:** v1.4.5 (live)
-**Pending release:** —
+**Pending release:** v1.4.6 (local, not yet pushed)
 
 ---
 
@@ -18,16 +18,15 @@ This applies to: new features, bug fixes, UI changes, behaviour changes, setting
 
 | Priority | ID | Est. | Description |
 |---|---|---|---|
-| 🔴 Critical | **Bug C** | 30 min | Tray icon first-click vanishes — on first click after launch groups immediately hide; second click shows them. Previously "fixed" in v1.4.1 (was `_isInitializing` guard on first-click). Check if `Deactivated` event is re-triggering auto-hide. Cross-ref commit `b9ecd1f`. |
-| 🔴 High | **Bug H** | 30 min | Secondary dialogs appear behind parent window — audit ALL `ShowDialog()` calls and confirm each has `Owner` set + `WindowStartupLocation.CenterOwner`. |
-| 🔴 High | **Bug I** | 30 min | Desktop icon not hiding after group-add on Win 11 — `SHChangeNotify(SHCNE_UPDATEDIR)` applied in v1.4.5 but may still not fire correctly. Test and fix. |
-| 🟡 Medium | **Note A** | 30–45 min | Functional desktop/taskbar icon (see full spec below). |
+| ✅ Done | **Bug C** | — | Tray icon first-click — fixed: `ToggleAllGroupsVisibility()` rewritten with 4-state logic based on `SavedDockModeBeforeFloat`+`DockMode`, not stale `AllGroupsVisible` flag. |
+| ✅ Done | **Bug H** | — | Secondary dialogs behind parent — fixed: `OpenFileDialog.ShowDialog(this)` in `MenuAddShortcut_Click` and `MenuChangeIcon_Click`. |
+| ✅ Done | **Bug I** | — | Desktop icon not hiding on Win 11 — fixed: `HideGroupedIcons` guard added to `AddShortcut`; `SHCNE_ASSOCCHANGED` broadcast added after `SHCNE_UPDATEDIR`. |
+| ✅ Done | **Note A** | — | Jump List — implemented in `App.xaml.cs OnStartup`: New Group, Show/Hide All, Settings, Exit. IPC extended for `--new-group`, `--show-settings`, `--exit`. |
+| ✅ Done | **Note L** | — | Launch cursor spinner — already present in `ShortcutItemViewModel.LaunchAsync()` (v1.4.1). |
 | 🟡 Medium | **Note F** | 2–3 hrs | Installer questionnaire: surface autostart, view mode, dock, hotkey, install directory choice during Inno Setup install. |
 | 🟡 Medium | **Note G** | 5–7 hrs | Group alignment / sizing tool (see full spec below). |
-| 🟢 Low | **Note L** | 20–30 min | Launch cursor spinner — `AppStarting` cursor on shortcut launch. `DispatcherTimer` in `ShortcutItemViewModel.LaunchAsync()`. |
 
 ---
-
 ## 📐 DETAILED SPECS
 
 ### Note A — Functional desktop/taskbar icon

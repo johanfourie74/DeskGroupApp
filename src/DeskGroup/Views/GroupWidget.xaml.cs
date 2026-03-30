@@ -787,7 +787,7 @@ public partial class GroupWidget : Window
             InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory)
         };
 
-        if (dialog.ShowDialog() == true)
+        if (dialog.ShowDialog(this) == true)
         {
             foreach (var file in dialog.FileNames)
             {
@@ -817,7 +817,7 @@ public partial class GroupWidget : Window
             Filter = "Icon files (*.ico;*.exe;*.dll)|*.ico;*.exe;*.dll|Image files (*.png;*.jpg;*.bmp)|*.png;*.jpg;*.bmp|All files (*.*)|*.*"
         };
 
-        if (dialog.ShowDialog() == true)
+        if (dialog.ShowDialog(this) == true)
         {
             _viewModel?.SetGroupIconCommand.Execute(dialog.FileName);
         }
