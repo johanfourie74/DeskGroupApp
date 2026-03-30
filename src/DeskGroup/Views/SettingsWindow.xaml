@@ -466,6 +466,16 @@
                 <TextBlock Text="Shows diagnostic items in the tray right-click menu. Restart the tray menu (open Settings → Apply) to refresh."
                            Style="{StaticResource SettingDesc}"/>
 
+                <!-- Opt-in bug reporting -->
+                <DockPanel Style="{StaticResource SettingRow}">
+                    <TextBlock Text="Opt-in for bug reports" Style="{StaticResource SettingLabel}"
+                               DockPanel.Dock="Left" Width="160"/>
+                    <CheckBox IsChecked="{Binding OptInBugReporting}"
+                              VerticalAlignment="Center"/>
+                </DockPanel>
+                <TextBlock Text="If DeskGroup crashes, you will be asked whether to report the issue on GitHub. No data is sent automatically — it only opens a pre-filled GitHub Issues page in your browser so you can review and submit it yourself."
+                           Style="{StaticResource SettingDesc}"/>
+
                 <!-- Bottom spacer -->
                 <Border Height="16"/>
 
@@ -490,7 +500,7 @@
                            Margin="0,16,0,8"/>
 
                 <TextBlock x:Name="VersionText"
-                           Text="Version 1.4.3"
+                           Text="Version 1.4.5"
                            FontFamily="{DynamicResource DefaultFont}"
                            FontSize="{DynamicResource FontSizeNormal}"
                            Foreground="{DynamicResource ForegroundSecondary}"
@@ -794,6 +804,10 @@
                     <Run Text="• A loading cursor appears briefly when launching a shortcut — normal for slow-starting apps; it resets automatically after a few seconds" Foreground="{DynamicResource ForegroundSecondary}"/>
                     <LineBreak/>
                     <Run Text="• If DeskGroup is already running, double-clicking its taskbar or desktop shortcut will show all your groups instead of silently doing nothing" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run Text="• On first launch, a setup wizard helps you choose your theme, transparency, hotkeys, startup behaviour and update preferences — you can re-run these from Settings at any time" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run Text="• To opt in for crash reporting go to Settings → Developer → Opt-in for bug reports; if enabled, a crash will open a pre-filled GitHub Issues page in your browser (nothing is sent automatically)" Foreground="{DynamicResource ForegroundSecondary}"/>
                 </TextBlock>
             </StackPanel>
         </ScrollViewer>

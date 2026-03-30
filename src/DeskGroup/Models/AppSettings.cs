@@ -46,6 +46,9 @@ public class AppSettings
     // Shell integration
     public bool EnableShellContextMenu { get; set; } = false;
 
+    // Bug reporting (explicit opt-in — nothing is sent automatically)
+    public bool OptInBugReporting { get; set; } = false;
+
     // Settings Window Position
     public double SettingsWindowLeft { get; set; } = double.NaN;
     public double SettingsWindowTop { get; set; } = double.NaN;

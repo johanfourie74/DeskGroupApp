@@ -70,6 +70,9 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private bool _autoUpdate;
     [ObservableProperty] private bool _autoInstall;
 
+    // ── Developer / feedback ──────────────────────────────────────────────────
+    [ObservableProperty] private bool _optInBugReporting;
+
     // ── Update UI state (not persisted directly) ───────────────────────────────
     [ObservableProperty] private bool   _isCheckingForUpdate;
     [ObservableProperty] private bool   _isDownloadingUpdate;
@@ -113,6 +116,7 @@ public partial class SettingsViewModel : ObservableObject
         AutoInstall = settings.AutoInstall;
         SingleClickToLaunch = settings.SingleClickToLaunch;
         EnableShellContextMenu = settings.EnableShellContextMenu;
+        OptInBugReporting = settings.OptInBugReporting;
         ToggleAllMouseHotkey = settings.ToggleAllMouseHotkey;
         ToggleAllHotkeyMode = settings.ToggleAllHotkeyMode;
         FullscreenMouseHotkey = settings.FullscreenMouseHotkey;
@@ -201,6 +205,7 @@ public partial class SettingsViewModel : ObservableObject
         _settings.AutoInstall = AutoInstall;
         _settings.SingleClickToLaunch = SingleClickToLaunch;
         _settings.EnableShellContextMenu = EnableShellContextMenu;
+        _settings.OptInBugReporting = OptInBugReporting;
         _startupService.SyncWithSetting(StartWithWindows);
         await _persistenceService.SaveSettingsImmediateAsync(_settings);
 
@@ -534,5 +539,6 @@ public partial class SettingsViewModel : ObservableObject
         AutoInstall = d.AutoInstall;
         SingleClickToLaunch = d.SingleClickToLaunch;
         EnableShellContextMenu = d.EnableShellContextMenu;
+        OptInBugReporting = d.OptInBugReporting;
     }
 }

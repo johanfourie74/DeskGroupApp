@@ -62,6 +62,7 @@ public class DesktopIconService
             shortcut.StoredFilePath = storedPath;
             shortcut.OriginalIconHidden = true;
             NotifyShellDeleted(originalPath);
+            NotifyShellUpdateDir(_desktopPath);
 
             return new OriginalIconState
             {
@@ -93,6 +94,7 @@ public class DesktopIconService
             }
             File.Move(state.StoredFilePath, state.OriginalFilePath);
             NotifyShellCreated(state.OriginalFilePath);
+            NotifyShellUpdateDir(_desktopPath);
             return true;
         }
         catch { return false; }
@@ -121,7 +123,7 @@ public class DesktopIconService
                     try
                     {
                         var desktopPath = Path.Combine(_desktopPath, ExtractOriginalFileName(file));
-                        if (!File.Exists(desktopPath)) { File.Move(file, desktopPath); NotifyShellCreated(desktopPath); }
+                        if (!File.Exists(desktopPath)) { File.Move(file, desktopPath); NotifyShellCreated(desktopPath); NotifyShellUpdateDir(_desktopPath); }
                         else File.Delete(file);
                     }
                     catch { }
@@ -144,10 +146,11 @@ public class DesktopIconService
     [DllImport("shell32.dll")]
     private static extern void SHChangeNotify(int wEventId, uint uFlags, IntPtr dwItem1, IntPtr dwItem2);
 
-    private const int SHCNE_CREATE = 0x00000002;
-    private const int SHCNE_DELETE = 0x00000004;
-    private const uint SHCNF_PATH  = 0x0005;
-    private const uint SHCNF_FLUSH = 0x1000;
+    private const int SHCNE_CREATE    = 0x00000002;
+    private const int SHCNE_DELETE    = 0x00000004;
+    private const int SHCNE_UPDATEDIR = 0x00001000;
+    private const uint SHCNF_PATH     = 0x0005;
+    private const uint SHCNF_FLUSH    = 0x1000;
 
     private static void NotifyShellDeleted(string path)
     {
@@ -166,6 +169,19 @@ public class DesktopIconService
         {
             var ptr = Marshal.StringToCoTaskMemUni(path);
             SHChangeNotify(SHCNE_CREATE, SHCNF_PATH | SHCNF_FLUSH, ptr, IntPtr.Zero);
+            Marshal.FreeCoTaskMem(ptr);
+        }
+        catch { }
+    }
+
+    // Signals Explorer to refresh the folder view — Win 11 doesn't always repaint on
+    // per-file SHCNE_CREATE/DELETE alone; a SHCNE_UPDATEDIR on the parent folder fixes it.
+    private static void NotifyShellUpdateDir(string folderPath)
+    {
+        try
+        {
+            var ptr = Marshal.StringToCoTaskMemUni(folderPath);
+            SHChangeNotify(SHCNE_UPDATEDIR, SHCNF_PATH | SHCNF_FLUSH, ptr, IntPtr.Zero);
             Marshal.FreeCoTaskMem(ptr);
         }
         catch { }

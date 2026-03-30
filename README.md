@@ -117,6 +117,11 @@ Access via **tray icon > Settings** or right-click any group widget.
 
 ## Changelog
 
+### v1.4.5
+- ✅ Added: **Expanded first-run setup wizard** — on first launch after installation a full multi-section wizard guides you through Appearance (theme, group transparency 15–85%), Desktop Integration (hide grouped icons, shell context menu), Hotkeys (preloaded with defaults), Startup & Behaviour (start with Windows, start minimized, multi-monitor, desktop shortcut, pin to Start/taskbar), and Updates (auto-update, auto-install, bug reporting opt-in)
+- ✅ Added: **Opt-in bug reporting** — new option in Settings → Developer; if enabled, a crash opens a pre-filled GitHub Issues page in your browser (no data sent automatically)
+- ✅ Fixed: Desktop icons now visually refresh in Windows Explorer immediately after a grouped icon is hidden or restored on Windows 11 (`SHCNE_UPDATEDIR` folder-level notification)
+
 ### v1.4.3
 - ✅ Fixed: Drag-to-reorder icons within a group now works reliably (DragEnter was incorrectly rejecting internal drag format)
 - ✅ Fixed: Dragging an icon directly from one group to another now moves it correctly (cross-group transfer with desktop-restore state preserved)

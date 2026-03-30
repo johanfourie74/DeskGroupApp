@@ -1160,7 +1160,8 @@ public partial class App : Application
         System.Diagnostics.Debug.WriteLine($"Unhandled UI exception: {e.Exception}");
 
         Helpers.CrashReporter.WriteCrashLog(e.Exception, "UI dispatcher");
-        Helpers.CrashReporter.ShowCrashDialog(e.Exception);
+        if (_mainViewModel?.Settings.OptInBugReporting == true)
+            Helpers.CrashReporter.ShowCrashDialog(e.Exception);
 
         e.Handled = true; // Don't crash the app
     }
