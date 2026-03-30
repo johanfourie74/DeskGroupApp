@@ -1,14 +1,78 @@
 # DeskGroup - Development Backlog
 
-**Last Updated:** 2026-03-31 (session 11)
+**Last Updated:** 2026-03-31 (session 12 — notes only)
 **Current release:** v1.4.5 (live)
 **Pending release:** —
 
 ---
 
+## 🔴 STANDING RULE — DOC UPDATE POLICY
+
+> **Every user-facing feature or fix MUST update the Help panel + README changelog + BACKLOG in the same commit. No exceptions.**
+
+This applies to: new features, bug fixes, UI changes, behaviour changes, settings additions.
+
+---
+
 ## 🔜 DO NEXT (in order)
 
-*(no immediate release pending — v1.4.5 just shipped)*
+| Priority | ID | Est. | Description |
+|---|---|---|---|
+| 🔴 Critical | **Bug C** | 30 min | Tray icon first-click vanishes — on first click after launch groups immediately hide; second click shows them. Previously "fixed" in v1.4.1 (was `_isInitializing` guard on first-click). Check if `Deactivated` event is re-triggering auto-hide. Cross-ref commit `b9ecd1f`. |
+| 🔴 High | **Bug H** | 30 min | Secondary dialogs appear behind parent window — audit ALL `ShowDialog()` calls and confirm each has `Owner` set + `WindowStartupLocation.CenterOwner`. |
+| 🔴 High | **Bug I** | 30 min | Desktop icon not hiding after group-add on Win 11 — `SHChangeNotify(SHCNE_UPDATEDIR)` applied in v1.4.5 but may still not fire correctly. Test and fix. |
+| 🟡 Medium | **Note A** | 30–45 min | Functional desktop/taskbar icon (see full spec below). |
+| 🟡 Medium | **Note F** | 2–3 hrs | Installer questionnaire: surface autostart, view mode, dock, hotkey, install directory choice during Inno Setup install. |
+| 🟡 Medium | **Note G** | 5–7 hrs | Group alignment / sizing tool (see full spec below). |
+| 🟢 Low | **Note L** | 20–30 min | Launch cursor spinner — `AppStarting` cursor on shortcut launch. `DispatcherTimer` in `ShortcutItemViewModel.LaunchAsync()`. |
+
+---
+
+## 📐 DETAILED SPECS
+
+### Note A — Functional desktop/taskbar icon
+**Goal:** DeskGroup.lnk on the desktop and taskbar behaves intelligently when the app is already running.
+
+| Scenario | Behaviour |
+|---|---|
+| App not running, double-click icon | Normal launch |
+| App running, left-click icon (desktop) | Show all groups (same as `Ctrl+F2`) |
+| App running, right-click icon (desktop/taskbar) | Show Jump List with tray context menu items (New Group, Show/Hide All, Settings, Exit) |
+| App running, double-click icon | Show all groups (already implemented via `--show-all` IPC) |
+
+**Implementation notes:**
+- `SingleInstanceGuard` + `NamedPipeServer` already exist in `App.xaml.cs` — `--show-all` signal is already wired
+- Left-click on desktop shortcut = double-click a `.lnk` = launches new process → single-instance guard catches it and sends `--show-all` via named pipe — **already works**
+- Jump List: `System.Windows.Shell.JumpList` + `JumpTask` items; populate in `App.xaml.cs` `OnStartup`
+- Taskbar overlay / toolbar pinning behaviour is automatic if Jump List is set up correctly
+
+---
+
+### Note G — Group alignment / sizing tool
+**Goal:** Multi-select group widgets and align or resize them relative to the first-selected group (anchor).
+
+**Alignment operations (9-button panel, similar to VS alignment toolbar):**
+
+| Button | Action |
+|---|---|
+| Align Left | Left edges match anchor's left edge |
+| Align Centre (H) | Horizontal centres match anchor's centre |
+| Align Right | Right edges match anchor's right edge |
+| Align Top | Top edges match anchor's top edge |
+| Align Centre (V) | Vertical centres match anchor's centre |
+| Align Bottom | Bottom edges match anchor's bottom edge |
+| Distribute Horizontally | Equal horizontal spacing between selected groups |
+| Distribute Vertically | Equal vertical spacing between selected groups |
+| Make Same Width | All selected groups resized to anchor's width |
+| Make Same Height | All selected groups resized to anchor's height |
+
+**Rules:**
+- The **first selected group** is always the anchor — all others align/size to it
+- Operations use `SetWindowPos(HWND, HWND_TOP, x, y, w, h, flags)` via `Win32Interop`
+- Multi-select: hold `Ctrl` and click group title bars, or rubber-band select
+- Alignment panel: a small floating toolbar that appears when ≥ 2 groups are selected (or accessible via right-click context menu on a group)
+
+**Help panel note:** Document in Help tab — "Select multiple groups (Ctrl+click) then use the alignment toolbar to snap them to the same position, size, or spacing. The first group you select is always the anchor."
 
 ---
 
@@ -84,3 +148,4 @@ With every commit:
 2. Update "Last Updated" + "Pending release" at the top
 3. Add new items as they are discovered
 4. Remove/archive stale items that will never be built
+5. **Update Help panel + README changelog in the same commit as any user-facing change** ← standing rule
