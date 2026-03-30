@@ -1,18 +1,248 @@
 # 🚀 START HERE - Next Session
 
-**Last Session Date:** 2025-07-14  
-**Status:** ✅ **CLEAN BUILD — Bug D/E/M FIXED — v1.4.3 BUILT & PUSHED — GitHub Release pending (manual)**  
+**Last Session Date:** 2026-03-30  
+**Status:** ✅ **CLEAN — v1.4.3 LIVE — gh CLI READY — No pending code changes**  
 **Current Branch:** `Dev`  
-**Latest Commit:** `241c83a` (chore: bump version to 1.4.3...)  
-**Restore Point:** `241c83a` ← **USE THIS**
+**Latest Commit:** `6bee8a4` (chore: session 8 handover)  
+**Restore Point:** `6bee8a4` ← **USE THIS**
 
 ---
 
 ## 📍 WHERE WE ARE
 
-### ✅ COMPLETED THIS SESSION (Session 8 — 3 bug fixes, 2 commits)
+### ✅ SESSION 9 (2026-03-30) — Short session, no code changes
 
-1. **Bug D ✅** (`b9ecd1f`) — `ShortcutItem.cs`: added `StoredFilePath` property. `DesktopIconService.cs`: populates `StoredFilePath` after `File.Move`. `ShortcutItemViewModel.cs`: `BuildLaunchInfo()` priority chain — 1) `StoredFilePath` (.lnk in HiddenIcons), 2) `OriginalShortcutPath` (desktop), 3) `TargetPath` (exe fallback). `Launch()` shows `MessageBox` on failure instead of swallowing silently.
+1. **GitHub Release v1.4.3 confirmed ✅** — Both artifacts attached on `johanfourie74/DeskGroup`.
+
+2. **`gh` CLI installed & authenticated ✅** — `winget install --id GitHub.cli` + `gh auth login` as `johanfourie74`. Future releases fully automatable.
+
+3. **`copilot-instructions.md` updated ✅** — Standing note about `gh` CLI saved as Copilot memory.
+
+### ✅ SESSION 8 (2025-07-14) — Bug D/E/M fixes, v1.4.3 release
+
+1. **Bug D ✅** (`b9ecd1f`) — `ShortcutItem.cs` `StoredFilePath` + `DesktopIconService.cs` populates after `File.Move` + `ShortcutItemViewModel.cs` `BuildLaunchInfo()` priority chain (StoredFilePath → OriginalShortcutPath → TargetPath). `Launch()` shows `MessageBox` on failure.
+
+2. **Bug E ✅** (`b9ecd1f`) — `GroupWidget.xaml.cs` `OnDragEnter` + `OnDragOver` now accept `"DeskGroupShortcut"` with `DragDropEffects.Move`.
+
+3. **Bug M ✅** (`b9ecd1f`) — `GroupViewModel.cs` `TransferShortcutToGroup()` + cross-group branch in `GroupWidget.xaml.cs` `OnDrop`/`OnIconDropInternal`.
+
+4. **v1.4.3 shipped ✅** (`241c83a`) — Csproj, XAML VersionText, README, BACKLOG, Help tips all updated. Installer + Portable built, both remotes pushed, GitHub Release live.
+
+---
+
+## 🎯 WHAT'S NEXT
+
+### Priority order:
+
+| Priority | ID | Description |
+|---|---|---|
+| 🔴 High | **Bug N** | Desktop icon refresh: `SHChangeNotify` not repaint-triggering in all cases on Win 11; icons sometimes duplicate visually |
+| 🟡 Medium | **Note F** | Installer prefs: expose key settings (autostart, view mode, hotkey) during Inno Setup install |
+| 🟡 Medium | **Note G** | Alignment/snap helper: visual snap guides when dragging groups near screen edges or other groups |
+| 🟢 Low | **Note H** | First Run wizard polish: review `FirstRunSetupDialog` UX after real-world testing |
+
+---
+
+## 🔧 QUICK REFERENCE COMMANDS
+
+```powershell
+# Verify state
+cd C:\Dev\DeskGroup; git status; git log --oneline -5
+
+# Build
+.\build\build-installer.ps1
+.\build\build-portable.ps1
+
+# Push private
+git push origin Dev
+
+# Sync public (DeskGroupApp)
+git checkout public-main
+git checkout Dev -- src/ build/ README.md
+git commit -m "chore: sync vX.Y.Z to public release branch"
+git push public public-main:main
+git tag vX.Y.Z
+git push public vX.Y.Z
+git push origin vX.Y.Z
+git checkout Dev
+
+# GitHub Release (fully automated — gh CLI installed)
+gh release create vX.Y.Z "build\output\DeskGroup-Setup-X.Y.Z.exe" "build\output\DeskGroup-Portable-X.Y.Z.zip" --repo johanfourie74/DeskGroup --title "vX.Y.Z — ..." --notes "..."
+```
+
+---
+
+## ⚠️ KNOWN ISSUES / GOTCHAS
+
+- `UpdateService.cs` `Repo = "DeskGroup"` — **DO NOT CHANGE**. DeskGroup (private) is the release repo. DeskGroupApp is source-only.
+- `gh` CLI is installed and authenticated as `johanfourie74` — use PowerShell (not cmd.exe); backtick continuation is PowerShell-only.
+- Drag-drop `"DeskGroupShortcut"` format: `IconTile.OnPreviewMouseMove` initiates; `GroupWidget.OnDragEnter/Over/Drop` accept; result `== None` removes from source.
+- Position save guard: positions outside `-5000..10000` are never saved (hide/show transition artifacts).
+- `_isInitializing = true` during `GroupViewModel` constructor — all `partial void OnXxxChanged` return early, no `SyncToModel` during load.
+
+---
+
+## 📁 GIT STATE
+
+```
+Branch:    Dev
+HEAD:      6bee8a4  (after this handover commit it will update)
+origin:    https://github.com/johanfourie74/DeskGroup  (private, releases here)
+public:    https://github.com/johanfourie74/DeskGroupApp  (source only)
+Tags:      v1.4.3 on both remotes
+Clean:     yes
+```
+
+---
+
+## 🔑 KEY CONTEXT
+
+### Project Specifics
+- **.NET 10**, WPF, `WindowStyle=None`, `AllowsTransparency=True`
+- MVVM — CommunityToolkit.Mvvm source generators (`[ObservableProperty]`, `[RelayCommand]`)
+- JSON persistence to `%APPDATA%\DeskGroup\` via `PersistenceService`
+- Single-instance guard (mutex) + Named Pipe IPC (`NamedPipeServer`)
+- System tray via `Hardcodet.Wpf.TaskbarNotification`
+
+### Architecture Notes
+- `AllGroupsVisible` synced from loaded group state in `InitializeAsync()` (Bug C fix)
+- `SHChangeNotify` in `DesktopIconService.cs` — NOT in `Win32Interop.cs`
+- `MigrateSettings()` runs once per load in `PersistenceService.LoadSettingsAsync()`
+- All dialogs must have `Owner = window` + `WindowStartupLocation = CenterOwner`
+- `StoredFilePath` priority chain in `BuildLaunchInfo()`: StoredFilePath → OriginalShortcutPath → TargetPath
+
+### Version Formula (every release)
+```
+1. Bump <Version> in DeskGroup.csproj
+2. Update VersionText in SettingsWindow.xaml
+3. Update README.md changelog
+4. Update BACKLOG.md header
+5. Build installer + portable
+6. git commit + git push origin Dev
+7. Sync public-main branch
+8. git tag vX.Y.Z + push both remotes
+9. gh release create ... (attach both artifacts)
+```
+
+---
+
+## 🗂️ SESSION SUMMARIES
+
+- Session 9: `SESSION_SUMMARY_2026_03_30.md`
+- Session 8: `SESSION_SUMMARY_2025_07_14.md`
+- Session 7: `SESSION_SUMMARY_2025_07_13.md`
+- Session 6: `SESSION_SUMMARY_2025_07_12.md`
+
+2. **Bug E ✅** (`b9ecd1f`) — `GroupWidget.xaml.cs` `OnDragEnter` + `OnDragOver` now accept `"DeskGroupShortcut"` with `DragDropEffects.Move`.
+
+3. **Bug M ✅** (`b9ecd1f`) — `GroupViewModel.cs` `TransferShortcutToGroup()` + cross-group branch in `GroupWidget.xaml.cs` `OnDrop`/`OnIconDropInternal`.
+
+4. **v1.4.3 shipped ✅** (`241c83a`) — Csproj, XAML VersionText, README, BACKLOG, Help tips all updated. Installer + Portable built, both remotes pushed, GitHub Release live.
+
+---
+
+## 🎯 WHAT'S NEXT
+
+### Priority order:
+
+| Priority | ID | Description |
+|---|---|---|
+| 🔴 High | **Bug N** | Desktop icon refresh: `SHChangeNotify` not repaint-triggering in all cases on Win 11; icons sometimes duplicate visually |
+| 🟡 Medium | **Note F** | Installer prefs: expose key settings (autostart, view mode, hotkey) during Inno Setup install |
+| 🟡 Medium | **Note G** | Alignment/snap helper: visual snap guides when dragging groups near screen edges or other groups |
+| 🟢 Low | **Note H** | First Run wizard polish: review `FirstRunSetupDialog` UX after real-world testing |
+
+---
+
+## 🔧 QUICK REFERENCE COMMANDS
+
+```powershell
+# Verify state
+cd C:\Dev\DeskGroup; git status; git log --oneline -5
+
+# Build
+.\build\build-installer.ps1
+.\build\build-portable.ps1
+
+# Push private
+git push origin Dev
+
+# Sync public (DeskGroupApp)
+git checkout public-main
+git checkout Dev -- src/ build/ README.md
+git commit -m "chore: sync vX.Y.Z to public release branch"
+git push public public-main:main
+git tag vX.Y.Z
+git push public vX.Y.Z
+git push origin vX.Y.Z
+git checkout Dev
+
+# GitHub Release (fully automated — gh CLI installed)
+gh release create vX.Y.Z "build\output\DeskGroup-Setup-X.Y.Z.exe" "build\output\DeskGroup-Portable-X.Y.Z.zip" --repo johanfourie74/DeskGroup --title "vX.Y.Z — ..." --notes "..."
+```
+
+---
+
+## ⚠️ KNOWN ISSUES / GOTCHAS
+
+- `UpdateService.cs` `Repo = "DeskGroup"` — **DO NOT CHANGE**. DeskGroup (private) is the release repo. DeskGroupApp is source-only.
+- `gh` CLI is installed and authenticated as `johanfourie74` — use PowerShell (not cmd.exe); backtick continuation is PowerShell-only.
+- Drag-drop `"DeskGroupShortcut"` format: `IconTile.OnPreviewMouseMove` initiates; `GroupWidget.OnDragEnter/Over/Drop` accept; result `== None` removes from source.
+- Position save guard: positions outside `-5000..10000` are never saved (hide/show transition artifacts).
+- `_isInitializing = true` during `GroupViewModel` constructor — all `partial void OnXxxChanged` return early, no `SyncToModel` during load.
+
+---
+
+## 📁 GIT STATE
+
+```
+Branch:    Dev
+HEAD:      6bee8a4  (after this handover commit it will update)
+origin:    https://github.com/johanfourie74/DeskGroup  (private, releases here)
+public:    https://github.com/johanfourie74/DeskGroupApp  (source only)
+Tags:      v1.4.3 on both remotes
+Clean:     yes
+```
+
+---
+
+## 🔑 KEY CONTEXT
+
+### Project Specifics
+- **.NET 10**, WPF, `WindowStyle=None`, `AllowsTransparency=True`
+- MVVM — CommunityToolkit.Mvvm source generators (`[ObservableProperty]`, `[RelayCommand]`)
+- JSON persistence to `%APPDATA%\DeskGroup\` via `PersistenceService`
+- Single-instance guard (mutex) + Named Pipe IPC (`NamedPipeServer`)
+- System tray via `Hardcodet.Wpf.TaskbarNotification`
+
+### Architecture Notes
+- `AllGroupsVisible` synced from loaded group state in `InitializeAsync()` (Bug C fix)
+- `SHChangeNotify` in `DesktopIconService.cs` — NOT in `Win32Interop.cs`
+- `MigrateSettings()` runs once per load in `PersistenceService.LoadSettingsAsync()`
+- All dialogs must have `Owner = window` + `WindowStartupLocation = CenterOwner`
+- `StoredFilePath` priority chain in `BuildLaunchInfo()`: StoredFilePath → OriginalShortcutPath → TargetPath
+
+### Version Formula (every release)
+```
+1. Bump <Version> in DeskGroup.csproj
+2. Update VersionText in SettingsWindow.xaml
+3. Update README.md changelog
+4. Update BACKLOG.md header
+5. Build installer + portable
+6. git commit + git push origin Dev
+7. Sync public-main branch
+8. git tag vX.Y.Z + push both remotes
+9. gh release create ... (attach both artifacts)
+```
+
+---
+
+## 🗂️ SESSION SUMMARIES
+
+- Session 9: `SESSION_SUMMARY_2026_03_30.md`
+- Session 8: `SESSION_SUMMARY_2025_07_14.md`
+- Session 7: `SESSION_SUMMARY_2025_07_13.md`
+- Session 6: `SESSION_SUMMARY_2025_07_12.md`
 
 2. **Bug E ✅** (`b9ecd1f`) — `GroupWidget.xaml.cs` `OnDragEnter` + new `OnDragOver`: now accept `"DeskGroupShortcut"` format with `DragDropEffects.Move`. Previously returned `None` → Drop event never fired → reorder silently failed.
 

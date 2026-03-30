@@ -1,8 +1,8 @@
 # DeskGroup - Development Backlog
 
-**Last Updated:** 2025-07-14 (session 8)  
-**Status:** ✅ **3 FIXES COMMITTED (b9ecd1f) — Bug D/E/M fixed — v1.4.3 built**  
-**Commit:** `b9ecd1f`
+**Last Updated:** 2026-03-30 (session 9)  
+**Status:** ✅ **v1.4.3 LIVE — gh CLI installed — No code changes this session**  
+**Commit:** `6bee8a4`
 
 ---
 
