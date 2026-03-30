@@ -91,6 +91,9 @@ public partial class FirstRunSetupDialog : Window
         _settings.AutoInstall        = ChkAutoInstall.IsChecked == true;
         _settings.OptInBugReporting  = ChkOptInBugReporting.IsChecked == true;
 
+        // Mark wizard as completed so it doesn't re-trigger on next launch
+        _settings.HasSeenSetupWizard = true;
+
         // ── Apply side-effects ────────────────────────────────────────────────
         new StartupService().SyncWithSetting(_settings.StartWithWindows);
 

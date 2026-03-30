@@ -109,7 +109,9 @@ public partial class SettingsViewModel : ObservableObject
         WatchForUngroupedIcons = settings.WatchForUngroupedIcons;
         AllowMultiMonitor = settings.AllowMultiMonitor;
         ShowDebugMenu = settings.ShowDebugMenu;
-        DesktopShortcutInstalled = settings.DesktopShortcutInstalled;
+        DesktopShortcutInstalled = Helpers.ShortcutInstallHelper.IsDesktopShortcutInstalled();
+        if (_settings.DesktopShortcutInstalled != DesktopShortcutInstalled)
+            _settings.DesktopShortcutInstalled = DesktopShortcutInstalled;
         PinnedToStart = settings.PinnedToStart;
         PinnedToTaskbar = settings.PinnedToTaskbar;
         AutoUpdate  = settings.AutoUpdate;
@@ -189,6 +191,7 @@ public partial class SettingsViewModel : ObservableObject
         _settings.DefaultSnapToGrid = DefaultSnapToGrid; _settings.SnapGridSize = SnapGridSize;
         _settings.HideGroupedIcons = HideGroupedIcons; _settings.IconSizeMode = IconSizeMode;
         _settings.CustomIconSize = CustomIconSize; _settings.StartWithWindows = StartWithWindows;
+        _settings.StartMinimizedToTray = StartMinimizedToTray;
         _settings.ToggleAllHotkey = ToggleAllHotkey;
         _settings.ToggleAllMouseHotkey = ToggleAllMouseHotkey;
         _settings.ToggleAllHotkeyMode = ToggleAllHotkeyMode;

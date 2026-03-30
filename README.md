@@ -195,8 +195,18 @@ Create a feature branch (git checkout -b feature/amazing-feature)
 Commit your changes (git commit -m "Add amazing feature")
 Push to the branch (git push origin feature/amazing-feature)
 Open a Pull Request
-License
-This project is licensed under the MIT License. See LICENSE for details.
+## License
+
+DeskGroup is licensed under the **[PolyForm Noncommercial License 1.0.0](LICENSE.txt)**.
+
+- **Free** for personal, educational, and non-commercial use (including IT intranet deployments that do not generate revenue)
+- **Commercial use** (selling, SaaS, paid products bundling DeskGroup) requires a separate commercial license
+- **White-labelling** (removing or replacing author credits/branding) requires a white-label license
+- Attribution — *DeskGroup by Johan Fourie* — must remain visible in all non-white-label uses
+
+See [LICENSE.txt](LICENSE.txt) for the full non-commercial license and [COMMERCIAL_LICENSE.md](COMMERCIAL_LICENSE.md) for commercial and white-label licensing details.
+
+Contact: **johan.fourie74@gmail.com**
 
 Acknowledgments
 CommunityToolkit.Mvvm - MVVM framework

@@ -27,6 +27,7 @@ public class AppSettings
     public bool IsPortableMode { get; set; } = false;
     public bool AllowMultiMonitor { get; set; } = true;
     public bool IsFirstRun { get; set; } = true;
+    public bool HasSeenSetupWizard { get; set; } = false;
     public bool DesktopShortcutInstalled { get; set; } = false;
     public bool PinnedToStart { get; set; } = false;
     public bool PinnedToTaskbar { get; set; } = false;

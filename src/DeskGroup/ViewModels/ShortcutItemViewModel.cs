@@ -57,6 +57,8 @@ public partial class ShortcutItemViewModel : ObservableObject
                 Icon = _iconExtractor.ExtractIconByIndex(_model.IconPath, _model.IconIndex);
             if (Icon == null && !string.IsNullOrEmpty(_model.TargetPath))
                 Icon = _iconExtractor.ExtractLargeIcon(_model.TargetPath);
+            if (Icon == null && !string.IsNullOrEmpty(_model.StoredFilePath))
+                Icon = _iconExtractor.ExtractLargeIcon(_model.StoredFilePath);
             if (Icon == null && !string.IsNullOrEmpty(_model.OriginalShortcutPath))
                 Icon = _iconExtractor.ExtractLargeIcon(_model.OriginalShortcutPath);
 

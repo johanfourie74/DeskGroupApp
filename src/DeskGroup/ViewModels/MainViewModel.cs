@@ -88,11 +88,12 @@ public partial class MainViewModel : ObservableObject
         // Sync AllGroupsVisible with actual loaded state so first tray-click toggles correctly
         AllGroupsVisible = _groupModels.Count == 0 || _groupModels.Any(g => g.IsVisible);
 
-        if (_settings.IsFirstRun)
+        if (_settings.IsFirstRun || !_settings.HasSeenSetupWizard)
         {
             WasFirstRun = true;
             _suppressHotkeyWarnings = true;
             _settings.IsFirstRun = false;
+            // HasSeenSetupWizard is set to true only after the wizard completes successfully.
             await _persistenceService.SaveSettingsImmediateAsync(_settings);
         }
         IsLoaded = true;

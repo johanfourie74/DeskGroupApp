@@ -9,6 +9,38 @@ public partial class SettingsWindow : Window
     private readonly SettingsViewModel _viewModel;
     private bool _applied = false;
 
+    private sealed record SettingsSnapshot(
+        Models.ThemeMode Theme,
+        double GroupBackgroundOpacity,
+        Models.GroupDockMode DefaultDockMode,
+        bool DefaultSnapToGrid,
+        int SnapGridSize,
+        bool HideGroupedIcons,
+        Models.IconSizeMode IconSizeMode,
+        int CustomIconSize,
+        bool SingleClickToLaunch,
+        bool EnableShellContextMenu,
+        bool StartWithWindows,
+        bool StartMinimizedToTray,
+        string ToggleAllHotkey,
+        string ToggleAllMouseHotkey,
+        Models.HotkeyMode ToggleAllHotkeyMode,
+        string FullscreenToggleHotkey,
+        string FullscreenMouseHotkey,
+        Models.HotkeyMode FullscreenHotkeyMode,
+        bool WatchForUngroupedIcons,
+        bool AllowMultiMonitor,
+        bool ShowDebugMenu,
+        bool DesktopShortcutInstalled,
+        bool PinnedToStart,
+        bool PinnedToTaskbar,
+        bool AutoUpdate,
+        bool AutoInstall,
+        bool OptInBugReporting
+    );
+
+    private SettingsSnapshot? _snapshot;
+
     [System.Runtime.InteropServices.DllImport("user32.dll")]
     private static extern IntPtr SendMessage(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
     private const uint WM_NCLBUTTONDOWN = 0xA1;
@@ -25,6 +57,7 @@ public partial class SettingsWindow : Window
         _viewModel = viewModel;
         DataContext = _viewModel;
         _viewModel.OwnerWindow = this;
+        TakeSnapshot();
 
         // Restore window position if previously saved
         Loaded += SettingsWindow_Loaded;
@@ -486,16 +519,68 @@ public partial class SettingsWindow : Window
         }
     }
 
-    /// <summary>
-    /// Quick check if any setting differs from its stored value.
-    /// We do a simple comparison on a few key fields.
-    /// </summary>
+    private void TakeSnapshot()
+    {
+        _snapshot = new SettingsSnapshot(
+            _viewModel.Theme,
+            _viewModel.GroupBackgroundOpacity,
+            _viewModel.DefaultDockMode,
+            _viewModel.DefaultSnapToGrid,
+            _viewModel.SnapGridSize,
+            _viewModel.HideGroupedIcons,
+            _viewModel.IconSizeMode,
+            _viewModel.CustomIconSize,
+            _viewModel.SingleClickToLaunch,
+            _viewModel.EnableShellContextMenu,
+            _viewModel.StartWithWindows,
+            _viewModel.StartMinimizedToTray,
+            _viewModel.ToggleAllHotkey,
+            _viewModel.ToggleAllMouseHotkey,
+            _viewModel.ToggleAllHotkeyMode,
+            _viewModel.FullscreenToggleHotkey,
+            _viewModel.FullscreenMouseHotkey,
+            _viewModel.FullscreenHotkeyMode,
+            _viewModel.WatchForUngroupedIcons,
+            _viewModel.AllowMultiMonitor,
+            _viewModel.ShowDebugMenu,
+            _viewModel.DesktopShortcutInstalled,
+            _viewModel.PinnedToStart,
+            _viewModel.PinnedToTaskbar,
+            _viewModel.AutoUpdate,
+            _viewModel.AutoInstall,
+            _viewModel.OptInBugReporting
+        );
+    }
+
     private bool HasUnsavedChanges()
     {
-        // Since the ViewModel properties are bound two-way to the UI,
-        // we can't easily detect "original" values without storing them.
-        // For now, always assume changes if not applied.
-        // A more robust approach would snapshot the original values in the constructor.
-        return true;
+        if (_snapshot == null) return false;
+        return _viewModel.Theme                 != _snapshot.Theme
+            || _viewModel.GroupBackgroundOpacity != _snapshot.GroupBackgroundOpacity
+            || _viewModel.DefaultDockMode        != _snapshot.DefaultDockMode
+            || _viewModel.DefaultSnapToGrid      != _snapshot.DefaultSnapToGrid
+            || _viewModel.SnapGridSize           != _snapshot.SnapGridSize
+            || _viewModel.HideGroupedIcons       != _snapshot.HideGroupedIcons
+            || _viewModel.IconSizeMode           != _snapshot.IconSizeMode
+            || _viewModel.CustomIconSize         != _snapshot.CustomIconSize
+            || _viewModel.SingleClickToLaunch    != _snapshot.SingleClickToLaunch
+            || _viewModel.EnableShellContextMenu != _snapshot.EnableShellContextMenu
+            || _viewModel.StartWithWindows       != _snapshot.StartWithWindows
+            || _viewModel.StartMinimizedToTray   != _snapshot.StartMinimizedToTray
+            || _viewModel.ToggleAllHotkey        != _snapshot.ToggleAllHotkey
+            || _viewModel.ToggleAllMouseHotkey   != _snapshot.ToggleAllMouseHotkey
+            || _viewModel.ToggleAllHotkeyMode    != _snapshot.ToggleAllHotkeyMode
+            || _viewModel.FullscreenToggleHotkey != _snapshot.FullscreenToggleHotkey
+            || _viewModel.FullscreenMouseHotkey  != _snapshot.FullscreenMouseHotkey
+            || _viewModel.FullscreenHotkeyMode   != _snapshot.FullscreenHotkeyMode
+            || _viewModel.WatchForUngroupedIcons != _snapshot.WatchForUngroupedIcons
+            || _viewModel.AllowMultiMonitor      != _snapshot.AllowMultiMonitor
+            || _viewModel.ShowDebugMenu          != _snapshot.ShowDebugMenu
+            || _viewModel.DesktopShortcutInstalled != _snapshot.DesktopShortcutInstalled
+            || _viewModel.PinnedToStart          != _snapshot.PinnedToStart
+            || _viewModel.PinnedToTaskbar        != _snapshot.PinnedToTaskbar
+            || _viewModel.AutoUpdate             != _snapshot.AutoUpdate
+            || _viewModel.AutoInstall            != _snapshot.AutoInstall
+            || _viewModel.OptInBugReporting      != _snapshot.OptInBugReporting;
     }
 }
