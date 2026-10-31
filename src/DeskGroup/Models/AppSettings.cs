@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace DeskGroup.Models;
@@ -22,6 +22,10 @@ public class AppSettings
     public string FullscreenToggleHotkey { get; set; } = "F11";
     public string FullscreenMouseHotkey { get; set; } = string.Empty;
     public HotkeyMode FullscreenHotkeyMode { get; set; } = HotkeyMode.Keyboard;
+    public string ToggleEdgeDockHotkey { get; set; } = "Ctrl+Alt+Left";
+    public string ToggleEdgeDockMouseHotkey { get; set; } = string.Empty;
+    public HotkeyMode ToggleEdgeDockHotkeyMode { get; set; } = HotkeyMode.Keyboard;
+    public bool EnableEdgeDockArrowHotkeys { get; set; } = true;
     public bool WatchForUngroupedIcons { get; set; } = true;
     public List<string> DismissedUngroupedIcons { get; set; } = new();
     public bool IsPortableMode { get; set; } = false;
@@ -49,6 +53,15 @@ public class AppSettings
 
     // Bug reporting (explicit opt-in — nothing is sent automatically)
     public bool OptInBugReporting { get; set; } = false;
+
+    // Optional Side Panel / Edge Docker
+    public bool EnableEdgeDock { get; set; } = false;
+    public SideDockMonitorMode EdgeDockMonitorMode { get; set; } = SideDockMonitorMode.MainMonitorOnly;
+    public int DefaultEdgeDockBubbleSize { get; set; } = 16;
+    public int DefaultEdgeDockIconSize { get; set; } = 0; // 0 = follow global icon size; 16-96 = custom px
+    public bool DefaultEdgeDockShowBubble { get; set; } = true;
+    public bool DefaultEdgeDockHoverShow { get; set; } = true;
+    public List<EdgeDockConfig> EdgeDocks { get; set; } = new();
 
     // Settings Window Position
     public double SettingsWindowLeft { get; set; } = double.NaN;

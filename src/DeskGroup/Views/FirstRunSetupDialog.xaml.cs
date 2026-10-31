@@ -70,8 +70,21 @@ public partial class FirstRunSetupDialog : Window
         // ── Hotkeys ───────────────────────────────────────────────────────────
         _settings.ToggleAllHotkey       = HkToggleAll.HotkeyValue ?? string.Empty;
         _settings.ToggleAllMouseHotkey  = HkToggleMouse.HotkeyValue ?? string.Empty;
+        if (!string.IsNullOrWhiteSpace(_settings.ToggleAllMouseHotkey))
+        {
+            _settings.ToggleAllHotkeyMode = string.IsNullOrWhiteSpace(_settings.ToggleAllHotkey)
+                ? Models.HotkeyMode.Mouse
+                : Models.HotkeyMode.Both;
+        }
+
         _settings.FullscreenToggleHotkey = HkFullscreenKey.HotkeyValue ?? string.Empty;
         _settings.FullscreenMouseHotkey = HkFullscreenMouse.HotkeyValue ?? string.Empty;
+        if (!string.IsNullOrWhiteSpace(_settings.FullscreenMouseHotkey))
+        {
+            _settings.FullscreenHotkeyMode = string.IsNullOrWhiteSpace(_settings.FullscreenToggleHotkey)
+                ? Models.HotkeyMode.Mouse
+                : Models.HotkeyMode.Both;
+        }
 
         // ── Startup & Behaviour ───────────────────────────────────────────────
         _settings.StartWithWindows      = ChkStartWithWindows.IsChecked == true;
@@ -121,7 +134,7 @@ public partial class FirstRunSetupDialog : Window
         MessageBox.Show(
             $"Automatic {target} pinning isn't supported on Windows 11.\n\n" +
             $"To pin DeskGroup to the {target} manually:\n" +
-            $"1. Find the DeskGroup shortcut on your desktop\n" +
+            $"1. Find the DeskGroup shortcut on your desktop or in Start → All apps\n" +
             $"2. Right-click it and choose 'Pin to {target}'\n\n" +
             $"Your preference has been saved — this won't appear again.",
             $"Pin to {target} — Manual Step Needed",
@@ -129,4 +142,3 @@ public partial class FirstRunSetupDialog : Window
             MessageBoxImage.Information);
     }
 }
-

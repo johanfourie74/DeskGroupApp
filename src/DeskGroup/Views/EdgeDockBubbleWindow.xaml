@@ -1,0 +1,96 @@
+<Window x:Class="DeskGroup.Views.EdgeDockBubbleWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="Edge Dock Bubble"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ShowInTaskbar="False"
+        ResizeMode="NoResize"
+        SizeToContent="Manual"
+        Topmost="True"
+        Width="16" Height="16">
+
+    <Grid x:Name="RootGrid"
+          Background="#01000000"
+          MouseEnter="RootGrid_MouseEnter"
+          MouseLeave="RootGrid_MouseLeave"
+          MouseLeftButtonDown="RootGrid_MouseLeftButtonDown"
+          MouseLeftButtonUp="RootGrid_MouseLeftButtonUp"
+          MouseMove="RootGrid_MouseMove">
+
+        <!-- Non-intrusive always-on-top movable edge bubble button -->
+        <Border x:Name="BubbleBorder"
+                Width="{Binding BubbleSize, FallbackValue=16}"
+                Height="{Binding BubbleSize, FallbackValue=16}"
+                CornerRadius="8"
+                Background="{Binding AccentBrush, FallbackValue=#FF0078D4}"
+                BorderBrush="#BBFFFFFF"
+                BorderThickness="1.2"
+                Opacity="0.65"
+                Cursor="Hand"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                ToolTip="Click to Show/Hide Side Panel • Drag anywhere along screen edges to position where least obstructive • Right-click for options">
+            <Grid>
+                <Ellipse Width="5" Height="5"
+                         Fill="White"
+                         HorizontalAlignment="Center"
+                         VerticalAlignment="Center"
+                         Opacity="0.9"/>
+            </Grid>
+        </Border>
+    </Grid>
+
+    <Window.ContextMenu>
+        <ContextMenu>
+            <MenuItem Header="Show / Hide Edge Dock" Click="MenuToggle_Click">
+                <MenuItem.Icon><TextBlock Text="👁️" FontSize="12"/></MenuItem.Icon>
+            </MenuItem>
+            <Separator/>
+            <MenuItem Header="📌 Pin Dock Position"
+                      IsCheckable="True"
+                      IsChecked="{Binding IsPinned, Mode=OneWay}"
+                      Click="MenuPin_Click"/>
+            <MenuItem Header="↩️ Reset Bubble to Dock Position" Click="MenuResetBubblePos_Click"/>
+            <MenuItem Header="Dock Edge">
+                <MenuItem Header="⬅️ Left Edge" Click="MenuEdgeLeft_Click"/>
+                <MenuItem Header="⬆️ Top Edge" Click="MenuEdgeTop_Click"/>
+                <MenuItem Header="➡️ Right Edge" Click="MenuEdgeRight_Click"/>
+                <MenuItem Header="⬇️ Bottom Edge" Click="MenuEdgeBottom_Click"/>
+            </MenuItem>
+            <MenuItem Header="Lock Mode">
+                <MenuItem Header="🔓 Auto-Hide (Default)" Click="MenuLockAuto_Click"/>
+                <MenuItem Header="🔒 Lock Dock Open" Click="MenuLockOpen_Click"/>
+                <MenuItem Header="⛔ Lock Dock Closed" Click="MenuLockClosed_Click"/>
+            </MenuItem>
+            <MenuItem Header="📏 Panel Icon Size">
+                <MenuItem Header="🎛️ Icon Size &amp; Opacity Slider..." Click="MenuDockAppearance_Click"/>
+                <Separator/>
+                <MenuItem Header="16 px (Extra Small)" Click="MenuIconSize16_Click"/>
+                <MenuItem Header="24 px (Small)" Click="MenuIconSize24_Click"/>
+                <MenuItem Header="32 px (Compact)" Click="MenuIconSize32_Click"/>
+                <MenuItem Header="40 px (Medium-Small)" Click="MenuIconSize40_Click"/>
+                <MenuItem Header="48 px (Default)" Click="MenuIconSize48_Click"/>
+                <MenuItem Header="64 px (Large)" Click="MenuIconSize64_Click"/>
+                <MenuItem Header="72 px (Extra Large)" Click="MenuIconSize72_Click"/>
+                <MenuItem Header="96 px (Jumbo)" Click="MenuIconSize96_Click"/>
+                <Separator/>
+                <MenuItem Header="↩️ Follow Global Icon Size" Click="MenuIconSizeGlobal_Click"/>
+            </MenuItem>
+            <Separator/>
+            <MenuItem Header="Bubble Size">
+                <MenuItem Header="12 × 12 px (Tiny)" Click="MenuSize12_Click"/>
+                <MenuItem Header="16 × 16 px (Default)" Click="MenuSize16_Click"/>
+                <MenuItem Header="20 × 20 px (Medium)" Click="MenuSize20_Click"/>
+                <MenuItem Header="24 × 24 px (Large)" Click="MenuSize24_Click"/>
+                <MenuItem Header="32 × 32 px (Extra Large)" Click="MenuSize32_Click"/>
+            </MenuItem>
+            <Separator/>
+            <MenuItem Header="⚙️ Edge Dock Settings..." Click="MenuSettings_Click"/>
+        </ContextMenu>
+    </Window.ContextMenu>
+</Window>

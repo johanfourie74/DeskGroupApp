@@ -1,10 +1,12 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
 using DeskGroup.Helpers;
@@ -49,8 +51,10 @@ public partial class App : Application
     private MainViewModel? _mainViewModel;
     private TaskbarIcon? _trayIcon;
     private readonly Dictionary<Guid, GroupWidget> _groupWindows = new();
-    private System.Windows.Threading.DispatcherTimer? _trayClickTimer;
-    private System.Windows.Threading.DispatcherTimer? _updateCheckTimer;
+    private readonly List<EdgeDockWindowInstance> _edgeDockInstances = new();
+    private DispatcherTimer? _edgeDockTopmostTimer;
+    private DispatcherTimer? _trayClickTimer;
+    private DispatcherTimer? _updateCheckTimer;
     private NamedPipeServer? _pipeServer;
 
     // Hidden helper window used for hotkey registration
@@ -106,13 +110,11 @@ public partial class App : Application
         AppDomain.CurrentDomain.UnhandledException += OnDomainUnhandledException;
 
         // Handle first-chance exceptions (for debugging)
-        // These are exceptions that are caught internally by WPF but break the debugger
         AppDomain.CurrentDomain.FirstChanceException += (s, args) =>
         {
-            // Log WPF internal exceptions that are normally handled
             if (args.Exception is InvalidOperationException invOp)
             {
-                System.Diagnostics.Debug.WriteLine($"[FirstChance] InvalidOperationException (handled by WPF): {invOp.Message}");
+                Debug.WriteLine($"[FirstChance] InvalidOperationException (handled by WPF): {invOp.Message}");
             }
         };
 
@@ -120,18 +122,16 @@ public partial class App : Application
         _mainViewModel = new MainViewModel();
 
         // Set application-level binding proxy to main view model (BEFORE InitializeAsync!)
-        // This must happen before resources are frozen by first window creation
         try
         {
-            if (Resources["AppDataProxy"] is DeskGroup.Helpers.BindingProxy proxy)
+            if (Resources["AppDataProxy"] is BindingProxy proxy)
             {
                 proxy.Data = _mainViewModel;
-                System.Diagnostics.Debug.WriteLine("STARTUP: BindingProxy.Data set successfully");
             }
         }
         catch (Exception proxyEx)
         {
-            System.Diagnostics.Debug.WriteLine($"STARTUP: BindingProxy set FAILED: {proxyEx.Message}");
+            Debug.WriteLine($"STARTUP: BindingProxy set FAILED: {proxyEx.Message}");
         }
 
         try
@@ -198,23 +198,23 @@ public partial class App : Application
         _mainViewModel.ThemeChanged += OnThemeChanged;
         _mainViewModel.GroupAdded += OnGroupAdded;
         _mainViewModel.GroupRemoved += OnGroupRemoved;
+        _mainViewModel.EdgeDocksRebuilt += (s, e) => Dispatcher.Invoke(() =>
+        {
+            SyncEdgeDockWindows();
+            if (_trayIcon != null)
+                _trayIcon.ContextMenu = BuildTrayContextMenu();
+        });
         _mainViewModel.UngroupedIconsDetected += OnUngroupedIconsDetected;
         _mainViewModel.OpenSettingsRequested += (s, e) => ShowSettingsWindow();
-
-        System.Diagnostics.Debug.WriteLine("STARTUP: Creating tray icon");
 
         try
         {
             // Create System Tray Icon
             CreateTrayIcon();
-            System.Diagnostics.Debug.WriteLine("STARTUP: Tray icon created successfully");
         }
         catch (Exception trayEx)
         {
-            System.Diagnostics.Debug.WriteLine($"STARTUP: Tray icon creation FAILED: {trayEx.Message}");
-            System.Diagnostics.Debug.WriteLine($"STARTUP: Stack: {trayEx.StackTrace}");
-
-            // Show error but continue without tray icon
+            Debug.WriteLine($"STARTUP: Tray icon creation FAILED: {trayEx.Message}");
             MessageBox.Show(
                 $"Failed to create system tray icon:\n\n{trayEx.Message}\n\n" +
                 $"The application will continue but you'll need to create groups manually.\n\n" +
@@ -224,12 +224,10 @@ public partial class App : Application
                 MessageBoxImage.Warning);
         }
 
-        System.Diagnostics.Debug.WriteLine($"STARTUP: Creating windows for {_mainViewModel.Groups.Count} groups");
-
         // Jump List for taskbar / desktop shortcut right-click (Note A)
         try
         {
-            var exePath = System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName ?? string.Empty;
+            var exePath = Process.GetCurrentProcess().MainModule?.FileName ?? string.Empty;
             if (!string.IsNullOrEmpty(exePath))
             {
                 var jumpList = new System.Windows.Shell.JumpList();
@@ -271,38 +269,33 @@ public partial class App : Application
                 });
                 jumpList.Apply();
                 System.Windows.Shell.JumpList.SetJumpList(this, jumpList);
-                System.Diagnostics.Debug.WriteLine("STARTUP: Jump List configured");
             }
         }
         catch (Exception jlEx)
         {
-            System.Diagnostics.Debug.WriteLine($"STARTUP: Jump List setup failed: {jlEx.Message}");
+            Debug.WriteLine($"STARTUP: Jump List setup failed: {jlEx.Message}");
         }
 
         // Create Widget Windows for Existing Groups
-        int windowNum = 0;
         foreach (var groupVm in _mainViewModel.Groups)
         {
-            windowNum++;
-            System.Diagnostics.Debug.WriteLine($"STARTUP: Creating window {windowNum} for group '{groupVm.Name}'");
-
             try
             {
                 CreateGroupWindow(groupVm);
-                System.Diagnostics.Debug.WriteLine($"STARTUP: Window {windowNum} created successfully");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"STARTUP ERROR: Window {windowNum} failed: {ex.Message}");
+                Debug.WriteLine($"STARTUP ERROR: Group window failed: {ex.Message}");
                 MessageBox.Show(
-                    $"Failed to create window for group '{groupVm.Name}':\n\n{ex.Message}\n\nStack:\n{ex.StackTrace}",
+                    $"Failed to create window for group '{groupVm.Name}':\n\n{ex.Message}",
                     "Window Creation Error",
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
             }
         }
 
-        System.Diagnostics.Debug.WriteLine("STARTUP: All windows created, showing balloon tip");
+        // Create Edge Dock Windows if enabled
+        SyncEdgeDockWindows();
 
         // Show first-run setup dialog
         if (_mainViewModel.WasFirstRun)
@@ -313,6 +306,9 @@ public partial class App : Application
             setupDialog.Owner = _helperWindow;
             setupDialog.WindowStartupLocation = WindowStartupLocation.CenterScreen;
             setupDialog.ShowDialog();
+            ApplyTheme(_mainViewModel.Settings.Theme);
+            foreach (var g in _mainViewModel.Groups) g.RefreshOpacity();
+            if (_helperWindow != null) _mainViewModel.ApplySettingsChanges(_helperWindow);
         }
 
         // Show first-run hint if applicable
@@ -338,10 +334,7 @@ public partial class App : Application
                 BalloonIcon.Info);
         }
 
-        // Note: Removed diagnostic message box to avoid blocking startup
-
         // ── Auto-update background check ──────────────────────────────────────
-        // Startup check: run 5 seconds after launch so it doesn't compete with init
         if (_mainViewModel.Settings.AutoUpdate)
         {
             _ = Task.Delay(5000).ContinueWith(
@@ -352,7 +345,7 @@ public partial class App : Application
         }
 
         // Weekly background check timer
-        _updateCheckTimer = new System.Windows.Threading.DispatcherTimer
+        _updateCheckTimer = new DispatcherTimer
         {
             Interval = TimeSpan.FromDays(7)
         };
@@ -373,7 +366,6 @@ public partial class App : Application
 
     protected override async void OnExit(ExitEventArgs e)
     {
-        // Save all data
         if (_mainViewModel != null)
         {
             try
@@ -389,20 +381,17 @@ public partial class App : Application
             _mainViewModel.UngroupedIconsDetected -= OnUngroupedIconsDetected;
         }
 
-        // Close all group windows
         foreach (var window in _groupWindows.Values.ToList())
         {
             try { window.Close(); } catch { }
         }
         _groupWindows.Clear();
+        DestroyAllEdgeDockWindows();
 
-        // Dispose tray icon - FORCE Windows to remove it immediately with Shell_NotifyIcon API
         if (_trayIcon != null)
         {
             try
             {
-                // CRITICAL: Use Shell_NotifyIcon API to FORCE immediate removal
-                // This bypasses WPF's delayed cleanup that causes the icon to hang
                 var iconHandle = _trayIcon.Icon?.Handle ?? IntPtr.Zero;
 
                 if (iconHandle != IntPtr.Zero)
@@ -415,22 +404,17 @@ public partial class App : Application
                         hIcon = iconHandle
                     };
 
-                    // Force Windows to DELETE the icon immediately
                     Shell_NotifyIcon(NIM_DELETE, ref nid);
-                    System.Diagnostics.Debug.WriteLine("OnExit: Shell_NotifyIcon(NIM_DELETE) called - icon forcibly removed!");
                 }
 
-                // Now cleanup the WPF wrapper
                 _trayIcon.Icon = null;
                 _trayIcon.Visibility = Visibility.Hidden;
                 _trayIcon.ToolTipText = string.Empty;
                 _trayIcon.Dispose();
-
-                System.Diagnostics.Debug.WriteLine("OnExit: Tray icon disposed successfully!");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error disposing tray icon: {ex.Message}");
+                Debug.WriteLine($"Error disposing tray icon: {ex.Message}");
             }
             finally
             {
@@ -438,13 +422,8 @@ public partial class App : Application
             }
         }
 
-        // Close helper window
         try { _helperWindow?.Close(); } catch { }
-
-        // Dispose IPC pipe server
         _pipeServer?.Dispose();
-
-        // Release single instance
         _singleInstanceGuard?.Dispose();
 
         base.OnExit(e);
@@ -454,10 +433,10 @@ public partial class App : Application
     // SYSTEM TRAY
     // ============================================================================================
 
+    private static Icon? s_cachedTrayIcon;
+
     private void CreateTrayIcon()
     {
-        System.Diagnostics.Debug.WriteLine("CreateTrayIcon: START");
-
         try
         {
             _trayIcon = new TaskbarIcon
@@ -466,53 +445,39 @@ public partial class App : Application
                 MenuActivation = PopupActivationMode.RightClick
             };
 
-            System.Diagnostics.Debug.WriteLine("CreateTrayIcon: TaskbarIcon created");
+            Icon? loadedIcon = s_cachedTrayIcon;
 
-            // Load PNG and convert to Icon (avoids ICO file issues)
-            Icon? loadedIcon = null;
-
-            try
+            if (loadedIcon == null)
             {
-                System.Diagnostics.Debug.WriteLine("CreateTrayIcon: Loading dg_icon.png and converting to Icon");
-
-                var pngUri = new Uri("pack://application:,,,/Assets/dg_icon.png", UriKind.Absolute);
-                var streamInfo = GetResourceStream(pngUri);
-
-                if (streamInfo != null && streamInfo.Stream != null)
+                try
                 {
-                    try
+                    var pngUri = new Uri("pack://application:,,,/Assets/dg_icon.png", UriKind.Absolute);
+                    var streamInfo = GetResourceStream(pngUri);
+
+                    if (streamInfo?.Stream != null)
                     {
-                        // Load PNG as WPF BitmapImage
-                        var bitmapImage = new System.Windows.Media.Imaging.BitmapImage();
-                        bitmapImage.BeginInit();
-                        bitmapImage.StreamSource = streamInfo.Stream;
-                        bitmapImage.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
-                        bitmapImage.EndInit();
-                        bitmapImage.Freeze();
-
-                        // Convert to System.Drawing.Bitmap
-                        using (var memoryStream = new MemoryStream())
+                        try
                         {
-                            var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
-                            encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmapImage));
-                            encoder.Save(memoryStream);
-                            memoryStream.Seek(0, SeekOrigin.Begin);
+                            using var bitmap = new Bitmap(streamInfo.Stream);
+                            int minX = bitmap.Width, minY = bitmap.Height, maxX = 0, maxY = 0;
+                            bool foundPixel = false;
 
-                            using (var bitmap = new System.Drawing.Bitmap(memoryStream))
+                            // Fast LockBits scan instead of 260,000 slow GetPixel P/Invoke calls
+                            var rect = new Rectangle(0, 0, bitmap.Width, bitmap.Height);
+                            var bmpData = bitmap.LockBits(rect, ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+                            try
                             {
-                                System.Diagnostics.Debug.WriteLine($"CreateTrayIcon: Original bitmap: {bitmap.Width}x{bitmap.Height}");
-
-                                // STEP 1: Find the bounds of non-transparent pixels (crop the padding!)
-                                int minX = bitmap.Width, minY = bitmap.Height, maxX = 0, maxY = 0;
-                                bool foundPixel = false;
+                                int stride = Math.Abs(bmpData.Stride);
+                                byte[] pixels = new byte[stride * bitmap.Height];
+                                Marshal.Copy(bmpData.Scan0, pixels, 0, pixels.Length);
 
                                 for (int y = 0; y < bitmap.Height; y++)
                                 {
+                                    int rowOffset = y * stride;
                                     for (int x = 0; x < bitmap.Width; x++)
                                     {
-                                        var pixel = bitmap.GetPixel(x, y);
-                                        // Check if pixel is not fully transparent
-                                        if (pixel.A > 10) // More than 10 alpha = visible
+                                        byte alpha = pixels[rowOffset + x * 4 + 3];
+                                        if (alpha > 10)
                                         {
                                             foundPixel = true;
                                             if (x < minX) minX = x;
@@ -522,97 +487,56 @@ public partial class App : Application
                                         }
                                     }
                                 }
-
-                                System.Drawing.Bitmap croppedBitmap;
-
-                                if (foundPixel && (maxX > minX) && (maxY > minY))
-                                {
-                                    // Calculate crop rectangle
-                                    int cropWidth = maxX - minX + 1;
-                                    int cropHeight = maxY - minY + 1;
-
-                                    System.Diagnostics.Debug.WriteLine($"CreateTrayIcon: Found content bounds: {minX},{minY} to {maxX},{maxY} (size: {cropWidth}x{cropHeight})");
-
-                                    // Crop to content
-                                    var cropRect = new System.Drawing.Rectangle(minX, minY, cropWidth, cropHeight);
-                                    croppedBitmap = bitmap.Clone(cropRect, bitmap.PixelFormat);
-
-                                    System.Diagnostics.Debug.WriteLine($"CreateTrayIcon: Cropped to: {croppedBitmap.Width}x{croppedBitmap.Height}");
-                                }
-                                else
-                                {
-                                    // No cropping needed or failed to find bounds
-                                    croppedBitmap = (System.Drawing.Bitmap)bitmap.Clone();
-                                    System.Diagnostics.Debug.WriteLine("CreateTrayIcon: No cropping needed");
-                                }
-
-                                // STEP 2: Resize to 64x64 with high quality (now without the padding!)
-                                var targetSize = 64;
-                                var resized = new System.Drawing.Bitmap(targetSize, targetSize);
-
-                                using (var graphics = System.Drawing.Graphics.FromImage(resized))
-                                {
-                                    // Use highest quality settings
-                                    graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
-                                    graphics.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighQuality;
-                                    graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
-                                    graphics.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
-
-                                    // Draw the CROPPED image at target size
-                                    graphics.DrawImage(croppedBitmap, 0, 0, targetSize, targetSize);
-                                }
-
-                                croppedBitmap.Dispose();
-
-                                // Convert to Icon - Windows will scale for DPI
-                                IntPtr hIcon = resized.GetHicon();
-                                loadedIcon = Icon.FromHandle(hIcon);
-                                resized.Dispose();
-
-                                System.Diagnostics.Debug.WriteLine($"CreateTrayIcon: Final icon created at {targetSize}x{targetSize} (cropped & resized)");
                             }
+                            finally
+                            {
+                                bitmap.UnlockBits(bmpData);
+                            }
+
+                            var srcRect = foundPixel && maxX > minX && maxY > minY
+                                ? new Rectangle(minX, minY, maxX - minX + 1, maxY - minY + 1)
+                                : new Rectangle(0, 0, bitmap.Width, bitmap.Height);
+
+                            const int targetSize = 64;
+                            using var resized = new Bitmap(targetSize, targetSize, PixelFormat.Format32bppArgb);
+                            using (var graphics = Graphics.FromImage(resized))
+                            {
+                                graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                                graphics.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighQuality;
+                                graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
+                                graphics.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
+                                graphics.DrawImage(bitmap, new Rectangle(0, 0, targetSize, targetSize), srcRect, GraphicsUnit.Pixel);
+                            }
+
+                            IntPtr hIcon = resized.GetHicon();
+                            loadedIcon = Icon.FromHandle(hIcon);
+                            s_cachedTrayIcon = loadedIcon;
+                        }
+                        catch (Exception convEx)
+                        {
+                            Debug.WriteLine($"CreateTrayIcon: PNG conversion failed: {convEx.Message}");
+                        }
+                        finally
+                        {
+                            streamInfo.Stream?.Dispose();
                         }
                     }
-                    catch (Exception convEx)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"CreateTrayIcon: PNG conversion failed: {convEx.Message}");
-                    }
-                    finally
-                    {
-                        streamInfo.Stream?.Dispose();
-                    }
+                }
+                catch (Exception iconEx)
+                {
+                    Debug.WriteLine($"CreateTrayIcon: Icon loading failed: {iconEx.Message}");
                 }
             }
-            catch (Exception iconEx)
-            {
-                System.Diagnostics.Debug.WriteLine($"CreateTrayIcon: Icon loading failed: {iconEx.Message}");
-            }
 
-            // Use loaded icon or fallback to system default
-            if (loadedIcon != null)
-            {
-                _trayIcon.Icon = loadedIcon;
-                System.Diagnostics.Debug.WriteLine("CreateTrayIcon: Using PNG-converted icon ✓");
-            }
-            else
-            {
-                _trayIcon.Icon = SystemIcons.Application;
-                System.Diagnostics.Debug.WriteLine("CreateTrayIcon: Using fallback system icon");
-            }
-
-            System.Diagnostics.Debug.WriteLine("CreateTrayIcon: Building context menu");
-
-            // Build context menu
+            _trayIcon.Icon = loadedIcon ?? SystemIcons.Application;
             _trayIcon.ContextMenu = BuildTrayContextMenu();
-
-            System.Diagnostics.Debug.WriteLine("CreateTrayIcon: Wiring click events");
 
             // Left single-click -> toggle visibility (debounced to prevent double-toggle on double-click)
             _trayIcon.TrayLeftMouseUp += (s, e) =>
             {
                 if (_trayClickTimer == null)
                 {
-                    _trayClickTimer = new System.Windows.Threading.DispatcherTimer
+                    _trayClickTimer = new DispatcherTimer
                     {
                         Interval = TimeSpan.FromMilliseconds(300)
                     };
@@ -632,14 +556,10 @@ public partial class App : Application
                 _trayClickTimer?.Stop();
                 _mainViewModel?.ToggleAllGroupsVisibility();
             };
-
-            System.Diagnostics.Debug.WriteLine("CreateTrayIcon: COMPLETE");
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"CreateTrayIcon: FAILED with exception: {ex.Message}");
-            System.Diagnostics.Debug.WriteLine($"CreateTrayIcon: Stack trace: {ex.StackTrace}");
-
+            Debug.WriteLine($"CreateTrayIcon: FAILED with exception: {ex.Message}");
             MessageBox.Show(
                 $"Failed to create system tray icon:\n\n{ex.Message}\n\nThe application will continue but won't show in the system tray.",
                 "Tray Icon Error",
@@ -665,12 +585,10 @@ public partial class App : Application
 
         if (_mainViewModel?.Settings.ShowDebugMenu == true)
         {
-            // DEBUG: Force all groups to visible float mode
             var forceVisible = new System.Windows.Controls.MenuItem { Header = "🔧 DEBUG: Force All Visible (Float+Normal)" };
             forceVisible.Click += (s, e) => ForceAllGroupsVisible();
             menu.Items.Add(forceVisible);
 
-            // DEBUG: Show test window
             var testWindow = new System.Windows.Controls.MenuItem { Header = "🧪 DEBUG: Show Test Window" };
             testWindow.Click += (s, e) => ShowTestWindow();
             menu.Items.Add(testWindow);
@@ -678,10 +596,45 @@ public partial class App : Application
             menu.Items.Add(new System.Windows.Controls.Separator());
         }
 
-        // Create New Group
+        // Create New Group (fixed duplicate Click handler)
         var newGroup = new System.Windows.Controls.MenuItem { Header = "New Group" };
         newGroup.Click += (s, e) => _mainViewModel?.CreateGroupCommand.Execute(null);
         menu.Items.Add(newGroup);
+
+        var edgeDockMenu = new System.Windows.Controls.MenuItem
+        {
+            Header = _mainViewModel?.Settings.EnableEdgeDock == true
+                ? "✓ Edge Dock (Side Panel)"
+                : "Edge Dock (Side Panel)"
+        };
+        var toggleEdgeDock = new System.Windows.Controls.MenuItem
+        {
+            Header = _mainViewModel?.Settings.EnableEdgeDock == true
+                ? "Disable Side Panel"
+                : "Enable Side Panel"
+        };
+        toggleEdgeDock.Click += async (s, e) =>
+        {
+            if (_mainViewModel != null)
+                await _mainViewModel.ToggleEdgeDockFeatureAsync();
+        };
+        edgeDockMenu.Items.Add(toggleEdgeDock);
+
+        if (_mainViewModel?.Settings.EnableEdgeDock == true && _mainViewModel.ActiveEdgeDocks.Count > 0)
+        {
+            edgeDockMenu.Items.Add(new System.Windows.Controls.Separator());
+            foreach (var dockVm in _mainViewModel.ActiveEdgeDocks)
+            {
+                var capturedDock = dockVm;
+                var showHideDock = new System.Windows.Controls.MenuItem
+                {
+                    Header = $"Toggle {capturedDock.Name} ({capturedDock.Edge})"
+                };
+                showHideDock.Click += (s, e) => capturedDock.TogglePanel();
+                edgeDockMenu.Items.Add(showHideDock);
+            }
+        }
+        menu.Items.Add(edgeDockMenu);
 
         menu.Items.Add(new System.Windows.Controls.Separator());
 
@@ -714,7 +667,7 @@ public partial class App : Application
                     await _mainViewModel.SaveAllAsync();
                 Process.Start(new ProcessStartInfo
                 {
-                    FileName = Environment.ProcessPath ?? System.AppContext.BaseDirectory + "DeskGroup.exe",
+                    FileName = Environment.ProcessPath ?? AppContext.BaseDirectory + "DeskGroup.exe",
                     UseShellExecute = true
                 });
                 Shutdown();
@@ -779,15 +732,6 @@ public partial class App : Application
             }
         }
 
-        stack.Children.Add(new System.Windows.Controls.TextBlock
-        {
-            Text = "\nIf you see THIS window, rendering works.\n" +
-                   "The issue is with GroupWidget windows specifically.",
-            FontSize = 12,
-            Margin = new Thickness(0, 20, 0, 0),
-            Foreground = System.Windows.Media.Brushes.Red
-        });
-
         var btn = new System.Windows.Controls.Button
         {
             Content = "Close",
@@ -806,8 +750,8 @@ public partial class App : Application
     {
         if (_mainViewModel == null) return;
 
-        int offsetY = 100; // Start at 100px from top
-        const int spacing = 60; // Space between groups
+        int offsetY = 100;
+        const int spacing = 60;
 
         foreach (var groupVm in _mainViewModel.Groups)
         {
@@ -815,12 +759,10 @@ public partial class App : Application
             groupVm.ViewMode = GroupViewMode.Normal;
             groupVm.DockMode = GroupDockMode.Float;
 
-            // Move to main screen, stacked vertically
             groupVm.PositionX = 100;
             groupVm.PositionY = offsetY;
             offsetY += spacing;
 
-            // Force window update
             if (_groupWindows.TryGetValue(groupVm.Id, out var window))
             {
                 window.Left = groupVm.PositionX;
@@ -844,30 +786,17 @@ public partial class App : Application
 
     private void CreateGroupWindow(GroupViewModel groupVm)
     {
-        System.Diagnostics.Debug.WriteLine($"CreateGroupWindow: START for '{groupVm.Name}'");
-
         if (_groupWindows.ContainsKey(groupVm.Id))
-        {
-            System.Diagnostics.Debug.WriteLine($"CreateGroupWindow: Window already exists for '{groupVm.Name}', skipping");
             return;
-        }
-
-        System.Diagnostics.Debug.WriteLine($"CreateGroupWindow: Creating new GroupWidget for '{groupVm.Name}'");
 
         var window = new GroupWidget(groupVm);
-
-        System.Diagnostics.Debug.WriteLine($"CreateGroupWindow: GroupWidget created, wiring events");
 
         window.DeleteRequested += (s, e) =>
         {
             _mainViewModel?.DeleteGroupCommand.Execute(groupVm);
         };
 
-        window.FilesDropped += (s, files) =>
-        {
-            // Already handled inside GroupWidget, but hook available for future use
-        };
-
+        window.FilesDropped += (s, files) => { };
         window.SettingsRequested += (s, e) => ShowSettingsWindow();
 
         // Handle visibility changes directly to avoid infinite loops
@@ -875,10 +804,6 @@ public partial class App : Application
         {
             if (e.PropertyName == nameof(GroupViewModel.IsVisible))
             {
-                System.Diagnostics.Debug.WriteLine($"App: GroupVM.IsVisible changed to {groupVm.IsVisible} for '{groupVm.Name}'");
-
-                // Control window visibility using POSITION instead of Visibility property
-                // This avoids WPF layout recalculation loops!
                 if (_groupWindows.TryGetValue(groupVm.Id, out var win))
                 {
                     win.Dispatcher.BeginInvoke(new Action(() =>
@@ -887,46 +812,37 @@ public partial class App : Application
                         {
                             if (groupVm.IsVisible)
                             {
-                                System.Diagnostics.Debug.WriteLine($"  App: Moving window on-screen for '{groupVm.Name}'");
-                                // Move to saved position
                                 win.Left = groupVm.PositionX;
                                 win.Top = groupVm.PositionY;
                             }
                             else
                             {
-                                System.Diagnostics.Debug.WriteLine($"  App: Moving window off-screen for '{groupVm.Name}'");
-                                // Move far off-screen (invisible but still "shown")
                                 win.Left = -10000;
                                 win.Top = -10000;
                             }
                         }
                         catch (Exception ex)
                         {
-                            System.Diagnostics.Debug.WriteLine($"  App: ERROR changing position: {ex.Message}");
+                            Debug.WriteLine($"  App: ERROR changing position: {ex.Message}");
                         }
-                    }), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+                    }), DispatcherPriority.ApplicationIdle);
                 }
             }
         };
 
-        System.Diagnostics.Debug.WriteLine($"CreateGroupWindow: Calling Show() for '{groupVm.Name}'");
-
-        // CRITICAL: Set all sizing properties BEFORE showing to prevent visible resize
+        // Set all sizing properties BEFORE showing to prevent visible resize
         window.SizeToContent = SizeToContent.Manual;
-        window.Opacity = 0; // Hide during initialization
+        window.Opacity = 0;
 
-        // Pre-set position and size based on saved values to prevent visible resize
-        // IMPORTANT: Force integer conversion to prevent decimal/comma parsing corruption!
-        window.Left = Math.Round(groupVm.PositionX);
-        window.Top = Math.Round(groupVm.PositionY);
+        window.Left = groupVm.IsVisible ? Math.Round(groupVm.PositionX) : -10000;
+        window.Top = groupVm.IsVisible ? Math.Round(groupVm.PositionY) : -10000;
 
-        // Pre-set size and constraints based on view mode to prevent visible resize
         switch (groupVm.ViewMode)
         {
             case GroupViewMode.Minimized:
-                window.MinWidth = 200;  // Increased to match Border MinWidth
+                window.MinWidth = 200;
                 window.MinHeight = 40;
-                window.Width = 220;     // Slightly wider to fit icon + name + count
+                window.Width = 220;
                 window.Height = 40;
                 break;
             case GroupViewMode.Hover:
@@ -953,12 +869,7 @@ public partial class App : Application
         }
 
         window.Show();
-
-        System.Diagnostics.Debug.WriteLine($"CreateGroupWindow: Show() returned at ({window.Left},{window.Top}) size ({window.Width}x{window.Height})");
-
         _groupWindows[groupVm.Id] = window;
-
-        System.Diagnostics.Debug.WriteLine($"CreateGroupWindow: COMPLETE for '{groupVm.Name}'");
     }
 
     private void DestroyGroupWindow(GroupViewModel groupVm)
@@ -976,7 +887,6 @@ public partial class App : Application
         {
             CreateGroupWindow(groupVm);
 
-            // Show helpful tip when user creates a new group
             _trayIcon?.ShowBalloonTip(
                 $"Group '{groupVm.Name}' created! 🎨",
                 "Tip: Right-click the group window for options, or drag desktop shortcuts into it!",
@@ -990,12 +900,131 @@ public partial class App : Application
     }
 
     // ============================================================================================
+    // EDGE DOCK (OPTIONAL SIDE PANEL) WINDOW MANAGEMENT
+    // ============================================================================================
+
+    private sealed class EdgeDockWindowInstance
+    {
+        public EdgeDockViewModel ViewModel { get; init; } = null!;
+        public EdgeDockBubbleWindow BubbleWindow { get; init; } = null!;
+        public EdgeDockPanelWindow PanelWindow { get; init; } = null!;
+        public DispatcherTimer AutoHideTimer { get; init; } = null!;
+    }
+
+    private void SyncEdgeDockWindows()
+    {
+        DestroyAllEdgeDockWindows();
+        if (_mainViewModel == null || !_mainViewModel.Settings.EnableEdgeDock) return;
+
+        foreach (var dockVm in _mainViewModel.ActiveEdgeDocks)
+        {
+            try
+            {
+                var bubbleWin = new EdgeDockBubbleWindow(dockVm);
+                var panelWin = new EdgeDockPanelWindow(dockVm);
+
+                var autoHideTimer = new DispatcherTimer
+                {
+                    Interval = TimeSpan.FromMilliseconds(380)
+                };
+
+                autoHideTimer.Tick += (s, e) =>
+                {
+                    autoHideTimer.Stop();
+                    if (bubbleWin.IsMouseOver || panelWin.IsMouseOver || Controls.IconTile.IsDraggingShortcut) return;
+                    if (bubbleWin.ContextMenu?.IsOpen == true || panelWin.ContextMenu?.IsOpen == true) return;
+                    if (panelWin.OwnedWindows.Count > 0) return;
+                    dockVm.RequestCloseFromHoverLeave();
+                };
+
+                bubbleWin.HoverEntered += (s, e) =>
+                {
+                    autoHideTimer.Stop();
+                    dockVm.RequestOpenFromHover();
+                };
+
+                bubbleWin.HoverLeft += (s, e) =>
+                {
+                    if (dockVm.LockState == SideDockLockState.AutoHide && dockVm.IsPanelOpen)
+                    {
+                        autoHideTimer.Stop();
+                        autoHideTimer.Start();
+                    }
+                };
+
+                panelWin.PanelMouseEntered += (s, e) =>
+                {
+                    autoHideTimer.Stop();
+                };
+
+                panelWin.PanelMouseLeft += (s, e) =>
+                {
+                    if (dockVm.LockState == SideDockLockState.AutoHide && dockVm.IsPanelOpen)
+                    {
+                        autoHideTimer.Stop();
+                        autoHideTimer.Start();
+                    }
+                };
+
+                bubbleWin.SettingsRequested += (s, e) => ShowSettingsWindow();
+                panelWin.SettingsRequested += (s, e) => ShowSettingsWindow();
+
+                bubbleWin.Show();
+                panelWin.Show();
+
+                _edgeDockInstances.Add(new EdgeDockWindowInstance
+                {
+                    ViewModel = dockVm,
+                    BubbleWindow = bubbleWin,
+                    PanelWindow = panelWin,
+                    AutoHideTimer = autoHideTimer
+                });
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"SyncEdgeDockWindows ERROR: {ex.Message}");
+            }
+        }
+
+        if (_edgeDockInstances.Count > 0)
+        {
+            if (_edgeDockTopmostTimer == null)
+            {
+                _edgeDockTopmostTimer = new DispatcherTimer
+                {
+                    Interval = TimeSpan.FromSeconds(2)
+                };
+                _edgeDockTopmostTimer.Tick += (s, e) =>
+                {
+                    foreach (var inst in _edgeDockInstances)
+                    {
+                        inst.BubbleWindow.EnsureTopmost();
+                        inst.PanelWindow.EnsureTopmost();
+                    }
+                };
+            }
+            _edgeDockTopmostTimer.Start();
+        }
+    }
+
+    private void DestroyAllEdgeDockWindows()
+    {
+        _edgeDockTopmostTimer?.Stop();
+        foreach (var inst in _edgeDockInstances)
+        {
+            try { inst.AutoHideTimer.Stop(); } catch { }
+            try { inst.BubbleWindow.Close(); } catch { }
+            try { inst.PanelWindow.Close(); } catch { }
+        }
+        _edgeDockInstances.Clear();
+    }
+
+    // ============================================================================================
     // THEME MANAGEMENT
     // ============================================================================================
 
     private void ApplyTheme(DeskGroup.Models.ThemeMode mode)
     {
-        // Apply theme to UI windows (Settings, Dialogs)
         var themeUri = mode switch
         {
             DeskGroup.Models.ThemeMode.Light => new Uri("Themes/LightTheme.xaml", UriKind.Relative),
@@ -1008,7 +1037,6 @@ public partial class App : Application
 
         var newTheme = new ResourceDictionary { Source = themeUri };
 
-        // Find and replace the existing theme dictionary (index 1, after Generic.xaml)
         var mergedDicts = Resources.MergedDictionaries;
         if (mergedDicts.Count >= 2)
         {
@@ -1025,9 +1053,6 @@ public partial class App : Application
         Dispatcher.Invoke(() => ApplyTheme(mode));
     }
 
-    /// <summary>
-    /// Check if Windows is currently in dark mode via registry.
-    /// </summary>
     private static bool IsSystemDarkMode()
     {
         try
@@ -1049,6 +1074,22 @@ public partial class App : Application
 
     private SettingsWindow? _settingsWindow;
 
+    private static void BringWindowToFront(Window win)
+    {
+        try
+        {
+            if (win.WindowState == WindowState.Minimized)
+                win.WindowState = WindowState.Normal;
+            win.Show();
+            bool origTopmost = win.Topmost;
+            win.Topmost = true;
+            win.Activate();
+            win.Focus();
+            win.Topmost = origTopmost;
+        }
+        catch { }
+    }
+
     private void ShowSettingsWindow()
     {
         if (_mainViewModel == null) return;
@@ -1056,7 +1097,7 @@ public partial class App : Application
         // Reuse existing window if open
         if (_settingsWindow != null && _settingsWindow.IsVisible)
         {
-            _settingsWindow.Activate();
+            BringWindowToFront(_settingsWindow);
             return;
         }
 
@@ -1068,6 +1109,8 @@ public partial class App : Application
         {
             foreach (var groupVm in _mainViewModel.Groups)
                 groupVm.RefreshOpacity();
+            foreach (var dockVm in _mainViewModel.ActiveEdgeDocks)
+                dockVm.RefreshOpacity();
         };
 
         // Subscribe to icon size changes for live updates
@@ -1075,6 +1118,36 @@ public partial class App : Application
         {
             foreach (var groupVm in _mainViewModel.Groups)
                 groupVm.RefreshIconSize();
+            foreach (var dockVm in _mainViewModel.ActiveEdgeDocks)
+                dockVm.SyncIconSizeFromConfig();
+        };
+
+        // Live hotkey re-registration when user changes any keyboard/mouse shortcut in Settings
+        settingsVm.HotkeysChanged += (s, e) =>
+        {
+            if (_helperWindow != null)
+            {
+                _mainViewModel.RegisterHotkeys(_helperWindow);
+            }
+        };
+
+        // Live desktop icon hide/restore when user toggles "Hide grouped icons" in Settings
+        settingsVm.HideGroupedIconsChanged += (s, e) =>
+        {
+            _mainViewModel.SyncGroupedDesktopIconsVisibility();
+        };
+
+        settingsVm.LiveSettingsChanged += (s, e) =>
+        {
+            ApplyTheme(_mainViewModel.Settings.Theme);
+            _mainViewModel.RebuildEdgeDocks();
+            if (_trayIcon != null)
+                _trayIcon.ContextMenu = BuildTrayContextMenu();
+
+            if (_mainViewModel.Settings.AutoUpdate)
+                _updateCheckTimer?.Start();
+            else
+                _updateCheckTimer?.Stop();
         };
 
         _settingsWindow.SettingsApplied += (s, e) =>
@@ -1084,27 +1157,20 @@ public partial class App : Application
                 _mainViewModel.ApplySettingsChanges(_helperWindow);
             }
 
-            // Re-apply UI theme
             ApplyTheme(_mainViewModel.Settings.Theme);
 
-            // Rebuild tray menu so debug item visibility reflects new setting
             if (_trayIcon != null)
                 _trayIcon.ContextMenu = BuildTrayContextMenu();
+
+            if (_mainViewModel.Settings.AutoUpdate)
+                _updateCheckTimer?.Start();
+            else
+                _updateCheckTimer?.Stop();
         };
 
         _settingsWindow.Closed += (s, e) => _settingsWindow = null;
 
-        // Restart weekly timer in case AutoUpdate was toggled
-        if (_mainViewModel.Settings.AutoUpdate)
-        {
-            _updateCheckTimer?.Start();
-        }
-        else
-        {
-            _updateCheckTimer?.Stop();
-        }
-
-        _settingsWindow.Show();
+        BringWindowToFront(_settingsWindow);
     }
 
     // ============================================================================================
@@ -1162,7 +1228,7 @@ public partial class App : Application
         // Reuse existing dialog if open
         if (_ungroupedDialog != null && _ungroupedDialog.IsVisible)
         {
-            _ungroupedDialog.Activate();
+            BringWindowToFront(_ungroupedDialog);
             return;
         }
 
@@ -1195,28 +1261,19 @@ public partial class App : Application
         _ungroupedDialog.CreateNewGroupRequested += async (s, data) =>
         {
             var (groupName, filePaths) = data;
-            System.Diagnostics.Debug.WriteLine($"CreateNewGroupRequested: '{groupName}' with {filePaths.Count} file(s)");
-
-            // Create new group
             await _mainViewModel.CreateGroupCommand.ExecuteAsync(null);
 
-            // Get the newly created group (last one)
             var newGroup = _mainViewModel.Groups.LastOrDefault();
             if (newGroup != null)
             {
-                // Rename it
                 newGroup.Name = groupName;
-
-                // Add shortcuts to it - cast to IconGroup? to match method signature
                 var assignments = filePaths.ToDictionary(path => path, path => (IconGroup?)newGroup.Model);
                 _mainViewModel.ProcessUngroupedAssignments(assignments);
-
-                System.Diagnostics.Debug.WriteLine($"Created group '{groupName}' with {filePaths.Count} shortcuts");
             }
         };
 
         _ungroupedDialog.Closed += (s, e) => _ungroupedDialog = null;
-        _ungroupedDialog.Show();
+        BringWindowToFront(_ungroupedDialog);
     }
 
     // ============================================================================================
@@ -1225,26 +1282,25 @@ public partial class App : Application
 
     private void OnUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
-        System.Diagnostics.Debug.WriteLine($"Unhandled UI exception: {e.Exception}");
+        Debug.WriteLine($"Unhandled UI exception: {e.Exception}");
 
-        Helpers.CrashReporter.WriteCrashLog(e.Exception, "UI dispatcher");
+        CrashReporter.WriteCrashLog(e.Exception, "UI dispatcher");
         if (_mainViewModel?.Settings.OptInBugReporting == true)
-            Helpers.CrashReporter.ShowCrashDialog(e.Exception);
+            CrashReporter.ShowCrashDialog(e.Exception);
 
-        e.Handled = true; // Don't crash the app
+        e.Handled = true;
     }
 
     private void OnDomainUnhandledException(object sender, UnhandledExceptionEventArgs e)
     {
         if (e.ExceptionObject is Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Fatal domain exception: {ex}");
+            Debug.WriteLine($"Fatal domain exception: {ex}");
 
-            Helpers.CrashReporter.WriteCrashLog(ex, "AppDomain unhandled");
+            CrashReporter.WriteCrashLog(ex, "AppDomain unhandled");
 
             try
             {
-                // Try to save data before crashing
                 _mainViewModel?.SaveAllAsync().GetAwaiter().GetResult();
             }
             catch { }

@@ -1,4 +1,4 @@
-﻿# DeskGroup - Desktop Icon Organizer
+# DeskGroup - Desktop Icon Organizer
 
 **DeskGroup** is a lightweight Windows 10/11 desktop utility that lets you organize your desktop shortcuts into clean, widget-like group containers - similar to Windows 7 gadgets.
 
@@ -28,6 +28,7 @@ Clean up your cluttered desktop while keeping all your shortcuts instantly acces
 - **Snap-to-grid** with configurable grid size
 - **Pin position** to prevent accidental dragging
 - **Multi-monitor support** with per-monitor DPI awareness
+- **Optional Side Panel (Edge Dock)** — always-on-top edge dock panel (Left edge by default, hidden until hover/click) that shows/hides independently even when all desktop groups are hidden; supports pinning, docking to Left/Top/Right/Bottom edges, 3 multi-monitor modes (`MainMonitorOnly`, `SameForAllMonitors`, `PerMonitorCustom` with 1–4 edges per screen), Lock modes (`AutoHide`, `LockedOpen`, `LockedClosed`), and an always-on-top 16×16px (customizable 12–48px) Edge Bubble button
 
 ### Customization
 - **Per-group accent colors** for easy visual identification
@@ -112,17 +113,32 @@ Access via **tray icon > Settings** or right-click any group widget.
 | Show/Hide all — keyboard hotkey | Ctrl+F2 | Keyboard combo to toggle all groups |
 | Show/Hide all — mouse hotkey | (none) | Mouse button/scroll to toggle all groups |
 | Shell context menu | Off | "Add to DeskGroup" on .lnk/.url right-click |
+| Enable Side Panel (Edge Dock) | Off | Optional always-on-top edge dock with independent visibility |
+| Edge Dock multi-monitor mode | MainMonitorOnly | MainMonitorOnly, SameForAllMonitors, or PerMonitorCustom (1–4 edges) |
+| Edge Dock lock mode | AutoHide | AutoHide (show on hover), LockedOpen, or LockedClosed |
+| Edge Dock bubble button | On (16×16px) | Always-on-top edge toggle bubble (customizable 12–48px) |
 
 ---
 
 ## Changelog
 
 ### v1.4.6
+- ✅ Fixed: **Windows 11 Mouse Shortcuts & Hotkey Recording** — Setting a mouse shortcut in Settings or First-Run Setup now automatically upgrades `HotkeyMode` from `Keyboard` to `Both` (or `Mouse`) and registers global `FullscreenToggleHotkey` / `FullscreenMouseHotkey` hooks; `HotkeyBox` now installs a temporary `WH_MOUSE_LL` low-level hook during recording so `MiddleClick`, `XButton1/2`, `ScrollUp/Down`, and `Ctrl/Alt/Shift + LeftClick/RightClick` are reliably captured on Windows 11 without being swallowed by `ScrollViewer` or window chrome; `GetCurrentKeyModifiers()` now uses `GetAsyncKeyState` so background mouse hooks accurately detect `Ctrl`/`Alt`/`Shift`; added a `✕` button to clear any shortcut
+- ✅ Fixed: **Windows 11 Right-Click Menus, Sticky Mode & Settings** — Replaced legacy `WorkerW` `SetParent` reparenting in Sticky mode (which placed widgets behind `SHELLDLL_DefView` on Windows 11 23H2/24H2 and broke right-clicks and modal dialogs) with native top-level `HWND_BOTTOM` Z-order enforcement in `WM_WINDOWPOSCHANGING`; activated Sticky widgets on right-click (`PreviewMouseRightButtonDown`) and wired explicit `Click` handlers for `Pin position`, `Snap to grid`, and `Toggle Sticky/Float Mode` so popup `ContextMenu` items never fail silently; fixed `PinToStartMenu` on Windows 11 by creating `%AppData%\Microsoft\Windows\Start Menu\Programs\DeskGroup.lnk`; extended `"Add to DeskGroup"` shell context menu to `.exe` and folders with multi-instance `NamedPipeServer`; wired live updates for all Settings checkboxes and hotkeys
+- ✅ Fixed: **Startup & Loading Performance Optimization (Win10 & Win11)** — Added in-memory + persistent `%AppData%\DeskGroup\IconCache` PNG caching and non-blocking background icon extraction (`ShortcutItemViewModel` + `IconExtractorService`); lazily bound `GroupWidget` `ItemsSource` only to the active view mode (`Minimized`, `Hover`, `Compact`, `Normal`, `Grid`, `Fullscreen`) eliminating 4× duplicate `IconTile` instantiation at startup; cached default group icon and replaced 260,000 `Bitmap.GetPixel` calls in `CreateTrayIcon()` with fast `Bitmap.LockBits`; offloaded `CleanupOrphans` disk scan to a background thread
 - ✅ Fixed: Tray icon first-click now correctly shows/floats Sticky groups rather than hiding them — toggle direction is based on actual visibility state, not a stale flag (Bug C)
 - ✅ Fixed: File dialogs (Add Shortcut, Change Icon) now open centred over their parent window instead of appearing behind it (Bug H)
 - ✅ Fixed: Desktop icons now respect the **Hide Grouped Icons** setting — icons are only moved to managed storage when the setting is enabled; when disabled the original `.lnk` remains on the desktop (Bug I)
 - ✅ Fixed: Desktop view now refreshes reliably on Windows 11 after an icon is hidden or restored — added `SHCNE_ASSOCCHANGED` broadcast alongside `SHCNE_UPDATEDIR` (Bug I)
 - ✅ Added: **Jump List** on taskbar and desktop shortcut right-click — quick access to New Group, Show/Hide All Groups, Settings, and Exit (Note A)
+- ✅ Added: **Optional Side Panel (Edge Dock)** — hidden by default on the left screen edge, shows/hides independently even when all other groups are hidden; defaults to 1-icon column width with automatic column-width snapping (`1, 2, 3...` icons wide), hidden vertical scrollbar, 2-row compact header when 1-icon wide (Pin/Lock/Close on Row 1, Title on Row 2), per-dock Icon Size & Opacity slider dialog, independently movable always-on-top 16×16px Edge Bubble button, and keyboard/mouse hotkeys including directional `<Modifier>+Left/Up/Right/Down` arrow keys
+- ✅ Fixed: **Zero-jitter moving & resizing** across all Group panels and Edge Docks — replaced dual WPF `Left`/`Top` property updates during drag with single atomic `Win32Interop.SetWindowPos` calls, broke the `OnSizeChanged` → `ViewModel` → `Window` resize feedback loop, and debounced `GridViewWidth`/`GridViewHeight` & Edge Dock drag saves
+- ✅ Fixed: **Live updates in Settings** — toggling or changing options in Settings immediately updates the live UI/panels before clicking Apply (and cleanly reverts if discarded)
+- ✅ Fixed: **Prevented accidental click-through at 0% transparency** across all Groups and Edge Panels by clamping minimum hit-test alpha to `1/255` (`#01xxxxxx`)
+- ✅ Fixed: Multi-monitor fullscreen mode (`F11`) now opens on the group's current monitor instead of always jumping to primary screen `(0, 0)`, and properly restores negative-X secondary monitor positions on exit
+- ✅ Fixed: **Start Minimized to Tray** setting is now honored on application startup, and First-Run Setup Wizard selections immediately apply theme/opacity/watcher changes
+- ✅ Fixed: Toggling **Detect new desktop icons** in Settings now starts/stops the desktop icon watcher without requiring an app restart
+- ✅ Fixed: Uninstaller cleanup now restores hidden icons from both groups and Edge Docks and cleans up both `%APPDATA%\DeskGroup` and `%LOCALAPPDATA%\DeskGroup`, and `build-installer.ps1` now produces both the Setup `.exe` and Portable `.zip` (Note F)
 
 ### v1.4.5
 - ✅ Added: **Expanded first-run setup wizard** — on first launch after installation a full multi-section wizard guides you through Appearance (theme, group transparency 15–85%), Desktop Integration (hide grouped icons, shell context menu), Hotkeys (preloaded with defaults), Startup & Behaviour (start with Windows, start minimized, multi-monitor, desktop shortcut, pin to Start/taskbar), and Updates (auto-update, auto-install, bug reporting opt-in)

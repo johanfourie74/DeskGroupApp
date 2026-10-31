@@ -19,19 +19,32 @@ public static class UninstallHelper
             var settings    = await persistence.LoadSettingsAsync();
             var groups      = await persistence.LoadGroupsAsync();
 
-            // Restore all desktop icons that were hidden by DeskGroup
-            if (settings.HideGroupedIcons)
+            // Restore all desktop icons that were hidden by DeskGroup (groups + edge docks)
+            var desktopService = new DesktopIconService(persistence.DataDirectory);
+            foreach (var group in groups)
+                desktopService.RestoreAllGroupIcons(group);
+            if (settings.EdgeDocks != null)
             {
-                var desktopService = new DesktopIconService(persistence.DataDirectory);
-                foreach (var group in groups)
-                    desktopService.RestoreAllGroupIcons(group);
+                foreach (var dock in settings.EdgeDocks)
+                    desktopService.RestoreAllDockIcons(dock);
             }
 
-            // Remove user data directory (%LOCALAPPDATA%\DeskGroup)
+            // Remove user data directory (%APPDATA%\DeskGroup)
             try
             {
                 if (Directory.Exists(persistence.DataDirectory))
                     Directory.Delete(persistence.DataDirectory, recursive: true);
+            }
+            catch { /* best effort */ }
+
+            // Also remove crash logs directory (%LOCALAPPDATA%\DeskGroup)
+            try
+            {
+                var localAppDataDir = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "DeskGroup");
+                if (Directory.Exists(localAppDataDir))
+                    Directory.Delete(localAppDataDir, recursive: true);
             }
             catch { /* best effort */ }
         }

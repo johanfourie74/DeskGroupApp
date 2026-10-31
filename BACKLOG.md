@@ -1,6 +1,6 @@
 # DeskGroup - Development Backlog
 
-**Last Updated:** 2026-03-31 (session 12 — Bug C/H/I + Note A/L complete)
+**Last Updated:** 2026-11-01 (session 13 — Edge Dock Side Panel + Windows 11 Silent Failure Fixes + Startup Optimization — v1.4.6)
 **Current release:** v1.4.5 (live)
 **Pending release:** v1.4.6 (local, not yet pushed)
 
@@ -18,11 +18,17 @@ This applies to: new features, bug fixes, UI changes, behaviour changes, setting
 
 | Priority | ID | Est. | Description |
 |---|---|---|---|
+| 🔴 **#1 Tomorrow** | **Edge Dock Icons & Tooltip** | 30m | **Edge Dock icon alignment & tooltip labels**: Center-align icons inside the Edge Dock panel (not left or right), and move icon display names out of the tile into a hover tooltip (with show delay and immediate hide on mouse-out) to save vertical/horizontal space. |
 | ✅ Done | **Bug C** | — | Tray icon first-click — fixed: `ToggleAllGroupsVisibility()` rewritten with 4-state logic based on `SavedDockModeBeforeFloat`+`DockMode`, not stale `AllGroupsVisible` flag. |
 | ✅ Done | **Bug H** | — | Secondary dialogs behind parent — fixed: `OpenFileDialog.ShowDialog(this)` in `MenuAddShortcut_Click` and `MenuChangeIcon_Click`. |
 | ✅ Done | **Bug I** | — | Desktop icon not hiding on Win 11 — fixed: `HideGroupedIcons` guard added to `AddShortcut`; `SHCNE_ASSOCCHANGED` broadcast added after `SHCNE_UPDATEDIR`. |
 | ✅ Done | **Note A** | — | Jump List — implemented in `App.xaml.cs OnStartup`: New Group, Show/Hide All, Settings, Exit. IPC extended for `--new-group`, `--show-settings`, `--exit`. |
 | ✅ Done | **Note L** | — | Launch cursor spinner — already present in `ShortcutItemViewModel.LaunchAsync()` (v1.4.1). |
+| ✅ Done | **Edge Dock** | — | Optional Side Panel (Edge Docker) — independent visibility, Left edge default (auto-hide on hover), 1-icon width default with exact column snapping (1, 2, 3... icons wide, no horizontal scroll, hidden vertical scrollbar), 2-row header at 1-icon width, per-dock Icon Size & Opacity, independently movable 16×16px Edge Bubble, directional `<Modifier>+Arrow` hotkeys, live Settings updates, zero-jitter Win32 move/resize, and zero click-through when transparent. |
+| ✅ Done | **Win 11 Fixes** | — | Fixed Windows 11 silent failures in mouse shortcuts (`WH_MOUSE_LL` capture in `HotkeyBox`, `GetAsyncKeyState` modifiers, auto-upgrading `HotkeyMode` to `Both`/`Mouse`, `FullscreenToggleHotkey` registration), right-click menus (`PreviewMouseRightButtonDown` activation, explicit `Position` menu `Click` handlers, `HWND_BOTTOM` Sticky mode without `WorkerW` reparenting), `PinToStartMenu` (`Start Menu\Programs\DeskGroup.lnk`), multi-instance `NamedPipeServer`, and live Settings toggles. |
+| ✅ Done | **Startup Perf** | — | Startup & loading optimization — in-memory + persistent `%AppData%\DeskGroup\IconCache` PNG caching + background icon extraction, lazy `ItemsSource` binding per active `ViewMode` in `GroupWidget`, cached default group icon, `LockBits` tray icon creation, and background `CleanupOrphans`. |
+| ✅ Done | **Note F (ZIP)** | — | `build-installer.ps1` now produces both `DeskGroup-Setup-X.Y.Z.exe` and `DeskGroup-Portable-X.Y.Z.zip`. |
+| 🔴 High | **Note X** | TBD | **Cross-platform port (Linux + macOS)** — Replace Win32/WPF-specific code with cross-platform equivalents ASAP. See detailed spec below. |
 | 🟡 Medium | **Note F** | 2–3 hrs | Installer questionnaire: surface autostart, view mode, dock, hotkey, install directory choice during Inno Setup install. |
 | 🟡 Medium | **Note G** | 5–7 hrs | Group alignment / sizing tool (see full spec below). |
 
@@ -75,14 +81,30 @@ This applies to: new features, bug fixes, UI changes, behaviour changes, setting
 
 ---
 
+---
+### Note X — Cross-platform port (Linux + macOS)
+**Goal:** Produce Linux and macOS compatible builds of DeskGroup as soon as possible.
+
+**Key areas that need attention:**
+- UI framework: WPF is Windows-only → evaluate **Avalonia UI** or **MAUI** as a cross-platform replacement
+- Win32 P/Invoke calls (`Win32Interop`, `HideGroupedIcons`, `SetWindowPos`, `Shell32`, etc.) must be abstracted behind platform-service interfaces
+- System tray / notification area: use a cross-platform tray library (e.g. Hardcodet.NotifyIcon for Avalonia, or `Avalonia.Controls.ApplicationLifetime` tray support)
+- Named-pipe IPC and single-instance guard need cross-platform paths
+- Desktop icon management is Windows-specific — define a no-op / alternative behaviour for Linux/macOS
+- Installer: replace Inno Setup with a multi-platform approach (e.g. `.deb`/`.AppImage` for Linux, `.dmg`/`.pkg` for macOS)
+- CI/CD: add Linux and macOS build agents to GitHub Actions pipeline
+
+**Recommended approach:** Avalonia UI (closest API surface to WPF, easiest migration path).
+
+---
 ## 📋 FEATURE BACKLOG (pending)
 
 ### Performance & Optimization ⚡
 - [ ] Profile memory usage during drag operations
-- [ ] Optimize icon caching strategy
+- [x] Optimize icon caching strategy
 - [ ] Investigate potential memory leaks in long-running sessions
-- [ ] Reduce layout recalculations during view mode switches
-- [ ] Optimize transparency/opacity updates
+- [x] Reduce layout recalculations during view mode switches
+- [x] Optimize transparency/opacity updates
 
 ### User Experience 👤
 - [ ] Configurable hover delay (currently 300 ms hardcoded)

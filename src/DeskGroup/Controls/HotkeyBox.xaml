@@ -11,6 +11,7 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
             <!-- Hotkey text — read-only in detect mode, editable when not detecting -->
@@ -21,16 +22,17 @@
                      FontFamily="Consolas"
                      TextChanged="HotkeyTextBox_TextChanged"
                      KeyDown="HotkeyTextBox_KeyDown"
-                     ToolTip="Type a hotkey (e.g. Ctrl+F2, F11, XButton1) or use 🎯 to detect"/>
+                     PreviewMouseLeftButtonDown="HotkeyTextBox_PreviewMouseLeftButtonDown"
+                     ToolTip="Type a hotkey (e.g. Ctrl+F2, F11, MiddleClick, XButton1) or click 🎯 to detect"/>
 
             <!-- Detect toggle button -->
             <ToggleButton x:Name="DetectButton"
                           Grid.Column="1"
-                          Width="32"
+                          Width="28"
                           Margin="4,0,0,0"
                           Padding="2"
                           VerticalAlignment="Stretch"
-                          ToolTip="Click, then press any key combo, side mouse button, or scroll wheel to detect"
+                          ToolTip="Click, then press any key combo, middle/side mouse button, scroll wheel, or Ctrl/Alt+Click to detect"
                           Cursor="Hand"
                           Focusable="False"
                           Click="DetectButton_Click">
@@ -64,8 +66,45 @@
                         </Setter>
                     </Style>
                 </ToggleButton.Style>
-                <TextBlock Text="🎯" FontSize="14"/>
+                <TextBlock Text="🎯" FontSize="13"/>
             </ToggleButton>
+
+            <!-- Clear button -->
+            <Button x:Name="ClearButton"
+                    Grid.Column="2"
+                    Width="22"
+                    Margin="2,0,0,0"
+                    Padding="0"
+                    VerticalAlignment="Stretch"
+                    ToolTip="Clear shortcut"
+                    Cursor="Hand"
+                    Focusable="False"
+                    Click="ClearButton_Click">
+                <Button.Style>
+                    <Style TargetType="Button">
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="ClearBd"
+                                            Background="{DynamicResource BackgroundSecondary}"
+                                            BorderBrush="{DynamicResource BorderBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="4">
+                                        <ContentPresenter HorizontalAlignment="Center"
+                                                          VerticalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="ClearBd" Property="Opacity" Value="0.80"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </Button.Style>
+                <TextBlock Text="✕" FontSize="10" Foreground="{DynamicResource ForegroundSecondary}"/>
+            </Button>
         </Grid>
 
         <!-- Status / warning line -->

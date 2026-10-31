@@ -1,4 +1,4 @@
-﻿<Window x:Class="DeskGroup.Views.GroupWidget"
+<Window x:Class="DeskGroup.Views.GroupWidget"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -16,7 +16,7 @@
         AllowDrop="True"
         d:DesignWidth="320" d:DesignHeight="400">
 
-    <Grid x:Name="RootContainer">
+    <Grid x:Name="RootContainer" Background="#01000000">
 
         <!-- MINIMIZED VIEW - Compact button -->
         <Border x:Name="MinimizedView"
@@ -147,9 +147,9 @@
                                VerticalAlignment="Center"/>
                 </StackPanel>
 
-                <!-- Top Shortcuts Preview (max 5) -->
-                <ItemsControl Grid.Row="1"
-                              ItemsSource="{Binding TopUsedShortcuts}">
+                <!-- Top Shortcuts Preview (lazily bound when HoverView is active) -->
+                <ItemsControl x:Name="HoverItemsControl"
+                              Grid.Row="1">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
                             <controls:IconTile 
@@ -241,8 +241,8 @@
                 </StackPanel>
 
                 <!-- Fixed horizontal rows (max 6 per row, 2 rows max = 12 total, icons only) -->
-                <ItemsControl Grid.Row="1"
-                              ItemsSource="{Binding TopUsedShortcuts}"
+                <ItemsControl x:Name="CompactItemsControl"
+                              Grid.Row="1"
                               Width="204">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
@@ -348,7 +348,7 @@
                               VerticalScrollBarVisibility="Auto"
                               MaxHeight="400"
                               Padding="0,0,8,0">
-                    <ItemsControl ItemsSource="{Binding AllShortcuts}"
+                    <ItemsControl x:Name="NormalItemsControl"
                                   AllowDrop="True"
                                   Drop="OnIconDropInternal">
                         <ItemsControl.ItemTemplate>
@@ -451,7 +451,7 @@
                               VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled"
                               MaxHeight="500">
-                    <ItemsControl ItemsSource="{Binding AllShortcuts}"
+                    <ItemsControl x:Name="GridItemsControl"
                                   AllowDrop="True"
                                   Drop="OnIconDropInternal">
                         <ItemsControl.ItemsPanel>
@@ -554,7 +554,7 @@
                 <ScrollViewer Grid.Row="1"
                               VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled">
-                    <ItemsControl ItemsSource="{Binding AllShortcuts}"
+                    <ItemsControl x:Name="FullscreenItemsControl"
                                   AllowDrop="True"
                                   Drop="OnIconDropInternal">
                         <ItemsControl.ItemsPanel>
@@ -629,7 +629,7 @@
 
     <!-- Context menu -->
     <Window.ContextMenu>
-        <ContextMenu>
+        <ContextMenu Opened="WidgetContextMenu_Opened">
             <!-- View Mode -->
             <MenuItem Header="View Mode">
                 <MenuItem Header="Minimized" Click="SetMinimized_Click">
@@ -702,17 +702,18 @@
 
             <!-- Position -->
             <MenuItem Header="Position">
-                <MenuItem Header="📌 Pin position"
-                          Command="{Binding TogglePinCommand}"
+                <MenuItem x:Name="MenuPinPosition"
+                          Header="📌 Pin position"
                           IsCheckable="True"
-                          IsChecked="{Binding IsPinned, Mode=OneWay}"/>
-                <MenuItem Header="Snap to grid"
-                          Command="{Binding ToggleSnapToGridCommand}"
+                          Click="MenuPinPosition_Click"/>
+                <MenuItem x:Name="MenuSnapToGrid"
+                          Header="Snap to grid"
                           IsCheckable="True"
-                          IsChecked="{Binding SnapToGrid, Mode=OneWay}"/>
+                          Click="MenuSnapToGrid_Click"/>
                 <Separator/>
-                <MenuItem Header="Toggle Sticky/Float Mode"
-                          Command="{Binding ToggleDockModeCommand}">
+                <MenuItem x:Name="MenuToggleDockMode"
+                          Header="Toggle Sticky/Float Mode"
+                          Click="MenuToggleDockMode_Click">
                     <MenuItem.Icon>
                         <TextBlock Text="📌" FontSize="12"/>
                     </MenuItem.Icon>

@@ -1,3 +1,4 @@
+using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -7,13 +8,20 @@ namespace DeskGroup.Views;
 
 public partial class PerGroupAppearanceDialog : Window
 {
-    private readonly GroupViewModel _viewModel;
+    private readonly Action _resetAction;
 
     public PerGroupAppearanceDialog(GroupViewModel viewModel)
     {
         InitializeComponent();
-        _viewModel = viewModel;
         DataContext = viewModel;
+        _resetAction = viewModel.ResetGroupAppearance;
+    }
+
+    public PerGroupAppearanceDialog(EdgeDockViewModel viewModel)
+    {
+        InitializeComponent();
+        DataContext = viewModel;
+        _resetAction = viewModel.ResetDockAppearance;
     }
 
     private void Header_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -24,7 +32,7 @@ public partial class PerGroupAppearanceDialog : Window
 
     private void Reset_Click(object sender, RoutedEventArgs e)
     {
-        _viewModel.ResetGroupAppearance();
+        _resetAction();
     }
 
     private void Close_Click(object sender, RoutedEventArgs e)

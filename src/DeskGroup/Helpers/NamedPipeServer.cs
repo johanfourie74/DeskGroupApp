@@ -31,10 +31,11 @@ public sealed class NamedPipeServer : IDisposable
         {
             while (!token.IsCancellationRequested)
             {
+                string? received = null;
                 try
                 {
                     using var server = new NamedPipeServerStream(
-                        PipeName, PipeDirection.In, 1,
+                        PipeName, PipeDirection.In, NamedPipeServerStream.MaxAllowedServerInstances,
                         PipeTransmissionMode.Byte, PipeOptions.Asynchronous);
 
                     await server.WaitForConnectionAsync(token);
@@ -43,10 +44,16 @@ public sealed class NamedPipeServer : IDisposable
                     var message = await reader.ReadToEndAsync(token);
 
                     if (!string.IsNullOrWhiteSpace(message))
-                        MessageReceived?.Invoke(this, message.Trim());
+                        received = message.Trim();
                 }
                 catch (OperationCanceledException) { break; }
                 catch { /* restart listener on transient errors */ }
+
+                if (received != null)
+                {
+                    var msgCopy = received;
+                    _ = Task.Run(() => MessageReceived?.Invoke(this, msgCopy), CancellationToken.None);
+                }
             }
         }, token);
     }

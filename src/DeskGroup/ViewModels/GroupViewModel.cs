@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -14,6 +14,8 @@ namespace DeskGroup.ViewModels;
 
 public partial class GroupViewModel : ObservableObject
 {
+    private static ImageSource? s_defaultGroupIcon;
+
     private readonly IconGroup _model;
     private readonly UsageTrackingService _usageTracker;
     private readonly IconExtractorService _iconExtractor;
@@ -36,14 +38,14 @@ public partial class GroupViewModel : ObservableObject
 
     // Effective values — per-group takes priority over global settings
     public int EffectiveIconSize =>
-        _perGroupIconSize > 0 ? _perGroupIconSize :
+        PerGroupIconSize > 0 ? PerGroupIconSize :
         (Settings.IconSizeMode == IconSizeMode.Custom ? Settings.CustomIconSize : 48);
 
     public int EffectiveListIconSize => Math.Clamp(EffectiveIconSize / 2, 16, 32);
     public double EffectiveListTileHeight => EffectiveListIconSize + 8;
 
     public double EffectiveOpacity =>
-        _perGroupOpacity >= 0.0 ? _perGroupOpacity : Settings.GroupBackgroundOpacity;
+        PerGroupOpacity >= 0.0 ? PerGroupOpacity : Settings.GroupBackgroundOpacity;
 
     // Proxy read/write properties for TwoWay slider binding in context menu
     public int DisplayIconSize
@@ -106,16 +108,20 @@ public partial class GroupViewModel : ObservableObject
     {
         // Create a new brush with the accent color but with effective opacity applied
         var color = AccentBrush.Color;
-        var alpha = (byte)(EffectiveOpacity * 255);
+        var alpha = Math.Max((byte)1, (byte)(EffectiveOpacity * 255));
         var transparentColor = Color.FromArgb(alpha, color.R, color.G, color.B);
-        TransparentAccentBrush = new SolidColorBrush(transparentColor);
+        var bgBrush = new SolidColorBrush(transparentColor);
+        bgBrush.Freeze();
+        TransparentAccentBrush = bgBrush;
 
         // Border fades at slower rate: borderAlpha = (opacity * 0.8) + 0.2
         // So at 100% background → 100% border, at 0% background → 20% border
         var borderOpacity = (EffectiveOpacity * 0.8) + 0.2;
-        var borderAlpha = (byte)(borderOpacity * 255);
+        var borderAlpha = Math.Max((byte)1, (byte)(borderOpacity * 255));
         var borderColor = Color.FromArgb(borderAlpha, color.R, color.G, color.B);
-        TransparentBorderBrush = new SolidColorBrush(borderColor);
+        var bBrush = new SolidColorBrush(borderColor);
+        bBrush.Freeze();
+        TransparentBorderBrush = bBrush;
     }
 
     [ObservableProperty] private string _name = "New Group";
@@ -335,11 +341,13 @@ public partial class GroupViewModel : ObservableObject
 
         // Use DeskGroup app icon as default group icon
         GroupIcon = LoadDefaultDeskGroupIcon() ?? CreateGroupLetterIcon(Name, AccentColorHex);
-        System.Diagnostics.Debug.WriteLine($"LoadGroupIcon: Using default DeskGroup icon for '{Name}'");
     }
 
     private static ImageSource? LoadDefaultDeskGroupIcon()
     {
+        if (s_defaultGroupIcon != null)
+            return s_defaultGroupIcon;
+
         try
         {
             var uri = new Uri("pack://application:,,,/Assets/dg_icon.png", UriKind.Absolute);
@@ -352,6 +360,7 @@ public partial class GroupViewModel : ObservableObject
             bitmap.DecodePixelWidth = 48;
             bitmap.EndInit();
             bitmap.Freeze();
+            s_defaultGroupIcon = bitmap;
             return bitmap;
         }
         catch
@@ -705,4 +714,3 @@ public partial class GroupViewModel : ObservableObject
         destination.RefreshTopUsed();
     }
 }
-

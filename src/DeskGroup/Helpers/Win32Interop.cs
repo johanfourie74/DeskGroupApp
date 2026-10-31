@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.UI.WindowsAndMessaging;
@@ -102,17 +102,29 @@ public static class Win32Interop
         return workerW;
     }
 
+    /// <summary>
+    /// Places the widget on the desktop layer (HWND_BOTTOM) without reparenting into WorkerW.
+    /// Reparenting a WPF layered window into WorkerW breaks right-click hit-testing, context menus,
+    /// and owned modal dialogs on Windows 11 (23H2/24H2) where SHELLDLL_DefView sits above WorkerW.
+    /// </summary>
     public static bool AttachToDesktop(IntPtr windowHandle)
     {
-        IntPtr workerW = GetDesktopWorkerW();
-        if (workerW == IntPtr.Zero) return false;
-        SetParent(windowHandle, workerW);
-        return true;
+        if (windowHandle == IntPtr.Zero) return false;
+        return SetWindowPos(
+            windowHandle,
+            HWND_BOTTOM,
+            0, 0, 0, 0,
+            SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
     }
 
     public static void DetachFromDesktop(IntPtr windowHandle)
     {
-        SetParent(windowHandle, IntPtr.Zero);
+        if (windowHandle == IntPtr.Zero) return;
+        SetWindowPos(
+            windowHandle,
+            HWND_NOTOPMOST,
+            0, 0, 0, 0,
+            SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
     }
 
     public static void SetToolWindow(IntPtr windowHandle)

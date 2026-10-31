@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -35,7 +35,7 @@ public class PersistenceServiceTests : IDisposable
         try
         {
             if (Directory.Exists(_testDataDir))
-                Directory.Exists(_testDataDir);
+                Directory.Delete(_testDataDir, true);
         }
         catch { }
     }
@@ -54,12 +54,17 @@ public class PersistenceServiceTests : IDisposable
         settings.Should().NotBeNull();
         settings.Theme.Should().Be(ThemeMode.System);
         settings.StartWithWindows.Should().BeTrue();
-        settings.ToggleAllHotkey.Should().Be("Ctrl+Alt+G");
+        settings.ToggleAllHotkey.Should().Be("Ctrl+F2");
         settings.FullscreenToggleHotkey.Should().Be("F11");
         settings.HideGroupedIcons.Should().BeTrue();
         settings.AllowMultiMonitor.Should().BeTrue();
-        settings.DefaultSnapToGrid.Should().BeTrue();
+        settings.DefaultSnapToGrid.Should().BeFalse();
         settings.SnapGridSize.Should().Be(20);
+        settings.EnableEdgeDock.Should().BeFalse();
+        settings.EdgeDockMonitorMode.Should().Be(SideDockMonitorMode.MainMonitorOnly);
+        settings.DefaultEdgeDockBubbleSize.Should().Be(16);
+        settings.DefaultEdgeDockShowBubble.Should().BeTrue();
+        settings.DefaultEdgeDockHoverShow.Should().BeTrue();
     }
 
     [Fact]
@@ -79,7 +84,37 @@ public class PersistenceServiceTests : IDisposable
             SnapGridSize = 32,
             WatchForUngroupedIcons = false,
             AllowMultiMonitor = false,
-            StartMinimizedToTray = true
+            StartMinimizedToTray = true,
+            EnableEdgeDock = true,
+            EdgeDockMonitorMode = SideDockMonitorMode.PerMonitorCustom,
+            DefaultEdgeDockBubbleSize = 20,
+            EdgeDocks = new List<EdgeDockConfig>
+            {
+                new EdgeDockConfig
+                {
+                    MonitorDeviceName = @"\\.\DISPLAY1",
+                    Edge = DockEdge.Left,
+                    IsEnabled = true,
+                    Name = "Left Dock",
+                    LockState = SideDockLockState.AutoHide,
+                    IsPinned = true,
+                    BubbleSize = 16,
+                    Shortcuts = new List<ShortcutItem>
+                    {
+                        new ShortcutItem { DisplayName = "Notepad", TargetPath = @"C:\Windows\notepad.exe" }
+                    }
+                },
+                new EdgeDockConfig
+                {
+                    MonitorDeviceName = @"\\.\DISPLAY2",
+                    Edge = DockEdge.Right,
+                    IsEnabled = true,
+                    Name = "Right Dock",
+                    LockState = SideDockLockState.LockedOpen,
+                    IsPinned = false,
+                    BubbleSize = 24
+                }
+            }
         };
 
         // Act
@@ -99,6 +134,18 @@ public class PersistenceServiceTests : IDisposable
         loaded.WatchForUngroupedIcons.Should().BeFalse();
         loaded.AllowMultiMonitor.Should().BeFalse();
         loaded.StartMinimizedToTray.Should().BeTrue();
+        loaded.EnableEdgeDock.Should().BeTrue();
+        loaded.EdgeDockMonitorMode.Should().Be(SideDockMonitorMode.PerMonitorCustom);
+        loaded.DefaultEdgeDockBubbleSize.Should().Be(20);
+        loaded.EdgeDocks.Should().HaveCount(2);
+        loaded.EdgeDocks[0].Edge.Should().Be(DockEdge.Left);
+        loaded.EdgeDocks[0].IsPinned.Should().BeTrue();
+        loaded.EdgeDocks[0].BubbleSize.Should().Be(16);
+        loaded.EdgeDocks[0].Shortcuts.Should().HaveCount(1);
+        loaded.EdgeDocks[0].Shortcuts[0].DisplayName.Should().Be("Notepad");
+        loaded.EdgeDocks[1].Edge.Should().Be(DockEdge.Right);
+        loaded.EdgeDocks[1].LockState.Should().Be(SideDockLockState.LockedOpen);
+        loaded.EdgeDocks[1].BubbleSize.Should().Be(24);
     }
 
     // ============================================================================================

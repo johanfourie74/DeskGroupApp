@@ -5,7 +5,7 @@ using Microsoft.Win32;
 namespace DeskGroup.Helpers;
 
 /// <summary>
-/// Manages the "Add to DeskGroup" Windows shell context menu entry for .lnk and .url files.
+/// Manages the "Add to DeskGroup" Windows shell context menu entry for .lnk, .url, .exe, and folder items.
 /// Uses HKCU so no admin rights are required.
 /// </summary>
 public static class ShellContextMenuHelper
@@ -15,16 +15,18 @@ public static class ShellContextMenuHelper
 
     private const int  SHCNE_ASSOCCHANGED = 0x08000000;
     private const uint SHCNF_IDLIST       = 0x0000;
+    private const uint SHCNF_FLUSHNOWAIT  = 0x2000;
 
     private const string MenuKeyName = "AddToDeskGroup";
     private const string MenuLabel   = "Add to DeskGroup";
 
-    // ProgID-based classes (work on Windows 10 and in Win11 "Show more options")
-    private static readonly string[] ProgIdClasses = { "lnkfile", "InternetShortcut" };
+    // ProgID-based classes (work on Windows 10 and in Win11 context menu)
+    private static readonly string[] ProgIdClasses =
+        { "lnkfile", "InternetShortcut", "exefile", "Directory" };
 
-    // SystemFileAssociations paths — more reliable on Windows 11 new context menu
+    // SystemFileAssociations paths — reliable on Windows 11 context menu
     private static readonly string[] SysFileAssocPaths =
-        { @"SystemFileAssociations\.lnk", @"SystemFileAssociations\.url" };
+        { @"SystemFileAssociations\.lnk", @"SystemFileAssociations\.url", @"SystemFileAssociations\.exe" };
 
     /// <summary>Registers (or refreshes) the context menu entries pointing to the current exe.</summary>
     public static void RegisterContextMenu()
@@ -38,7 +40,11 @@ public static class ShellContextMenuHelper
         foreach (var path in SysFileAssocPaths)
             WriteEntry(path, exePath);
 
-        SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, IntPtr.Zero, IntPtr.Zero);
+        try
+        {
+            SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST | SHCNF_FLUSHNOWAIT, IntPtr.Zero, IntPtr.Zero);
+        }
+        catch { }
     }
 
     /// <summary>Removes the context menu entries from the registry.</summary>
@@ -50,7 +56,11 @@ public static class ShellContextMenuHelper
         foreach (var path in SysFileAssocPaths)
             DeleteEntry(path);
 
-        SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, IntPtr.Zero, IntPtr.Zero);
+        try
+        {
+            SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST | SHCNF_FLUSHNOWAIT, IntPtr.Zero, IntPtr.Zero);
+        }
+        catch { }
     }
 
     private static void WriteEntry(string classPath, string exePath)

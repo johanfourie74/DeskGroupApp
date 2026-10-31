@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -34,20 +34,23 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private bool _isLoaded;
 
     public ObservableCollection<GroupViewModel> Groups { get; } = new();
+    public ObservableCollection<EdgeDockViewModel> ActiveEdgeDocks { get; } = new();
     public AppSettings Settings => _settings;
+    public MonitorService MonitorService => _monitorService;
     public bool WasFirstRun { get; private set; }
 
     public event EventHandler<DeskGroup.Models.ThemeMode>? ThemeChanged;
     public event EventHandler<List<string>>? UngroupedIconsDetected;
     public event EventHandler<GroupViewModel>? GroupAdded;
     public event EventHandler<GroupViewModel>? GroupRemoved;
+    public event EventHandler? EdgeDocksRebuilt;
     public event EventHandler? OpenSettingsRequested;
 
     public MainViewModel()
     {
         _persistenceService = new PersistenceService();
         _usageTracker = new UsageTrackingService(_persistenceService);
-        _iconExtractor = new IconExtractorService();
+        _iconExtractor = new IconExtractorService(_persistenceService.DataDirectory);
         _shortcutResolver = new ShortcutResolverService(_iconExtractor);
         _monitorService = new MonitorService();
         _startupService = new StartupService();
@@ -61,6 +64,8 @@ public partial class MainViewModel : ObservableObject
     public async Task InitializeAsync()
     {
         _settings = await _persistenceService.LoadSettingsAsync();
+        EnsureDefaultEdgeDockConfig();
+        AutoHealHotkeyModes();
         _persistenceService.SetDebounceInterval(_settings.AutoSaveDebounceMs);
         _startupService.SyncWithSetting(_settings.StartWithWindows);
         _groupModels = await _persistenceService.LoadGroupsAsync();
@@ -70,6 +75,9 @@ public partial class MainViewModel : ObservableObject
             var groupVm = CreateGroupViewModel(groupModel);
             Groups.Add(groupVm);
         }
+
+        // Build active Edge Dock instances (independent of Groups visibility)
+        RebuildEdgeDocks();
 
         // RE-ENABLED with improved throttling and filtering
         if (_settings.WatchForUngroupedIcons)
@@ -83,10 +91,23 @@ public partial class MainViewModel : ObservableObject
             System.Diagnostics.Debug.WriteLine("MainViewModel: UngroupedIconWatcher disabled in settings");
         }
 
-        _desktopIconService.CleanupOrphans(_groupModels);
+        // Perform orphan cleanup asynchronously on a background thread so it never slows startup
+        var groupsCopy = _groupModels.ToList();
+        var docksCopy = _settings.EdgeDocks.ToList();
+        _ = Task.Run(() => _desktopIconService.CleanupOrphans(groupsCopy, docksCopy));
 
-        // Sync AllGroupsVisible with actual loaded state so first tray-click toggles correctly
-        AllGroupsVisible = _groupModels.Count == 0 || _groupModels.Any(g => g.IsVisible);
+        // Honor StartMinimizedToTray if enabled
+        if (_settings.StartMinimizedToTray && _groupModels.Count > 0)
+        {
+            foreach (var g in Groups)
+                g.IsVisible = false;
+            AllGroupsVisible = false;
+        }
+        else
+        {
+            // Sync AllGroupsVisible with actual loaded state so first tray-click toggles correctly
+            AllGroupsVisible = _groupModels.Count == 0 || _groupModels.Any(g => g.IsVisible);
+        }
 
         if (_settings.IsFirstRun || !_settings.HasSeenSetupWizard)
         {
@@ -99,11 +120,357 @@ public partial class MainViewModel : ObservableObject
         IsLoaded = true;
     }
 
+    private void AutoHealHotkeyModes()
+    {
+        if (!string.IsNullOrWhiteSpace(_settings.ToggleAllMouseHotkey) &&
+            _settings.ToggleAllHotkeyMode == Models.HotkeyMode.Keyboard)
+        {
+            _settings.ToggleAllHotkeyMode = string.IsNullOrWhiteSpace(_settings.ToggleAllHotkey)
+                ? Models.HotkeyMode.Mouse
+                : Models.HotkeyMode.Both;
+        }
+
+        if (!string.IsNullOrWhiteSpace(_settings.FullscreenMouseHotkey) &&
+            _settings.FullscreenHotkeyMode == Models.HotkeyMode.Keyboard)
+        {
+            _settings.FullscreenHotkeyMode = string.IsNullOrWhiteSpace(_settings.FullscreenToggleHotkey)
+                ? Models.HotkeyMode.Mouse
+                : Models.HotkeyMode.Both;
+        }
+
+        if (!string.IsNullOrWhiteSpace(_settings.ToggleEdgeDockMouseHotkey) &&
+            _settings.ToggleEdgeDockHotkeyMode == Models.HotkeyMode.Keyboard)
+        {
+            _settings.ToggleEdgeDockHotkeyMode = string.IsNullOrWhiteSpace(_settings.ToggleEdgeDockHotkey)
+                ? Models.HotkeyMode.Mouse
+                : Models.HotkeyMode.Both;
+        }
+    }
+
+    public void SyncGroupedDesktopIconsVisibility()
+    {
+        try
+        {
+            if (_settings.HideGroupedIcons)
+            {
+                foreach (var group in _groupModels)
+                {
+                    foreach (var sc in group.Shortcuts)
+                    {
+                        bool alreadyTracked = group.OriginalIconStates.Any(s => s.ShortcutItemId == sc.Id);
+                        if (!alreadyTracked && !string.IsNullOrEmpty(sc.OriginalShortcutPath) && File.Exists(sc.OriginalShortcutPath))
+                        {
+                            var state = _desktopIconService.HideDesktopIcon(sc);
+                            if (state != null)
+                                group.OriginalIconStates.Add(state);
+                        }
+                    }
+                }
+
+                if (_settings.EdgeDocks != null)
+                {
+                    foreach (var dock in _settings.EdgeDocks)
+                    {
+                        foreach (var sc in dock.Shortcuts)
+                        {
+                            bool alreadyTracked = dock.OriginalIconStates.Any(s => s.ShortcutItemId == sc.Id);
+                            if (!alreadyTracked && !string.IsNullOrEmpty(sc.OriginalShortcutPath) && File.Exists(sc.OriginalShortcutPath))
+                            {
+                                var state = _desktopIconService.HideDesktopIcon(sc);
+                                if (state != null)
+                                    dock.OriginalIconStates.Add(state);
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                foreach (var group in _groupModels)
+                {
+                    _desktopIconService.RestoreAllGroupIcons(group);
+                    group.OriginalIconStates.Clear();
+                    foreach (var sc in group.Shortcuts)
+                        sc.OriginalIconHidden = false;
+                }
+
+                if (_settings.EdgeDocks != null)
+                {
+                    foreach (var dock in _settings.EdgeDocks)
+                    {
+                        _desktopIconService.RestoreAllDockIcons(dock);
+                        dock.OriginalIconStates.Clear();
+                        foreach (var sc in dock.Shortcuts)
+                            sc.OriginalIconHidden = false;
+                    }
+                }
+            }
+
+            _persistenceService.SaveGroupsDebounced(_groupModels);
+            _ = _persistenceService.SaveSettingsImmediateAsync(_settings);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"SyncGroupedDesktopIconsVisibility error: {ex.Message}");
+        }
+    }
+
+    public void EnsureDefaultEdgeDockConfig()
+    {
+        _settings.EdgeDocks ??= new List<EdgeDockConfig>();
+        if (_settings.EdgeDocks.Count == 0)
+        {
+            var primary = _monitorService.GetPrimaryMonitor();
+            _settings.EdgeDocks.Add(new EdgeDockConfig
+            {
+                MonitorDeviceName = primary?.DeviceName ?? string.Empty,
+                Edge = DockEdge.Left,
+                IsEnabled = true,
+                Name = "Side Panel",
+                AccentColor = "#0078D4",
+                LockState = SideDockLockState.AutoHide,
+                IsPinned = false,
+                ShowOnEdgeHover = _settings.DefaultEdgeDockHoverShow,
+                ShowBubbleButton = _settings.DefaultEdgeDockShowBubble,
+                BubbleSize = Math.Clamp(_settings.DefaultEdgeDockBubbleSize, 12, 48),
+                EdgePositionRatio = 0.5,
+                IconColumns = 1
+            });
+        }
+    }
+
+    public void RebuildEdgeDocks()
+    {
+        EnsureDefaultEdgeDockConfig();
+        var previouslyOpenIds = ActiveEdgeDocks.Where(d => d.IsPanelOpen).Select(d => d.Id).ToHashSet();
+        ActiveEdgeDocks.Clear();
+
+        if (!_settings.EnableEdgeDock)
+        {
+            EdgeDocksRebuilt?.Invoke(this, EventArgs.Empty);
+            return;
+        }
+
+        var allMonitors = _monitorService.GetAllMonitors();
+        var primaryMonitor = _monitorService.GetPrimaryMonitor() ?? allMonitors.FirstOrDefault() ?? new MonitorInfo
+        {
+            DeviceName = "\\\\.\\DISPLAY1",
+            IsPrimary = true,
+            Bounds = new Rect(0, 0, SystemParameters.PrimaryScreenWidth, SystemParameters.PrimaryScreenHeight),
+            WorkingArea = new Rect(0, 0, SystemParameters.PrimaryScreenWidth, SystemParameters.PrimaryScreenHeight)
+        };
+
+        if (allMonitors.Count == 0)
+            allMonitors.Add(primaryMonitor);
+
+        switch (_settings.EdgeDockMonitorMode)
+        {
+            case SideDockMonitorMode.MainMonitorOnly:
+            {
+                var mainConfigs = GetOrCreateMainMonitorConfigs(primaryMonitor.DeviceName);
+                foreach (var cfg in mainConfigs.Where(c => c.IsEnabled))
+                {
+                    var vm = CreateEdgeDockViewModel(cfg, primaryMonitor);
+                    ActiveEdgeDocks.Add(vm);
+                }
+                break;
+            }
+
+            case SideDockMonitorMode.SameForAllMonitors:
+            {
+                var mainConfigs = GetOrCreateMainMonitorConfigs(primaryMonitor.DeviceName);
+                foreach (var cfg in mainConfigs.Where(c => c.IsEnabled))
+                {
+                    foreach (var mon in allMonitors)
+                    {
+                        var vm = CreateEdgeDockViewModel(cfg, mon);
+                        ActiveEdgeDocks.Add(vm);
+                    }
+                }
+                break;
+            }
+
+            case SideDockMonitorMode.PerMonitorCustom:
+            {
+                foreach (var mon in allMonitors)
+                {
+                    var monConfigs = _settings.EdgeDocks
+                        .Where(c => string.Equals(c.MonitorDeviceName, mon.DeviceName, StringComparison.OrdinalIgnoreCase)
+                                 || (mon.IsPrimary && string.IsNullOrEmpty(c.MonitorDeviceName)))
+                        .ToList();
+
+                    if (monConfigs.Count == 0 && mon.IsPrimary)
+                    {
+                        var first = _settings.EdgeDocks.First();
+                        first.MonitorDeviceName = mon.DeviceName;
+                        first.IsEnabled = true;
+                        monConfigs.Add(first);
+                    }
+
+                    foreach (var cfg in monConfigs.Where(c => c.IsEnabled))
+                    {
+                        if (string.IsNullOrEmpty(cfg.MonitorDeviceName))
+                            cfg.MonitorDeviceName = mon.DeviceName;
+                        var vm = CreateEdgeDockViewModel(cfg, mon);
+                        ActiveEdgeDocks.Add(vm);
+                    }
+                }
+                break;
+            }
+        }
+
+        foreach (var dockVm in ActiveEdgeDocks)
+        {
+            if (previouslyOpenIds.Contains(dockVm.Id) && dockVm.LockState != SideDockLockState.LockedClosed)
+                dockVm.IsPanelOpen = true;
+        }
+
+        EdgeDocksRebuilt?.Invoke(this, EventArgs.Empty);
+    }
+
+    private List<EdgeDockConfig> GetOrCreateMainMonitorConfigs(string primaryDeviceName)
+    {
+        var mainConfigs = _settings.EdgeDocks
+            .Where(c => string.IsNullOrEmpty(c.MonitorDeviceName)
+                     || string.Equals(c.MonitorDeviceName, primaryDeviceName, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (mainConfigs.Count == 0)
+        {
+            var first = _settings.EdgeDocks.First();
+            first.MonitorDeviceName = primaryDeviceName;
+            first.IsEnabled = true;
+            mainConfigs.Add(first);
+        }
+        else if (!mainConfigs.Any(c => c.IsEnabled))
+        {
+            mainConfigs[0].IsEnabled = true;
+        }
+
+        return mainConfigs;
+    }
+
+    private EdgeDockViewModel CreateEdgeDockViewModel(EdgeDockConfig cfg, MonitorInfo monitor)
+    {
+        var vm = new EdgeDockViewModel(
+            cfg,
+            monitor,
+            _usageTracker,
+            _iconExtractor,
+            _desktopIconService,
+            _persistenceService,
+            _settings);
+
+        vm.SaveRequested += (s, e) =>
+        {
+            // Sync any sibling mirror docks in SameForAllMonitors mode
+            foreach (var sibling in ActiveEdgeDocks.Where(d => d.Id == vm.Id && !ReferenceEquals(d, vm)))
+            {
+                sibling.SyncFromSharedConfig();
+            }
+            _ = _persistenceService.SaveSettingsImmediateAsync(_settings);
+            _persistenceService.SaveGroupsDebounced(_groupModels);
+        };
+
+        return vm;
+    }
+
+    public EdgeDockConfig GetOrCreateEdgeDockConfig(string monitorDeviceName, DockEdge edge)
+    {
+        EnsureDefaultEdgeDockConfig();
+        var primary = _monitorService.GetPrimaryMonitor();
+        bool isPrimary = primary != null && string.Equals(primary.DeviceName, monitorDeviceName, StringComparison.OrdinalIgnoreCase);
+
+        var existing = _settings.EdgeDocks.FirstOrDefault(c =>
+            c.Edge == edge &&
+            (string.Equals(c.MonitorDeviceName, monitorDeviceName, StringComparison.OrdinalIgnoreCase) ||
+             (isPrimary && string.IsNullOrEmpty(c.MonitorDeviceName))));
+
+        if (existing != null)
+        {
+            if (string.IsNullOrEmpty(existing.MonitorDeviceName))
+                existing.MonitorDeviceName = monitorDeviceName;
+            return existing;
+        }
+
+        var created = new EdgeDockConfig
+        {
+            MonitorDeviceName = monitorDeviceName,
+            Edge = edge,
+            IsEnabled = false,
+            Name = $"Side Panel ({edge})",
+            AccentColor = "#0078D4",
+            LockState = SideDockLockState.AutoHide,
+            IsPinned = false,
+            ShowOnEdgeHover = _settings.DefaultEdgeDockHoverShow,
+            ShowBubbleButton = _settings.DefaultEdgeDockShowBubble,
+            BubbleSize = Math.Clamp(_settings.DefaultEdgeDockBubbleSize, 12, 48),
+            EdgePositionRatio = 0.5,
+            IconColumns = 1
+        };
+        _settings.EdgeDocks.Add(created);
+        return created;
+    }
+
+    public async Task SetEdgeDockEnabledOnMonitorAsync(string monitorDeviceName, DockEdge edge, bool enabled)
+    {
+        var cfg = GetOrCreateEdgeDockConfig(monitorDeviceName, edge);
+        cfg.IsEnabled = enabled;
+        await _persistenceService.SaveSettingsImmediateAsync(_settings);
+        RebuildEdgeDocks();
+    }
+
+    public async Task ToggleEdgeDockFeatureAsync()
+    {
+        _settings.EnableEdgeDock = !_settings.EnableEdgeDock;
+        await _persistenceService.SaveSettingsImmediateAsync(_settings);
+        RebuildEdgeDocks();
+    }
+
+    public void ToggleAllEdgeDocksVisibility()
+    {
+        if (!_settings.EnableEdgeDock || ActiveEdgeDocks.Count == 0)
+        {
+            _settings.EnableEdgeDock = true;
+            RebuildEdgeDocks();
+            foreach (var d in ActiveEdgeDocks) d.IsPanelOpen = true;
+            return;
+        }
+
+        bool anyOpen = ActiveEdgeDocks.Any(d => d.IsPanelOpen);
+        foreach (var dock in ActiveEdgeDocks)
+        {
+            dock.IsPanelOpen = !anyOpen;
+        }
+    }
+
+    public void ToggleEdgeDockByDirection(DockEdge edge)
+    {
+        if (!_settings.EnableEdgeDock)
+            return;
+
+        var matching = ActiveEdgeDocks.Where(d => d.Edge == edge).ToList();
+        if (matching.Count > 0)
+        {
+            bool anyOpen = matching.Any(d => d.IsPanelOpen);
+            foreach (var dock in matching)
+                dock.IsPanelOpen = !anyOpen;
+        }
+        else if (ActiveEdgeDocks.Count == 1)
+        {
+            // If only 1 side panel is active on the desktop, allow any directional shortcut to toggle it
+            ActiveEdgeDocks[0].TogglePanel();
+        }
+    }
+
     public void RegisterHotkeys(Window window)
     {
+        AutoHealHotkeyModes();
         _hotkeyService.Initialize(window);
+        _hotkeyService.UnregisterAll();
 
-        // Subscribe to registration failures BEFORE registering
+        // Ensure single subscription to RegistrationFailed
+        _hotkeyService.RegistrationFailed -= OnHotkeyRegistrationFailed;
         _hotkeyService.RegistrationFailed += OnHotkeyRegistrationFailed;
 
         // Register keyboard hotkey for Toggle All (if mode includes keyboard)
@@ -116,9 +483,69 @@ public partial class MainViewModel : ObservableObject
             && !string.IsNullOrWhiteSpace(_settings.ToggleAllMouseHotkey))
             _hotkeyService.RegisterHotkey(_settings.ToggleAllMouseHotkey, ToggleAllGroupsVisibility);
 
-        // F11 hotkey removed - per-window KeyDown handler is more reliable
-        // (Users press F11 while focused on the group they want to fullscreen)
-        // _hotkeyService.RegisterHotkey(_settings.FullscreenToggleHotkey, ToggleFocusedGroupFullscreen);
+        // Register keyboard hotkey for Fullscreen Toggle (if mode includes keyboard and not default per-window F11)
+        if (_settings.FullscreenHotkeyMode != Models.HotkeyMode.Mouse
+            && !string.IsNullOrWhiteSpace(_settings.FullscreenToggleHotkey)
+            && !string.Equals(_settings.FullscreenToggleHotkey.Trim(), "F11", StringComparison.OrdinalIgnoreCase))
+        {
+            _hotkeyService.RegisterHotkey(_settings.FullscreenToggleHotkey, ToggleFocusedGroupFullscreen);
+        }
+
+        // Register mouse hotkey for Fullscreen Toggle (if mode includes mouse)
+        if (_settings.FullscreenHotkeyMode != Models.HotkeyMode.Keyboard
+            && !string.IsNullOrWhiteSpace(_settings.FullscreenMouseHotkey))
+        {
+            _hotkeyService.RegisterHotkey(_settings.FullscreenMouseHotkey, ToggleFocusedGroupFullscreen);
+        }
+
+        // Register keyboard hotkey(s) for Show/Hide Side Panel (Edge Dock)
+        if (_settings.ToggleEdgeDockHotkeyMode != Models.HotkeyMode.Mouse
+            && !string.IsNullOrWhiteSpace(_settings.ToggleEdgeDockHotkey))
+        {
+            RegisterEdgeDockKeyboardHotkeys(_settings.ToggleEdgeDockHotkey);
+        }
+
+        // Register mouse hotkey for Show/Hide Side Panel (Edge Dock)
+        if (_settings.ToggleEdgeDockHotkeyMode != Models.HotkeyMode.Keyboard
+            && !string.IsNullOrWhiteSpace(_settings.ToggleEdgeDockMouseHotkey))
+        {
+            _hotkeyService.RegisterHotkey(_settings.ToggleEdgeDockMouseHotkey, ToggleAllEdgeDocksVisibility);
+        }
+    }
+
+    private void RegisterEdgeDockKeyboardHotkeys(string hotkeyString)
+    {
+        var parts = hotkeyString.Split('+', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 0) return;
+
+        string lastToken = parts[^1].ToUpperInvariant();
+        bool isArrowKey = lastToken is "LEFT" or "RIGHT" or "UP" or "DOWN";
+
+        if (isArrowKey && _settings.EnableEdgeDockArrowHotkeys && parts.Length >= 2)
+        {
+            // Extract modifier prefix (e.g. "Ctrl+Alt") and register all 4 directional arrows!
+            string modPrefix = string.Join("+", parts[..^1]);
+            _hotkeyService.RegisterHotkey($"{modPrefix}+Left", () => ToggleEdgeDockByDirection(DockEdge.Left));
+            _hotkeyService.RegisterHotkey($"{modPrefix}+Right", () => ToggleEdgeDockByDirection(DockEdge.Right));
+            _hotkeyService.RegisterHotkey($"{modPrefix}+Up", () => ToggleEdgeDockByDirection(DockEdge.Top));
+            _hotkeyService.RegisterHotkey($"{modPrefix}+Down", () => ToggleEdgeDockByDirection(DockEdge.Bottom));
+        }
+        else if (isArrowKey)
+        {
+            DockEdge targetEdge = lastToken switch
+            {
+                "LEFT" => DockEdge.Left,
+                "RIGHT" => DockEdge.Right,
+                "UP" => DockEdge.Top,
+                "DOWN" => DockEdge.Bottom,
+                _ => DockEdge.Left
+            };
+            _hotkeyService.RegisterHotkey(hotkeyString, () => ToggleEdgeDockByDirection(targetEdge));
+        }
+        else
+        {
+            _hotkeyService.RegisterHotkey(hotkeyString, ToggleAllEdgeDocksVisibility);
+        }
     }
 
     private void OnHotkeyRegistrationFailed(object? sender, string errorMessage)
@@ -202,9 +629,11 @@ public partial class MainViewModel : ObservableObject
                 e.PropertyName == nameof(GroupViewModel.IsDragging))
                 return;
 
-            // Use debounced save for rapid-fire changes during resize
+            // Use debounced save for rapid-fire changes during resize (both Normal and Grid view!)
             if (e.PropertyName == nameof(GroupViewModel.Width) ||
-                e.PropertyName == nameof(GroupViewModel.Height))
+                e.PropertyName == nameof(GroupViewModel.Height) ||
+                e.PropertyName == nameof(GroupViewModel.GridViewWidth) ||
+                e.PropertyName == nameof(GroupViewModel.GridViewHeight))
             {
                 _persistenceService.SaveGroupsDebounced(_groupModels);
                 return;
@@ -345,7 +774,7 @@ public partial class MainViewModel : ObservableObject
             return;
         }
 
-        var ungrouped = _desktopIconService.GetUngroupedShortcuts(_groupModels)
+        var ungrouped = _desktopIconService.GetUngroupedShortcuts(_groupModels, _settings.EdgeDocks)
             .Intersect(undismissed, StringComparer.OrdinalIgnoreCase).ToList();
 
         if (ungrouped.Count > 0)
@@ -371,10 +800,10 @@ public partial class MainViewModel : ObservableObject
     }
 
     public List<string> GetUngroupedShortcuts() =>
-        _desktopIconService.GetUngroupedShortcuts(_groupModels);
+        _desktopIconService.GetUngroupedShortcuts(_groupModels, _settings.EdgeDocks);
 
     public SettingsViewModel CreateSettingsViewModel() =>
-        new SettingsViewModel(_settings, _persistenceService, _startupService);
+        new SettingsViewModel(_settings, _persistenceService, _startupService, _monitorService);
 
     public Task SaveSettingsAsync() =>
         _persistenceService.SaveSettingsImmediateAsync(_settings);
@@ -383,18 +812,29 @@ public partial class MainViewModel : ObservableObject
     {
         ThemeChanged?.Invoke(this, _settings.Theme);
 
-        // DON'T re-register hotkeys here - requires app restart
-        // Reason: If hotkeys fail to register, it triggers the warning dialog
-        // which creates a loop when user is in Settings
-
-        // _hotkeyService.UnregisterAll();
-        // RegisterHotkeys(hotkeyWindow);
-
-        // DISABLED: FileSystemWatcher causes infinite loop
-        // if (_settings.WatchForUngroupedIcons) _ungroupedWatcher.StartWatching();
-        // else _ungroupedWatcher.StopWatching();
+        if (_settings.WatchForUngroupedIcons)
+        {
+            _ungroupedWatcher.CooldownSeconds = 5;
+            _ungroupedWatcher.StartWatching();
+        }
+        else
+        {
+            _ungroupedWatcher.StopWatching();
+        }
 
         _persistenceService.SetDebounceInterval(_settings.AutoSaveDebounceMs);
+        RebuildEdgeDocks();
+
+        bool prevSuppress = _suppressHotkeyWarnings;
+        _suppressHotkeyWarnings = true;
+        try
+        {
+            RegisterHotkeys(hotkeyWindow);
+        }
+        finally
+        {
+            _suppressHotkeyWarnings = prevSuppress;
+        }
     }
 
     public async Task SaveAllAsync()
@@ -408,6 +848,10 @@ public partial class MainViewModel : ObservableObject
             group.Model.Height = group.Height; group.Model.MonitorDeviceName = group.MonitorDeviceName;
             group.Model.IsVisible = group.IsVisible;
             group.Model.AccentColor = group.AccentColorHex;
+        }
+        foreach (var dock in ActiveEdgeDocks)
+        {
+            dock.SyncToConfig();
         }
         await _persistenceService.SaveGroupsImmediateAsync(_groupModels);
         await _persistenceService.SaveSettingsImmediateAsync(_settings);

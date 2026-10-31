@@ -1,4 +1,4 @@
-﻿# ============================================================
+# ============================================================
 # DeskGroup - Build Installer (.exe) Package
 # ============================================================
 param(
@@ -105,12 +105,19 @@ if (![string]::IsNullOrEmpty($innoCompiler) -and (Test-Path $innoCompiler)) {
         "[UninstallRun]`r`n" +
         "Filename: `"{app}\DeskGroup.exe`"; Parameters: `"--uninstall-cleanup`"; Flags: runhidden skipifdoesntexist`r`n`r`n" +
         "[UninstallDelete]`r`n" +
-        "Type: filesandordirs; Name: `"{localappdata}\DeskGroup`"`r`n"
+        "Type: filesandordirs; Name: `"{localappdata}\DeskGroup`"`r`n" +
+        "Type: filesandordirs; Name: `"{userappdata}\DeskGroup`"`r`n"
 
     [System.IO.File]::WriteAllText($innoScriptPath, $issContent, [System.Text.Encoding]::UTF8)
     & $innoCompiler $innoScriptPath
     if ($LASTEXITCODE -ne 0) { throw "Inno Setup compilation failed." }
     Remove-Item $innoScriptPath -Force -ErrorAction SilentlyContinue
+
+    # Also build Portable ZIP alongside Setup EXE
+    $portableZipPath = Join-Path $outputDir "DeskGroup-Portable-$version.zip"
+    if (Test-Path $portableZipPath) { Remove-Item $portableZipPath -Force }
+    Compress-Archive -Path "$publishDir\*" -DestinationPath $portableZipPath -Force
+    Write-Host "Portable ZIP created: $portableZipPath" -ForegroundColor Green
 
 } else {
     Write-Host "Inno Setup not found. Creating ZIP fallback..." -ForegroundColor Yellow

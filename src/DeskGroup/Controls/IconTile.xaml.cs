@@ -1,4 +1,7 @@
-﻿using System.Windows;
+using System;
+using System.Diagnostics;
+using System.IO;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -20,17 +23,12 @@ public partial class IconTile : UserControl
     {
         try
         {
-            // Start hover-in animation
             var hoverInStoryboard = (Storyboard?)Resources["HoverIn"];
-            if (hoverInStoryboard != null)
-            {
-                hoverInStoryboard.Begin(this);
-                System.Diagnostics.Debug.WriteLine($"🖱️ HOVER IN: {DisplayName}");
-            }
+            hoverInStoryboard?.Begin(this);
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Grid_MouseEnter ERROR: {ex.Message}");
+            Debug.WriteLine($"Grid_MouseEnter ERROR: {ex.Message}");
         }
     }
 
@@ -38,50 +36,74 @@ public partial class IconTile : UserControl
     {
         try
         {
-            // Start hover-out animation
             var hoverOutStoryboard = (Storyboard?)Resources["HoverOut"];
-            if (hoverOutStoryboard != null)
-            {
-                hoverOutStoryboard.Begin(this);
-                System.Diagnostics.Debug.WriteLine($"🖱️ HOVER OUT: {DisplayName}");
-            }
+            hoverOutStoryboard?.Begin(this);
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Grid_MouseLeave ERROR: {ex.Message}");
+            Debug.WriteLine($"Grid_MouseLeave ERROR: {ex.Message}");
         }
     }
 
     // Drag and drop
 
     private Point _mouseDownPos;
+    private bool _hasMouseDown;
+
+    /// <summary>
+    /// True while a shortcut tile is actively being dragged via OLE DragDrop.
+    /// Prevents EdgeDock auto-hide timers from closing the dock mid-drag.
+    /// </summary>
+    public static bool IsDraggingShortcut { get; private set; }
 
     protected override void OnPreviewMouseLeftButtonDown(MouseButtonEventArgs e)
     {
         base.OnPreviewMouseLeftButtonDown(e);
         _mouseDownPos = e.GetPosition(this);
+        _hasMouseDown = true;
+    }
+
+    protected override void OnMouseLeave(MouseEventArgs e)
+    {
+        base.OnMouseLeave(e);
+        if (e.LeftButton != MouseButtonState.Pressed)
+            _hasMouseDown = false;
     }
 
     protected override void OnPreviewMouseMove(MouseEventArgs e)
     {
         base.OnPreviewMouseMove(e);
-        if (e.LeftButton != MouseButtonState.Pressed) return;
+        if (!_hasMouseDown || e.LeftButton != MouseButtonState.Pressed)
+        {
+            _hasMouseDown = false;
+            return;
+        }
         if (Mouse.Captured != null) return; // parent window is being dragged
 
         var pos = e.GetPosition(this);
         if (Math.Abs(pos.X - _mouseDownPos.X) > SystemParameters.MinimumHorizontalDragDistance ||
             Math.Abs(pos.Y - _mouseDownPos.Y) > SystemParameters.MinimumVerticalDragDistance)
         {
+            _hasMouseDown = false;
             if (DataContext is ShortcutItemViewModel vm)
             {
-                var result = DragDrop.DoDragDrop(this, new DataObject("DeskGroupShortcut", vm),
-                    DragDropEffects.Move | DragDropEffects.None);
+                DragDropEffects result = DragDropEffects.None;
+                try
+                {
+                    IsDraggingShortcut = true;
+                    result = DragDrop.DoDragDrop(this, new DataObject("DeskGroupShortcut", vm),
+                        DragDropEffects.Move | DragDropEffects.None);
+                }
+                finally
+                {
+                    IsDraggingShortcut = false;
+                }
 
                 if (result == DragDropEffects.None)
                 {
-                    // Dropped outside any group — remove from this group
-                    var widget = Window.GetWindow(this) as GroupWidget;
-                    widget?.RemoveShortcutByViewModel(vm);
+                    // Dropped outside any group — remove from GroupWidget (EdgeDock uses right-click Remove to prevent accidental slip-deletion on narrow edge docks)
+                    if (Window.GetWindow(this) is GroupWidget widget)
+                        widget.RemoveShortcutByViewModel(vm);
                 }
             }
         }
@@ -158,12 +180,12 @@ public partial class IconTile : UserControl
     // Accent Color (for hover border)
 
     public static readonly DependencyProperty AccentColorProperty =
-        DependencyProperty.Register(nameof(AccentColor), typeof(System.Windows.Media.Brush), typeof(IconTile),
+        DependencyProperty.Register(nameof(AccentColor), typeof(Brush), typeof(IconTile),
             new PropertyMetadata(null));
 
-    public System.Windows.Media.Brush? AccentColor
+    public Brush? AccentColor
     {
-        get => (System.Windows.Media.Brush?)GetValue(AccentColorProperty);
+        get => (Brush?)GetValue(AccentColorProperty);
         set => SetValue(AccentColorProperty, value);
     }
 
@@ -239,11 +261,9 @@ public partial class IconTile : UserControl
 
     private void UpdateTileSize()
     {
-        // Tile is icon size + padding + label height
         TileWidth = IconSize + 24;
         TileHeight = IconSize + 40;
 
-        // Update the scale transform center
         ScaleTransform.CenterX = TileWidth / 2;
         ScaleTransform.CenterY = TileHeight / 2;
     }
@@ -269,21 +289,132 @@ public partial class IconTile : UserControl
     {
         base.OnMouseRightButtonUp(e);
 
-        var contextMenu = new ContextMenu();
+        var contextMenu = new ContextMenu
+        {
+            PlacementTarget = this
+        };
 
         var launchItem = new MenuItem { Header = "Open" };
         launchItem.Click += (s, args) => LaunchCommand?.Execute(null);
         contextMenu.Items.Add(launchItem);
+
+        if (DataContext is ShortcutItemViewModel shortcutVm)
+        {
+            var targetPath = !string.IsNullOrEmpty(shortcutVm.Model.TargetPath)
+                ? shortcutVm.Model.TargetPath
+                : shortcutVm.Model.OriginalShortcutPath;
+            if (!string.IsNullOrEmpty(targetPath) && (File.Exists(targetPath) || Directory.Exists(targetPath)))
+            {
+                var openLocItem = new MenuItem { Header = "Open file location" };
+                openLocItem.Click += (s, args) =>
+                {
+                    try
+                    {
+                        Process.Start(new ProcessStartInfo
+                        {
+                            FileName = "explorer.exe",
+                            Arguments = $"/select,\"{targetPath}\"",
+                            UseShellExecute = true
+                        });
+                    }
+                    catch { }
+                };
+                contextMenu.Items.Add(openLocItem);
+            }
+
+            var refreshIconItem = new MenuItem { Header = "Refresh icon" };
+            refreshIconItem.Click += (s, args) => shortcutVm.RefreshIconCommand.Execute(null);
+            contextMenu.Items.Add(refreshIconItem);
+        }
 
         contextMenu.Items.Add(new Separator());
 
         var removeItem = new MenuItem { Header = "Remove from group" };
         removeItem.Click += (s, args) =>
         {
-            // Bubble up via routed event - handled by GroupWidget
             RaiseEvent(new RemoveShortcutRoutedEventArgs(RemoveShortcutEvent, this));
         };
         contextMenu.Items.Add(removeItem);
+
+        var parentWin = Window.GetWindow(this);
+        if (parentWin is EdgeDockPanelWindow dockWin && dockWin.DataContext is EdgeDockViewModel dockVm)
+        {
+            contextMenu.Items.Add(new Separator());
+            var iconSizeMenu = new MenuItem { Header = "📏 Icon Size" };
+
+            var sliderItem = new MenuItem { Header = "🎛️ Icon Size & Opacity Slider..." };
+            sliderItem.Click += (s, args) => dockWin.ShowAppearanceDialog();
+            iconSizeMenu.Items.Add(sliderItem);
+            iconSizeMenu.Items.Add(new Separator());
+
+            int[] sizes = { 16, 24, 32, 40, 48, 64, 72, 96 };
+            foreach (var sz in sizes)
+            {
+                int captured = sz;
+                var szItem = new MenuItem
+                {
+                    Header = $"{captured} px{(captured == 48 ? " (Default)" : "")}",
+                    IsCheckable = true,
+                    IsChecked = dockVm.EffectiveIconSize == captured
+                };
+                szItem.Click += (s, args) => dockVm.SetIconSize(captured);
+                iconSizeMenu.Items.Add(szItem);
+            }
+
+            iconSizeMenu.Items.Add(new Separator());
+            var globalItem = new MenuItem
+            {
+                Header = "↩️ Follow Global Icon Size",
+                IsCheckable = true,
+                IsChecked = dockVm.PerDockIconSize == 0
+            };
+            globalItem.Click += (s, args) => dockVm.SetIconSize(0);
+            iconSizeMenu.Items.Add(globalItem);
+
+            contextMenu.Items.Add(iconSizeMenu);
+        }
+        else if (parentWin is GroupWidget groupWin && groupWin.DataContext is GroupViewModel groupVm)
+        {
+            contextMenu.Items.Add(new Separator());
+            var iconSizeMenu = new MenuItem { Header = "📏 Icon Size" };
+
+            var sliderItem = new MenuItem { Header = "🎛️ Icon Size & Opacity Slider..." };
+            sliderItem.Click += (s, args) =>
+            {
+                var dialog = new PerGroupAppearanceDialog(groupVm);
+                try { if (groupWin.IsLoaded && groupWin.IsVisible) dialog.Owner = groupWin; } catch { }
+                dialog.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+                dialog.Show();
+            };
+            iconSizeMenu.Items.Add(sliderItem);
+            iconSizeMenu.Items.Add(new Separator());
+
+            int[] sizes = { 16, 24, 32, 40, 48, 64, 72, 96 };
+            foreach (var sz in sizes)
+            {
+                int captured = sz;
+                var szItem = new MenuItem
+                {
+                    Header = $"{captured} px{(captured == 48 ? " (Default)" : "")}",
+                    IsCheckable = true,
+                    IsChecked = groupVm.EffectiveIconSize == captured
+                };
+                szItem.Click += (s, args) => groupVm.DisplayIconSize = captured;
+                iconSizeMenu.Items.Add(szItem);
+            }
+
+            iconSizeMenu.Items.Add(new Separator());
+            var globalItem = new MenuItem
+            {
+                Header = "↩️ Follow Global Icon Size",
+                IsCheckable = true,
+                IsChecked = groupVm.PerGroupIconSize == 0
+            };
+            globalItem.Click += (s, args) => groupVm.PerGroupIconSize = 0;
+            iconSizeMenu.Items.Add(globalItem);
+
+            contextMenu.Items.Add(iconSizeMenu);
+        }
 
         contextMenu.IsOpen = true;
         e.Handled = true;
@@ -316,10 +447,10 @@ public partial class IconTile : UserControl
     protected override void OnPreviewMouseLeftButtonUp(MouseButtonEventArgs e)
     {
         base.OnPreviewMouseLeftButtonUp(e);
+        _hasMouseDown = false;
 
         if (!SingleClickToLaunch) return;
 
-        // Only fire on a genuine single click — not at the end of a drag
         var pos = e.GetPosition(this);
         bool isDrag = Math.Abs(pos.X - _mouseDownPos.X) > SystemParameters.MinimumHorizontalDragDistance ||
                       Math.Abs(pos.Y - _mouseDownPos.Y) > SystemParameters.MinimumVerticalDragDistance;
@@ -327,7 +458,7 @@ public partial class IconTile : UserControl
         if (!isDrag && LaunchCommand?.CanExecute(null) == true)
         {
             LaunchCommand.Execute(null);
-            e.Handled = true; // prevent SelectCommand from firing
+            e.Handled = true;
         }
     }
 }

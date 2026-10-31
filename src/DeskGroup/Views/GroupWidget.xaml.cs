@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel;
 using System.Linq;
 using System.Windows;
@@ -23,6 +23,7 @@ public partial class GroupWidget : Window
     private bool _isApplyingChanges; // Guard against re-entry
     private bool _isInitializing = true; // Skip handlers during init
     private bool _isUpdatingViewMode = false; // Guard for view mode updates
+    private bool _isSyncingSizeFromWindow = false; // Guard against resize feedback loop
 
     // WndProc hook for intercepting position changes
     private HwndSource? _hwndSource;
@@ -30,8 +31,8 @@ public partial class GroupWidget : Window
     private bool _hasPendingPosition = false;
 
     // Save position before fullscreen (view mode is saved in ViewModel)
-    private double _preFullscreenLeft;
-    private double _preFullscreenTop;
+    private double _preFullscreenLeft = double.NaN;
+    private double _preFullscreenTop = double.NaN;
     private double _preFullscreenWidth;
     private double _preFullscreenHeight;
 
@@ -112,6 +113,7 @@ public partial class GroupWidget : Window
         DragOver += OnDragOver;
         KeyDown += OnKeyDown; // Keyboard shortcuts
         PreviewMouseLeftButtonDown += OnAnyMouseClick; // Catch ALL clicks to restore sticky mode
+        PreviewMouseRightButtonDown += OnAnyMouseClick; // Activate Sticky widget on right-click so ContextMenu works reliably on Win11
         MouseLeftButtonUp += OnMouseUpSyncPosition; // Sync position after ANY mouse release
         SizeChanged += OnSizeChanged; // Track window resize
 
@@ -129,7 +131,7 @@ public partial class GroupWidget : Window
         DataContext = viewModel;
     }
 
-    // WndProc Hook - Intercept position changes BEFORE they happen
+    // WndProc Hook - Intercept position & Z-order changes BEFORE they happen
 
     private const int WM_WINDOWPOSCHANGING = 0x0046;
 
@@ -147,31 +149,75 @@ public partial class GroupWidget : Window
 
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
-        if (msg == WM_WINDOWPOSCHANGING && _hasPendingPosition)
+        if (msg == WM_WINDOWPOSCHANGING)
         {
-            // Override the position BEFORE the window moves
             var pos = System.Runtime.InteropServices.Marshal.PtrToStructure<WINDOWPOS>(lParam);
+            bool modified = false;
 
-            // Only override if WPF is trying to move us to wrong position
-            const uint SWP_NOMOVE = 0x0002;
-            if ((pos.flags & SWP_NOMOVE) == 0) // Window IS being moved
+            if (_hasPendingPosition)
             {
-                if (pos.x != _pendingX || pos.y != _pendingY || 
-                    pos.cx != _pendingW || pos.cy != _pendingH)
+                const uint SWP_NOMOVE = 0x0002;
+                if ((pos.flags & SWP_NOMOVE) == 0)
                 {
-                    // WPF is trying to move us somewhere wrong — override it
-                    pos.x = _pendingX;
-                    pos.y = _pendingY;
-                    pos.cx = _pendingW;
-                    pos.cy = _pendingH;
-                    System.Runtime.InteropServices.Marshal.StructureToPtr(pos, lParam, true);
-#if DEBUG
-                    System.Diagnostics.Debug.WriteLine($"🛡️ WndProc INTERCEPTED wrong position, forced to ({_pendingX},{_pendingY})");
-#endif
+                    if (pos.x != _pendingX || pos.y != _pendingY ||
+                        pos.cx != _pendingW || pos.cy != _pendingH)
+                    {
+                        pos.x = _pendingX;
+                        pos.y = _pendingY;
+                        pos.cx = _pendingW;
+                        pos.cy = _pendingH;
+                        modified = true;
+                    }
                 }
+            }
+
+            // Keep Sticky widgets on the desktop layer (HWND_BOTTOM) even when activated for right-click menus or F11
+            if (_viewModel != null &&
+                _viewModel.DockMode == GroupDockMode.Sticky &&
+                _viewModel.ViewMode != GroupViewMode.Fullscreen &&
+                !_viewModel.SavedDockModeBeforeFloat.HasValue)
+            {
+                if ((pos.flags & Win32Interop.SWP_NOZORDER) == 0 && pos.hwndInsertAfter != Win32Interop.HWND_BOTTOM)
+                {
+                    pos.hwndInsertAfter = Win32Interop.HWND_BOTTOM;
+                    modified = true;
+                }
+            }
+
+            if (modified)
+            {
+                System.Runtime.InteropServices.Marshal.StructureToPtr(pos, lParam, true);
             }
         }
         return IntPtr.Zero;
+    }
+
+    /// <summary>
+    /// Lazily binds ItemsSource ONLY to the currently visible view's ItemsControl.
+    /// Prevents WPF from instantiating 4x duplicate IconTile controls for collapsed views at startup.
+    /// </summary>
+    private void BindActiveViewItemsSource(GroupViewMode mode)
+    {
+        if (_viewModel == null)
+        {
+            if (HoverItemsControl != null) HoverItemsControl.ItemsSource = null;
+            if (CompactItemsControl != null) CompactItemsControl.ItemsSource = null;
+            if (NormalItemsControl != null) NormalItemsControl.ItemsSource = null;
+            if (GridItemsControl != null) GridItemsControl.ItemsSource = null;
+            if (FullscreenItemsControl != null) FullscreenItemsControl.ItemsSource = null;
+            return;
+        }
+
+        if (HoverItemsControl != null)
+            HoverItemsControl.ItemsSource = mode == GroupViewMode.Hover ? _viewModel.TopUsedShortcuts : null;
+        if (CompactItemsControl != null)
+            CompactItemsControl.ItemsSource = mode == GroupViewMode.Compact ? _viewModel.TopUsedShortcuts : null;
+        if (NormalItemsControl != null)
+            NormalItemsControl.ItemsSource = mode == GroupViewMode.Normal ? _viewModel.AllShortcuts : null;
+        if (GridItemsControl != null)
+            GridItemsControl.ItemsSource = mode == GroupViewMode.Grid ? _viewModel.AllShortcuts : null;
+        if (FullscreenItemsControl != null)
+            FullscreenItemsControl.ItemsSource = mode == GroupViewMode.Fullscreen ? _viewModel.AllShortcuts : null;
     }
 
     // Lifecycle
@@ -186,6 +232,8 @@ public partial class GroupWidget : Window
             // Position and size already set by App.xaml.cs before Show()
             // Just show the correct view without calling UpdateViewMode (which would resize/reposition)
             _isInitializing = true; // Block property handlers during init
+
+            BindActiveViewItemsSource(_viewModel.ViewMode);
 
             // Directly set visibility without going through UpdateViewMode
             MinimizedView.Visibility = _viewModel.ViewMode == GroupViewMode.Minimized ? Visibility.Visible : Visibility.Collapsed;
@@ -268,6 +316,7 @@ public partial class GroupWidget : Window
             {
                 int exStyle = Win32Interop.GetWindowLong(_windowHandle, Win32Interop.GWL_EXSTYLE);
                 Win32Interop.SetWindowLong(_windowHandle, Win32Interop.GWL_EXSTYLE, exStyle | Win32Interop.WS_EX_NOACTIVATE);
+                Win32Interop.AttachToDesktop(_windowHandle);
             }
         }
     }
@@ -355,7 +404,7 @@ public partial class GroupWidget : Window
 
                 case nameof(GroupViewModel.Width):
                 case nameof(GroupViewModel.Height):
-                    if (_viewModel != null && _viewModel.ViewMode == GroupViewMode.Normal)
+                    if (!_isSyncingSizeFromWindow && _viewModel != null && _viewModel.ViewMode == GroupViewMode.Normal)
                     {
                         SizeToContent = SizeToContent.Manual;
                         Width = _viewModel.Width;
@@ -365,7 +414,7 @@ public partial class GroupWidget : Window
 
                 case nameof(GroupViewModel.GridViewWidth):
                 case nameof(GroupViewModel.GridViewHeight):
-                    if (_viewModel != null && _viewModel.ViewMode == GroupViewMode.Grid)
+                    if (!_isSyncingSizeFromWindow && _viewModel != null && _viewModel.ViewMode == GroupViewMode.Grid)
                     {
                         SizeToContent = SizeToContent.Manual;
                         Width = _viewModel.GridViewWidth;
@@ -398,38 +447,33 @@ public partial class GroupWidget : Window
         switch (mode)
         {
             case GroupDockMode.Sticky:
-                if (!_isAttachedToDesktop)
-                {
-                    Topmost = false;
-                    Win32Interop.SetTopmost(_windowHandle, false);
+                Topmost = false;
+                Win32Interop.SetTopmost(_windowHandle, false);
 
-                    // Add WS_EX_NOACTIVATE to prevent activation on click
-                    int exStyle = Win32Interop.GetWindowLong(_windowHandle, Win32Interop.GWL_EXSTYLE);
-                    Win32Interop.SetWindowLong(_windowHandle, Win32Interop.GWL_EXSTYLE, exStyle | Win32Interop.WS_EX_NOACTIVATE);
+                // Add WS_EX_NOACTIVATE to prevent activation on click
+                int exStyle = Win32Interop.GetWindowLong(_windowHandle, Win32Interop.GWL_EXSTYLE);
+                Win32Interop.SetWindowLong(_windowHandle, Win32Interop.GWL_EXSTYLE, exStyle | Win32Interop.WS_EX_NOACTIVATE);
 
-                    // Show window first
-                    Visibility = Visibility.Visible;
-                    Show();
-                    UpdateLayout();
+                // Show window first
+                Visibility = Visibility.Visible;
+                Show();
+                UpdateLayout();
 
-                    // Try to attach to desktop
-                    bool attached = Win32Interop.AttachToDesktop(_windowHandle);
-                    _isAttachedToDesktop = attached;
+                // Attach to desktop layer (HWND_BOTTOM)
+                bool attached = Win32Interop.AttachToDesktop(_windowHandle);
+                _isAttachedToDesktop = attached;
 
-                    // CRITICAL: Use ViewModel position (already synced before toggle), NOT Window.Left/Top!
-                    // Window.Left/Top might be stale if WPF hasn't updated yet from ViewModel changes
-                    if (_viewModel == null) break;
-                    var targetX = (int)Math.Round(_viewModel.PositionX);
-                    var targetY = (int)Math.Round(_viewModel.PositionY);
-                    SetWindowPosInDips(Win32Interop.HWND_BOTTOM,
-                        targetX, targetY, 
-                        (int)Width, (int)Height,
-                        Win32Interop.SWP_SHOWWINDOW | Win32Interop.SWP_NOACTIVATE);
+                if (_viewModel == null) break;
+                var targetX = (int)Math.Round(_viewModel.PositionX);
+                var targetY = (int)Math.Round(_viewModel.PositionY);
+                SetWindowPosInDips(Win32Interop.HWND_BOTTOM,
+                    targetX, targetY, 
+                    (int)Width, (int)Height,
+                    Win32Interop.SWP_SHOWWINDOW | Win32Interop.SWP_NOACTIVATE);
 
-                    // Sync WPF position to match Win32 position
-                    Left = targetX;
-                    Top = targetY;
-                }
+                // Sync WPF position to match Win32 position
+                Left = targetX;
+                Top = targetY;
                 break;
 
             case GroupDockMode.Float:
@@ -455,6 +499,8 @@ public partial class GroupWidget : Window
 
     private void ApplyViewMode(GroupViewMode mode)
     {
+        BindActiveViewItemsSource(mode);
+
         switch (mode)
         {
             case GroupViewMode.Minimized:
@@ -553,7 +599,7 @@ public partial class GroupWidget : Window
         }
     }
 
-    // Mouse Enter/Leave for Minimized â†’ Hover transition
+    // Mouse Enter/Leave for Minimized → Hover transition
 
     private void Minimized_MouseEnter(object sender, MouseEventArgs e)
     {
@@ -669,6 +715,11 @@ public partial class GroupWidget : Window
                 var sourceGroup = GetMainViewModel()?.Groups.FirstOrDefault(g => g.AllShortcuts.Contains(source));
                 if (sourceGroup != null)
                     sourceGroup.TransferShortcutToGroup(source, _viewModel);
+                else
+                {
+                    var sourceDock = GetMainViewModel()?.ActiveEdgeDocks.FirstOrDefault(d => d.AllShortcuts.Contains(source));
+                    sourceDock?.TransferShortcutToGroup(source, _viewModel);
+                }
             }
             e.Effects = DragDropEffects.Move;
             e.Handled = true;
@@ -777,6 +828,44 @@ public partial class GroupWidget : Window
 
     // Context Menu Handlers
 
+    private void WidgetContextMenu_Opened(object sender, RoutedEventArgs e)
+    {
+        if (sender is ContextMenu cm && _viewModel != null)
+        {
+            cm.DataContext = _viewModel;
+        }
+        if (_viewModel != null)
+        {
+            if (MenuPinPosition != null) MenuPinPosition.IsChecked = _viewModel.IsPinned;
+            if (MenuSnapToGrid != null) MenuSnapToGrid.IsChecked = _viewModel.SnapToGrid;
+        }
+    }
+
+    private void MenuPinPosition_Click(object sender, RoutedEventArgs e)
+    {
+        _viewModel?.TogglePinCommand.Execute(null);
+        if (MenuPinPosition != null && _viewModel != null)
+            MenuPinPosition.IsChecked = _viewModel.IsPinned;
+    }
+
+    private void MenuSnapToGrid_Click(object sender, RoutedEventArgs e)
+    {
+        _viewModel?.ToggleSnapToGridCommand.Execute(null);
+        if (MenuSnapToGrid != null && _viewModel != null)
+            MenuSnapToGrid.IsChecked = _viewModel.SnapToGrid;
+    }
+
+    private void MenuToggleDockMode_Click(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel == null) return;
+        if (Left > -5000 && Top > -5000)
+        {
+            _viewModel.PositionX = Math.Round(Left);
+            _viewModel.PositionY = Math.Round(Top);
+        }
+        _viewModel.ToggleDockModeCommand.Execute(null);
+    }
+
     private void MenuAddShortcut_Click(object sender, RoutedEventArgs e)
     {
         var dialog = new OpenFileDialog
@@ -800,7 +889,7 @@ public partial class GroupWidget : Window
     {
         var inputDialog = new InputDialog("Rename Group", "Enter new group name:",
             _viewModel?.Name ?? "");
-        inputDialog.Owner = this;
+        try { if (IsLoaded && IsVisible) inputDialog.Owner = this; } catch { }
         inputDialog.WindowStartupLocation = WindowStartupLocation.CenterOwner;
 
         if (inputDialog.ShowDialog() == true && !string.IsNullOrWhiteSpace(inputDialog.ResponseText))
@@ -826,7 +915,7 @@ public partial class GroupWidget : Window
     private void MenuChangeColor_Click(object sender, RoutedEventArgs e)
     {
         var colorDialog = new ColorPickerDialog(_viewModel?.AccentColorHex ?? "#0078D4");
-        colorDialog.Owner = this;
+        try { if (IsLoaded && IsVisible) colorDialog.Owner = this; } catch { }
         colorDialog.WindowStartupLocation = WindowStartupLocation.CenterOwner;
 
         if (colorDialog.ShowDialog() == true)
@@ -843,7 +932,7 @@ public partial class GroupWidget : Window
     {
         if (_viewModel == null) return;
         var dialog = new PerGroupAppearanceDialog(_viewModel);
-        dialog.Owner = this;
+        try { if (IsLoaded && IsVisible) dialog.Owner = this; } catch { }
         dialog.WindowStartupLocation = WindowStartupLocation.CenterOwner;
         dialog.Show();
     }
@@ -917,13 +1006,15 @@ public partial class GroupWidget : Window
 
         try
         {
+            BindActiveViewItemsSource(mode);
+
             // IMPORTANT: Set sizing mode FIRST before changing visibility
             switch (mode)
             {
                 case GroupViewMode.Minimized:
                     bool wasFullscreen = (FullscreenView.Visibility == Visibility.Visible);
-                    int targetX = wasFullscreen && _preFullscreenLeft > 0 ? (int)_preFullscreenLeft : (_viewModel != null ? (int)_viewModel.PositionX : 0);
-                    int targetY = wasFullscreen && _preFullscreenTop > 0 ? (int)_preFullscreenTop : (_viewModel != null ? (int)_viewModel.PositionY : 0);
+                    int targetX = wasFullscreen && !double.IsNaN(_preFullscreenLeft) ? (int)_preFullscreenLeft : (_viewModel != null ? (int)_viewModel.PositionX : 0);
+                    int targetY = wasFullscreen && !double.IsNaN(_preFullscreenTop) ? (int)_preFullscreenTop : (_viewModel != null ? (int)_viewModel.PositionY : 0);
 
                     // CRITICAL: Set MinHeight BEFORE sizing — prevents WPF coercing Height up to the previous view's MinHeight
                     ResizeMode = ResizeMode.NoResize;
@@ -959,8 +1050,8 @@ public partial class GroupWidget : Window
 
                 case GroupViewMode.Hover:
                     bool wasFullscreenHover = (FullscreenView.Visibility == Visibility.Visible);
-                    int hoverTargetX = wasFullscreenHover && _preFullscreenLeft > 0 ? (int)_preFullscreenLeft : (_viewModel != null ? (int)_viewModel.PositionX : 0);
-                    int hoverTargetY = wasFullscreenHover && _preFullscreenTop > 0 ? (int)_preFullscreenTop : (_viewModel != null ? (int)_viewModel.PositionY : 0);
+                    int hoverTargetX = wasFullscreenHover && !double.IsNaN(_preFullscreenLeft) ? (int)_preFullscreenLeft : (_viewModel != null ? (int)_viewModel.PositionX : 0);
+                    int hoverTargetY = wasFullscreenHover && !double.IsNaN(_preFullscreenTop) ? (int)_preFullscreenTop : (_viewModel != null ? (int)_viewModel.PositionY : 0);
 
                     // Lock position via WndProc trap (prevents window jumping during visibility change)
                     SetPendingPositionInDips(hoverTargetX, hoverTargetY, 200, 60);
@@ -1001,8 +1092,8 @@ public partial class GroupWidget : Window
 
                 case GroupViewMode.Compact:
                     bool wasFullscreenCompact = (FullscreenView.Visibility == Visibility.Visible);
-                    int compactTargetX = wasFullscreenCompact && _preFullscreenLeft > 0 ? (int)_preFullscreenLeft : (_viewModel != null ? (int)_viewModel.PositionX : 0);
-                    int compactTargetY = wasFullscreenCompact && _preFullscreenTop > 0 ? (int)_preFullscreenTop : (_viewModel != null ? (int)_viewModel.PositionY : 0);
+                    int compactTargetX = wasFullscreenCompact && !double.IsNaN(_preFullscreenLeft) ? (int)_preFullscreenLeft : (_viewModel != null ? (int)_viewModel.PositionX : 0);
+                    int compactTargetY = wasFullscreenCompact && !double.IsNaN(_preFullscreenTop) ? (int)_preFullscreenTop : (_viewModel != null ? (int)_viewModel.PositionY : 0);
 
                     // CRITICAL: Set MinHeight BEFORE sizing — prevents WPF coercing Height up to the previous view's MinHeight
                     ResizeMode = ResizeMode.NoResize;
@@ -1037,8 +1128,8 @@ public partial class GroupWidget : Window
 
                 case GroupViewMode.Normal:
                     bool wasFullscreenNormal = (FullscreenView.Visibility == Visibility.Visible);
-                    int normalTargetX = wasFullscreenNormal && _preFullscreenLeft > 0 ? (int)_preFullscreenLeft : (_viewModel != null ? (int)_viewModel.PositionX : 0);
-                    int normalTargetY = wasFullscreenNormal && _preFullscreenTop > 0 ? (int)_preFullscreenTop : (_viewModel != null ? (int)_viewModel.PositionY : 0);
+                    int normalTargetX = wasFullscreenNormal && !double.IsNaN(_preFullscreenLeft) ? (int)_preFullscreenLeft : (_viewModel != null ? (int)_viewModel.PositionX : 0);
+                    int normalTargetY = wasFullscreenNormal && !double.IsNaN(_preFullscreenTop) ? (int)_preFullscreenTop : (_viewModel != null ? (int)_viewModel.PositionY : 0);
                     int normalTargetW = wasFullscreenNormal && _preFullscreenWidth > 0 ? (int)_preFullscreenWidth : (_viewModel != null ? (int)_viewModel.Width : 300);
                     int normalTargetH = wasFullscreenNormal && _preFullscreenHeight > 0 ? (int)_preFullscreenHeight : (_viewModel != null ? (int)_viewModel.Height : 250);
 
@@ -1068,8 +1159,8 @@ public partial class GroupWidget : Window
 
                 case GroupViewMode.Grid:
                     bool wasFullscreenGrid = (FullscreenView.Visibility == Visibility.Visible);
-                    int gridTargetX = wasFullscreenGrid && _preFullscreenLeft > 0 ? (int)_preFullscreenLeft : (_viewModel != null ? (int)_viewModel.PositionX : 0);
-                    int gridTargetY = wasFullscreenGrid && _preFullscreenTop > 0 ? (int)_preFullscreenTop : (_viewModel != null ? (int)_viewModel.PositionY : 0);
+                    int gridTargetX = wasFullscreenGrid && !double.IsNaN(_preFullscreenLeft) ? (int)_preFullscreenLeft : (_viewModel != null ? (int)_viewModel.PositionX : 0);
+                    int gridTargetY = wasFullscreenGrid && !double.IsNaN(_preFullscreenTop) ? (int)_preFullscreenTop : (_viewModel != null ? (int)_viewModel.PositionY : 0);
                     int gridTargetW = wasFullscreenGrid && _preFullscreenWidth > 0 ? (int)_preFullscreenWidth : (_viewModel != null ? (int)_viewModel.GridViewWidth : 400);
                     int gridTargetH = wasFullscreenGrid && _preFullscreenHeight > 0 ? (int)_preFullscreenHeight : (_viewModel != null ? (int)_viewModel.GridViewHeight : 300);
 
@@ -1099,8 +1190,11 @@ public partial class GroupWidget : Window
 
                 case GroupViewMode.Fullscreen:
                     // Calculate target dimensions FIRST
-                    var screenWidth = (int)SystemParameters.PrimaryScreenWidth;
-                    var screenHeight = (int)SystemParameters.PrimaryScreenHeight;
+                    var fsMon = new Services.MonitorService().GetMonitorFromPoint((Left + Width / 2) * DpiScaleX, (Top + Height / 2) * DpiScaleY);
+                    int fsX = fsMon != null ? (int)(fsMon.Bounds.Left / DpiScaleX) : 0;
+                    int fsY = fsMon != null ? (int)(fsMon.Bounds.Top / DpiScaleY) : 0;
+                    var screenWidth = fsMon != null ? (int)(fsMon.Bounds.Width / DpiScaleX) : (int)SystemParameters.PrimaryScreenWidth;
+                    var screenHeight = fsMon != null ? (int)(fsMon.Bounds.Height / DpiScaleY) : (int)SystemParameters.PrimaryScreenHeight;
 
                     System.Diagnostics.Debug.WriteLine($"🖥️ ENTERING fullscreen: {screenWidth}x{screenHeight}");
 
@@ -1115,7 +1209,7 @@ public partial class GroupWidget : Window
                     if (_windowHandle != IntPtr.Zero)
                     {
                         bool success = SetWindowPosInDips(Win32Interop.HWND_TOPMOST,
-                            0, 0, screenWidth, screenHeight,
+                            fsX, fsY, screenWidth, screenHeight,
                             Win32Interop.SWP_SHOWWINDOW);
 
                         System.Diagnostics.Debug.WriteLine($"✅ SetWindowPos fullscreen: {success}");
@@ -1125,8 +1219,8 @@ public partial class GroupWidget : Window
                     FullscreenView.Visibility = Visibility.Visible;
 
                     // Sync WPF properties AFTER (bookkeeping only - no triggers!)
-                    Left = 0;
-                    Top = 0;
+                    Left = fsX;
+                    Top = fsY;
                     Width = screenWidth;
                     Height = screenHeight;
                     WindowStyle = WindowStyle.None;
@@ -1203,38 +1297,31 @@ public partial class GroupWidget : Window
 
     private void SetMinimized_Click(object sender, RoutedEventArgs e)
     {
-        // Activate window first to ensure it has focus
         if (!IsActive) { Activate(); Focus(); }
         _viewModel?.SetMinimizedCommand.Execute(null);
     }
 
     private void SetCompact_Click(object sender, RoutedEventArgs e)
     {
-        // Activate window first to ensure it has focus
         if (!IsActive) { Activate(); Focus(); }
         _viewModel?.SetCompactCommand.Execute(null);
     }
 
     private void SetNormal_Click(object sender, RoutedEventArgs e)
     {
-        // Activate window first to ensure it has focus
         if (!IsActive) { Activate(); Focus(); }
         _viewModel?.SetNormalCommand.Execute(null);
     }
 
     private void SetGrid_Click(object sender, RoutedEventArgs e)
     {
-        // Activate window first to ensure it has focus
         if (!IsActive) { Activate(); Focus(); }
         _viewModel?.SetGridCommand.Execute(null);
     }
 
     private void SetFullscreen_Click(object sender, RoutedEventArgs e)
     {
-        // Activate window first to ensure it has focus (critical for F11 to work!)
         if (!IsActive) { Activate(); Focus(); }
-
-        // ViewModel's EnterFullscreen() handles saving the previous view mode
         _viewModel?.SetFullscreenCommand.Execute(null);
     }
 
@@ -1286,10 +1373,6 @@ public partial class GroupWidget : Window
                 shortcut.LaunchCommand.Execute(null);
                 e.Handled = true;
             }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine($"Shortcut_Click: Could not get shortcut from DataContext. Sender type: {sender?.GetType().Name}, DataContext type: {frameworkElement?.DataContext?.GetType().Name}");
-            }
         }
         catch (Exception ex)
         {
@@ -1338,16 +1421,14 @@ public partial class GroupWidget : Window
     {
         try
         {
-            // ACTIVATE WINDOW: Give this window keyboard focus so F11 works!
-            // For Sticky mode, we need to temporarily remove WS_EX_NOACTIVATE
+            // ACTIVATE WINDOW: Give this window keyboard focus so F11 and ContextMenu work!
+            // For Sticky mode, we temporarily remove WS_EX_NOACTIVATE (WndProc keeps it at HWND_BOTTOM).
             if (_viewModel?.DockMode == GroupDockMode.Sticky && _windowHandle != IntPtr.Zero)
             {
-                // Temporarily remove WS_EX_NOACTIVATE to allow activation
                 int exStyle = Win32Interop.GetWindowLong(_windowHandle, Win32Interop.GWL_EXSTYLE);
                 Win32Interop.SetWindowLong(_windowHandle, Win32Interop.GWL_EXSTYLE, exStyle & ~Win32Interop.WS_EX_NOACTIVATE);
             }
 
-            // Now activate the window
             if (!IsActive)
             {
                 Activate();
@@ -1373,7 +1454,6 @@ public partial class GroupWidget : Window
 
                     if (mainVm != null)
                     {
-                        // Check if ANY group has been temporarily floated
                         bool anyGroupTemporarilyFloated = mainVm.Groups.Any(g => g.SavedDockModeBeforeFloat.HasValue);
 
                         if (anyGroupTemporarilyFloated)
@@ -1423,22 +1503,22 @@ public partial class GroupWidget : Window
     /// </summary>
     private void OnSizeChanged(object sender, SizeChangedEventArgs e)
     {
-        if (_viewModel == null || _isInitializing || _isUpdatingViewMode) return;
+        if (_viewModel == null || _isInitializing || _isUpdatingViewMode || _isSyncingSizeFromWindow) return;
 
         if (_viewModel.ViewMode == GroupViewMode.Normal)
         {
             if (Math.Abs(e.NewSize.Width - _viewModel.Width) > 1 || Math.Abs(e.NewSize.Height - _viewModel.Height) > 1)
             {
-                _viewModel.Width = Math.Round(e.NewSize.Width);
-                _viewModel.Height = Math.Round(e.NewSize.Height);
+                _isSyncingSizeFromWindow = true; _viewModel.Width = Math.Round(e.NewSize.Width);
+                _viewModel.Height = Math.Round(e.NewSize.Height); _isSyncingSizeFromWindow = false; return;
             }
         }
         else if (_viewModel.ViewMode == GroupViewMode.Grid)
         {
             if (Math.Abs(e.NewSize.Width - _viewModel.GridViewWidth) > 1 || Math.Abs(e.NewSize.Height - _viewModel.GridViewHeight) > 1)
             {
-                _viewModel.GridViewWidth = Math.Round(e.NewSize.Width);
-                _viewModel.GridViewHeight = Math.Round(e.NewSize.Height);
+                _isSyncingSizeFromWindow = true; _viewModel.GridViewWidth = Math.Round(e.NewSize.Width);
+                _viewModel.GridViewHeight = Math.Round(e.NewSize.Height); _isSyncingSizeFromWindow = false; return;
             }
         }
     }
@@ -1510,8 +1590,26 @@ public partial class GroupWidget : Window
         }
 
         // Calculate position from original baseline + DPI-adjusted delta
-        Left = _dragStartWindowPosition.X + deltaX / DpiScaleX;
-        Top = _dragStartWindowPosition.Y + deltaY / DpiScaleY;
+        double targetLeft = _dragStartWindowPosition.X + deltaX / DpiScaleX;
+        double targetTop = _dragStartWindowPosition.Y + deltaY / DpiScaleY;
+        if (_viewModel?.SnapToGrid == true && _viewModel.Settings.SnapGridSize > 1)
+        {
+            int g = _viewModel.Settings.SnapGridSize;
+            targetLeft = Math.Round(targetLeft / g) * g;
+            targetTop = Math.Round(targetTop / g) * g;
+        }
+        if (_windowHandle != IntPtr.Zero)
+        {
+            Win32Interop.SetWindowPos(
+                _windowHandle,
+                IntPtr.Zero,
+                (int)Math.Round(targetLeft * DpiScaleX),
+                (int)Math.Round(targetTop * DpiScaleY),
+                0, 0,
+                Win32Interop.SWP_NOSIZE | Win32Interop.SWP_NOZORDER | Win32Interop.SWP_NOACTIVATE);
+        }
+        Left = targetLeft;
+        Top = targetTop;
     }
 
     private void Header_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
@@ -1523,9 +1621,6 @@ public partial class GroupWidget : Window
 
         if (_isDragging)
         {
-            // Actual drag occurred - update ViewModel position
-            // Round to nearest integer to avoid fractional pixel issues
-            // VALIDATE: Ensure positions are reasonable (not corrupted billion-digit values!)
             if (_viewModel != null)
             {
                 var newX = Math.Round(Left);
@@ -1537,15 +1632,7 @@ public partial class GroupWidget : Window
                     _viewModel.PositionX = newX;
                     _viewModel.PositionY = newY;
                 }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine($"Drag ended at INVALID position ({newX}, {newY}) - position NOT saved!");
-                }
             }
-        }
-        else
-        {
-            // No drag occurred (click or tiny movement)
         }
 
         _isDragging = false;
@@ -1571,6 +1658,11 @@ public partial class GroupWidget : Window
             var sourceGroup = GetMainViewModel()?.Groups.FirstOrDefault(g => g.AllShortcuts.Contains(source));
             if (sourceGroup != null)
                 sourceGroup.TransferShortcutToGroup(source, _viewModel);
+            else
+            {
+                var sourceDock = GetMainViewModel()?.ActiveEdgeDocks.FirstOrDefault(d => d.AllShortcuts.Contains(source));
+                sourceDock?.TransferShortcutToGroup(source, _viewModel);
+            }
         }
         else
         {

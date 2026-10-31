@@ -1,4 +1,4 @@
-﻿<Window x:Class="DeskGroup.Views.SettingsWindow"
+<Window x:Class="DeskGroup.Views.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -8,8 +8,8 @@
         xmlns:converters="clr-namespace:DeskGroup.Converters"
         mc:Ignorable="d"
         Title="DeskGroup Settings"
-        Width="520" Height="600"
-        MinWidth="440" MinHeight="500"
+        Width="540" Height="600"
+        MinWidth="460" MinHeight="500"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
         ResizeMode="CanResizeWithGrip"
@@ -279,8 +279,157 @@
                     <CheckBox IsChecked="{Binding EnableShellContextMenu}"
                               VerticalAlignment="Center"/>
                 </DockPanel>
-                <TextBlock Text="Adds 'Add to DeskGroup' to the right-click menu of .lnk and .url files in Explorer and on the desktop."
+                <TextBlock Text="Adds 'Add to DeskGroup' to the right-click menu of .lnk, .url, .exe, and folder items in Explorer and on the desktop."
                            Style="{StaticResource SettingDesc}"/>
+
+                <!-- ====================================================================== -->
+                <!-- EDGE DOCK (OPTIONAL SIDE PANEL) -->
+                <!-- ====================================================================== -->
+                <Border Style="{StaticResource SectionSeparator}"/>
+                <TextBlock Text="Edge Dock (Optional Side Panel)" Style="{StaticResource SectionHeader}"/>
+
+                <!-- Enable Edge Dock -->
+                <DockPanel Style="{StaticResource SettingRow}">
+                    <TextBlock Text="Enable Side Panel" Style="{StaticResource SettingLabel}"
+                               DockPanel.Dock="Left" Width="160"/>
+                    <CheckBox IsChecked="{Binding EnableEdgeDock}"
+                              VerticalAlignment="Center"/>
+                </DockPanel>
+                <TextBlock Text="Optional always-on-top edge dock panel (hidden by default on the left screen edge). Shows/hides independently even when all desktop groups are hidden."
+                           Style="{StaticResource SettingDesc}"/>
+
+                <StackPanel Visibility="{Binding EnableEdgeDock, Converter={StaticResource BooleanToVisibility}}">
+                    <!-- Monitor Mode -->
+                    <DockPanel Style="{StaticResource SettingRow}">
+                        <TextBlock Text="Multi-monitor mode" Style="{StaticResource SettingLabel}"
+                                   DockPanel.Dock="Left" Width="160"/>
+                        <ComboBox ItemsSource="{Binding EdgeDockMonitorModes}"
+                                  SelectedItem="{Binding EdgeDockMonitorMode}"
+                                  Width="210"
+                                  HorizontalAlignment="Left"
+                                  Padding="8,4"/>
+                    </DockPanel>
+                    <TextBlock Text="MainMonitorOnly (default), SameForAllMonitors (mirrors panel on every screen), or PerMonitorCustom (independent edges and shortcuts per monitor)."
+                               Style="{StaticResource SettingDesc}"/>
+
+                    <!-- Target Monitor Selector (for configuring per-monitor or main monitor edges) -->
+                    <DockPanel Style="{StaticResource SettingRow}">
+                        <TextBlock Text="Configure monitor" Style="{StaticResource SettingLabel}"
+                                   DockPanel.Dock="Left" Width="160"/>
+                        <ComboBox ItemsSource="{Binding AvailableMonitors}"
+                                  SelectedItem="{Binding SelectedMonitorOption}"
+                                  DisplayMemberPath="DisplayName"
+                                  Width="260"
+                                  HorizontalAlignment="Left"
+                                  Padding="8,4"/>
+                    </DockPanel>
+
+                    <!-- Active Screen Edges (1, 2, 3, or all 4 edges) -->
+                    <DockPanel Style="{StaticResource SettingRow}">
+                        <TextBlock Text="Active edges (1–4)" Style="{StaticResource SettingLabel}"
+                                   DockPanel.Dock="Left" Width="160"/>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <CheckBox Content="Left" IsChecked="{Binding EdgeLeftEnabled}" Margin="0,0,12,0" Foreground="{DynamicResource ForegroundPrimary}"/>
+                            <CheckBox Content="Top" IsChecked="{Binding EdgeTopEnabled}" Margin="0,0,12,0" Foreground="{DynamicResource ForegroundPrimary}"/>
+                            <CheckBox Content="Right" IsChecked="{Binding EdgeRightEnabled}" Margin="0,0,12,0" Foreground="{DynamicResource ForegroundPrimary}"/>
+                            <CheckBox Content="Bottom" IsChecked="{Binding EdgeBottomEnabled}" Foreground="{DynamicResource ForegroundPrimary}"/>
+                        </StackPanel>
+                    </DockPanel>
+                    <TextBlock Text="Enable 1, 2, 3, or all 4 edges on the selected monitor. Default is Left edge."
+                               Style="{StaticResource SettingDesc}"/>
+
+                    <!-- Primary Edge quick selector -->
+                    <DockPanel Style="{StaticResource SettingRow}">
+                        <TextBlock Text="Default dock edge" Style="{StaticResource SettingLabel}"
+                                   DockPanel.Dock="Left" Width="160"/>
+                        <ComboBox ItemsSource="{Binding DockEdges}"
+                                  SelectedItem="{Binding PrimaryDockEdge}"
+                                  Width="180"
+                                  HorizontalAlignment="Left"
+                                  Padding="8,4"/>
+                    </DockPanel>
+
+                    <!-- Lock State -->
+                    <DockPanel Style="{StaticResource SettingRow}">
+                        <TextBlock Text="Dock lock mode" Style="{StaticResource SettingLabel}"
+                                   DockPanel.Dock="Left" Width="160"/>
+                        <ComboBox ItemsSource="{Binding EdgeDockLockStates}"
+                                  SelectedItem="{Binding EdgeDockLockState}"
+                                  Width="180"
+                                  HorizontalAlignment="Left"
+                                  Padding="8,4"/>
+                    </DockPanel>
+                    <TextBlock Text="AutoHide (default: hidden until edge hover or bubble click), LockedOpen (always visible on top), or LockedClosed."
+                               Style="{StaticResource SettingDesc}"/>
+
+                    <!-- Pin Dock Position -->
+                    <DockPanel Style="{StaticResource SettingRow}">
+                        <TextBlock Text="Pin dock position" Style="{StaticResource SettingLabel}"
+                                   DockPanel.Dock="Left" Width="160"/>
+                        <CheckBox IsChecked="{Binding EdgeDockIsPinned}"
+                                  VerticalAlignment="Center"/>
+                    </DockPanel>
+                    <TextBlock Text="When unpinned, drag the dock header or edge bubble to move along any edge or snap to Left, Top, Right, or Bottom. Pinning locks its position."
+                               Style="{StaticResource SettingDesc}"/>
+
+                    <!-- Show on Edge Hover -->
+                    <DockPanel Style="{StaticResource SettingRow}">
+                        <TextBlock Text="Show on edge hover" Style="{StaticResource SettingLabel}"
+                                   DockPanel.Dock="Left" Width="160"/>
+                        <CheckBox IsChecked="{Binding EdgeDockShowOnHover}"
+                                  VerticalAlignment="Center"/>
+                    </DockPanel>
+
+                    <!-- Always-on-top Edge Bubble Button -->
+                    <DockPanel Style="{StaticResource SettingRow}">
+                        <TextBlock Text="Show edge bubble" Style="{StaticResource SettingLabel}"
+                                   DockPanel.Dock="Left" Width="160"/>
+                        <CheckBox IsChecked="{Binding EdgeDockShowBubble}"
+                                  VerticalAlignment="Center"/>
+                    </DockPanel>
+                    <TextBlock Text="Displays a non-intrusive, always-on-top edge bubble button for reliable show/hide on multi-monitor setups."
+                               Style="{StaticResource SettingDesc}"/>
+
+                    <!-- Bubble Size -->
+                    <DockPanel Style="{StaticResource SettingRow}">
+                        <TextBlock Text="Bubble size (px)" Style="{StaticResource SettingLabel}"
+                                   DockPanel.Dock="Left" Width="160"/>
+                        <Slider Value="{Binding EdgeDockBubbleSize}"
+                                Minimum="12" Maximum="48"
+                                Width="160"
+                                TickFrequency="2"
+                                IsSnapToTickEnabled="True"
+                                VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding EdgeDockBubbleSize, StringFormat={}{0}×{0}px}"
+                                   Style="{StaticResource SettingLabel}"
+                                   Margin="8,0,0,0"/>
+                    </DockPanel>
+                    <TextBlock Text="Default is 16×16px. You can also right-click the bubble or dock panel at any time to adjust size, pin, edge, or lock mode."
+                               Style="{StaticResource SettingDesc}"/>
+
+                    <!-- Edge Panel Icon Size (px) -->
+                    <DockPanel Style="{StaticResource SettingRow}">
+                        <TextBlock Text="Edge panel icon size" Style="{StaticResource SettingLabel}"
+                                   DockPanel.Dock="Left" Width="160"/>
+                        <Slider Value="{Binding EdgeDockIconSize}"
+                                Minimum="16" Maximum="96"
+                                Width="140"
+                                TickFrequency="4"
+                                IsSnapToTickEnabled="True"
+                                VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding EdgeDockIconSizeDisplayText}"
+                                   Style="{StaticResource SettingLabel}"
+                                   Margin="8,0,8,0"/>
+                        <Button Content="Use Global"
+                                Command="{Binding ResetEdgeDockIconSizeCommand}"
+                                Style="{DynamicResource DefaultButton}"
+                                Padding="8,2"
+                                FontSize="11"
+                                ToolTip="Reset Edge Panel icon size to follow the global icon size setting"/>
+                    </DockPanel>
+                    <TextBlock Text="Resize icons inside the Edge Panel (16–96px). You can also right-click anywhere inside the Edge Panel or on an icon → Icon Size."
+                               Style="{StaticResource SettingDesc}"/>
+                </StackPanel>
 
                 <!-- ====================================================================== -->
                 <!-- ICONS -->
@@ -320,6 +469,9 @@
                 <!-- HOTKEYS -->
                 <!-- ====================================================================== -->
                 <Border Style="{StaticResource SectionSeparator}"/>
+                <DockPanel Style="{StaticResource SettingRow}"><TextBlock Text="Edge panel icon size" Style="{StaticResource SettingLabel}" DockPanel.Dock="Left" Width="160"/><Slider Value="{Binding EdgeDockIconSize}" Minimum="16" Maximum="96" Width="140" TickFrequency="4" IsSnapToTickEnabled="True" VerticalAlignment="Center"/><TextBlock Text="{Binding EdgeDockIconSizeDisplayText}" Style="{StaticResource SettingLabel}" Margin="8,0,8,0"/><Button Content="Use Global" Command="{Binding ResetEdgeDockIconSizeCommand}" Style="{DynamicResource DefaultButton}" Padding="8,2" FontSize="11" ToolTip="Reset Edge Panel icon size to follow the global icon size setting"/></DockPanel>
+                <TextBlock Text="Controls the icon size within Edge Dock side panels (16–96px), or click Use Global to match desktop groups." Style="{StaticResource SettingDesc}"/>
+                <Border Style="{StaticResource SectionSeparator}"/>
                 <TextBlock Text="Hotkeys" Style="{StaticResource SectionHeader}"/>
 
                 <!-- Toggle all — mode selector -->
@@ -336,12 +488,12 @@
                                FontSize="13" ToolTip="Keyboard hotkey"/>
                     <controls:HotkeyBox HotkeyValue="{Binding ToggleAllHotkey, UpdateSourceTrigger=PropertyChanged}"
                                         CaptureMode="KeyboardOnly"
-                                        Width="130" HorizontalAlignment="Left"/>
+                                        Width="156" HorizontalAlignment="Left"/>
                     <TextBlock Text="🖱️" VerticalAlignment="Center" Margin="8,0,4,0"
                                FontSize="13" ToolTip="Mouse hotkey"/>
                     <controls:HotkeyBox HotkeyValue="{Binding ToggleAllMouseHotkey, UpdateSourceTrigger=PropertyChanged}"
                                         CaptureMode="MouseOnly"
-                                        Width="130" HorizontalAlignment="Left"/>
+                                        Width="156" HorizontalAlignment="Left"/>
                 </DockPanel>
 
                 <!-- Fullscreen toggle — mode selector -->
@@ -358,14 +510,17 @@
                                FontSize="13" ToolTip="Keyboard hotkey"/>
                     <controls:HotkeyBox HotkeyValue="{Binding FullscreenToggleHotkey, UpdateSourceTrigger=PropertyChanged}"
                                         CaptureMode="KeyboardOnly"
-                                        Width="130" HorizontalAlignment="Left"/>
+                                        Width="156" HorizontalAlignment="Left"/>
                     <TextBlock Text="🖱️" VerticalAlignment="Center" Margin="8,0,4,0"
                                FontSize="13" ToolTip="Mouse hotkey"/>
                     <controls:HotkeyBox HotkeyValue="{Binding FullscreenMouseHotkey, UpdateSourceTrigger=PropertyChanged}"
                                         CaptureMode="MouseOnly"
-                                        Width="130" HorizontalAlignment="Left"/>
+                                        Width="156" HorizontalAlignment="Left"/>
                 </DockPanel>
-                <TextBlock Text="Select which input(s) to use, then type or click 🎯 to detect. Keyboard: e.g. Ctrl+F2. Mouse: MiddleClick, XButton1, ScrollUp. Both: register both simultaneously."
+                <DockPanel Style="{StaticResource SettingRow}"><TextBlock Text="Show/Hide side panel" Style="{StaticResource SettingLabel}" DockPanel.Dock="Left" Width="160"/><ComboBox ItemsSource="{Binding HotkeyModes}" SelectedItem="{Binding ToggleEdgeDockHotkeyMode}" Width="90" HorizontalAlignment="Left"/></DockPanel>
+                <DockPanel Margin="160,0,0,6"><TextBlock Text="⌨️" VerticalAlignment="Center" Margin="0,0,4,0" FontSize="13" ToolTip="Keyboard hotkey (e.g. Ctrl+Alt+Left)"/><controls:HotkeyBox HotkeyValue="{Binding ToggleEdgeDockHotkey, UpdateSourceTrigger=PropertyChanged}" CaptureMode="KeyboardOnly" Width="156" HorizontalAlignment="Left"/><TextBlock Text="🖱️" VerticalAlignment="Center" Margin="8,0,4,0" FontSize="13" ToolTip="Mouse hotkey"/><controls:HotkeyBox HotkeyValue="{Binding ToggleEdgeDockMouseHotkey, UpdateSourceTrigger=PropertyChanged}" CaptureMode="MouseOnly" Width="156" HorizontalAlignment="Left"/></DockPanel>
+                <DockPanel Style="{StaticResource SettingRow}" Margin="160,0,0,8"><CheckBox IsChecked="{Binding EnableEdgeDockArrowHotkeys}" Content="Arrow keys match dock edge (e.g. Ctrl+Alt + Left/Up/Right/Down)" Foreground="{DynamicResource ForegroundPrimary}" VerticalAlignment="Center"/></DockPanel>
+                <TextBlock Text="Click 🎯 (or click inside a mouse shortcut box) to record, or click ✕ to clear. Setting a mouse or keyboard shortcut automatically enables its mode. Mouse supports MiddleClick, XButton1/2, ScrollUp/Down, or Ctrl/Alt/Shift + LeftClick/RightClick."
                            Style="{StaticResource SettingDesc}"/>
 
                 <!-- ====================================================================== -->
@@ -437,7 +592,7 @@
                     <CheckBox IsChecked="{Binding PinnedToStart}"
                               VerticalAlignment="Center"/>
                 </DockPanel>
-                <TextBlock Text="Track whether DeskGroup is pinned to Start. Enabling this attempts to pin it automatically (Windows 11 may require a manual step)."
+                <TextBlock Text="Creates or removes the DeskGroup shortcut in your Windows Start Menu Programs list."
                            Style="{StaticResource SettingDesc}"/>
 
                 <!-- Pin to taskbar -->
@@ -447,7 +602,7 @@
                     <CheckBox IsChecked="{Binding PinnedToTaskbar}"
                               VerticalAlignment="Center"/>
                 </DockPanel>
-                <TextBlock Text="Track whether DeskGroup is pinned to the taskbar. Enabling this attempts to pin it automatically (Windows 11 may require a manual step)."
+                <TextBlock Text="Track whether DeskGroup is pinned to the taskbar. Enabling this attempts to pin it automatically (Windows 11 may require right-clicking the running icon → Pin to taskbar)."
                            Style="{StaticResource SettingDesc}"/>
 
                 <!-- ====================================================================== -->
@@ -463,7 +618,7 @@
                     <CheckBox IsChecked="{Binding ShowDebugMenu}"
                               VerticalAlignment="Center"/>
                 </DockPanel>
-                <TextBlock Text="Shows diagnostic items in the tray right-click menu. Restart the tray menu (open Settings → Apply) to refresh."
+                <TextBlock Text="Shows diagnostic items in the tray right-click menu."
                            Style="{StaticResource SettingDesc}"/>
 
                 <!-- Opt-in bug reporting -->
@@ -500,7 +655,7 @@
                            Margin="0,16,0,8"/>
 
                 <TextBlock x:Name="VersionText"
-                           Text="Version 1.4.5"
+                           Text="Version 1.4.6"
                            FontFamily="{DynamicResource DefaultFont}"
                            FontSize="{DynamicResource FontSizeNormal}"
                            Foreground="{DynamicResource ForegroundSecondary}"
@@ -697,6 +852,29 @@
                     <Run Text=" Group stays above all windows" Foreground="{DynamicResource ForegroundSecondary}"/>
                 </TextBlock>
 
+                <!-- Edge Dock (Optional Side Panel) -->
+                <Border Style="{StaticResource SectionSeparator}"/>
+                <TextBlock Text="Edge Dock (Side Panel)"
+                           Style="{StaticResource SectionHeader}"/>
+
+                <TextBlock TextWrapping="Wrap"
+                           FontFamily="{DynamicResource DefaultFont}"
+                           FontSize="{DynamicResource FontSizeNormal}"
+                           Foreground="{DynamicResource ForegroundPrimary}"
+                           Margin="0,0,0,16">
+                    <Run FontWeight="SemiBold" Text="Independent Visibility:"/>
+                    <Run Text=" The optional Side Panel hides and shows on its own, even when all desktop groups are hidden" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run FontWeight="SemiBold" Text="4 Dock Edges &amp; Pin:"/>
+                    <Run Text=" Defaults to the Left edge (auto-hidden). Drag the dock header or bubble to dock to Left, Top, Right, or Bottom edges, then click Pin (📌) to lock it" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run FontWeight="SemiBold" Text="Multi-Monitor &amp; 1–4 Edges:"/>
+                    <Run Text=" Choose Main Monitor Only (default), Same Panel for All Monitors, or Per-Monitor Custom with 1, 2, 3, or all 4 edges active per screen and independent shortcuts" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
+                    <Run FontWeight="SemiBold" Text="Always-on-Top Edge Bubble:"/>
+                    <Run Text=" A non-intrusive 16×16px (customizable 12–48px) always-on-top edge bubble lets you reliably hover or click to show/hide the dock on multi-monitor edges" Foreground="{DynamicResource ForegroundSecondary}"/>
+                </TextBlock>
+
                 <!-- Keyboard Shortcuts -->
                 <Border Style="{StaticResource SectionSeparator}"/>
                 <TextBlock Text="Keyboard Shortcuts"
@@ -719,8 +897,11 @@
                     <Run FontWeight="SemiBold" Text="Ctrl+F2:"/>
                     <Run Text=" Show/Hide all groups (default; fully configurable in Settings — keyboard, mouse button, or both)" Foreground="{DynamicResource ForegroundSecondary}"/>
                     <LineBreak/>
+                    <Run FontWeight="SemiBold" Text="Ctrl+Alt+Left / Arrow Keys:"/>
+                    <Run Text=" Show/Hide Side Panel (Edge Dock). When directional arrow matching is enabled, pressing the modifier + Left/Up/Right/Down arrow toggles the corresponding screen edge dock!" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <LineBreak/>
                     <Run FontWeight="SemiBold" Text="Mouse hotkeys:"/>
-                    <Run Text=" Assign MiddleClick, XButton1/2, ScrollUp/Down as triggers; configure per action in Settings → Hotkeys" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <Run Text=" Assign MiddleClick, XButton1/2, ScrollUp/Down, or Ctrl/Alt/Shift + LeftClick/RightClick as triggers; click 🎯 or inside the mouse box to record, or ✕ to clear" Foreground="{DynamicResource ForegroundSecondary}"/>
                 </TextBlock>
 
                 <!-- Tray Icon -->
@@ -795,7 +976,7 @@
                     <LineBreak/>
                     <Run Text="• Enable Detect new desktop icons in Settings to get notified when new shortcuts appear on the desktop" Foreground="{DynamicResource ForegroundSecondary}"/>
                     <LineBreak/>
-                    <Run Text="• Groups and positions are saved automatically; backups are kept in %LOCALAPPDATA%\DeskGroup" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <Run Text="• Groups and positions are saved automatically; backups are kept in %APPDATA%\DeskGroup" Foreground="{DynamicResource ForegroundSecondary}"/>
                     <LineBreak/>
                     <Run Text="• In Settings &#x2192; Hotkeys, choose Keyboard / Mouse / Both for each action — assign a mouse button (MiddleClick, XButton1, ScrollUp, etc.) as an alternative or combined trigger" Foreground="{DynamicResource ForegroundSecondary}"/>
                     <LineBreak/>
@@ -853,6 +1034,14 @@
                             Padding="14,6"
                             Margin="0,0,8,0"
                             IsEnabled="{Binding IsCheckingForUpdate, Converter={StaticResource InverseBool}}"/>
+                    <Button Content="{Binding ReinstallButtonText}"
+                            Command="{Binding ReinstallLatestCommand}"
+                            Style="{DynamicResource DefaultButton}"
+                            Padding="12,6"
+                            Margin="0,0,8,0"
+                            ToolTip="Re-download and install the latest release even if the version number is already installed"
+                            Visibility="{Binding CanReinstallLatest, Converter={StaticResource BooleanToVisibility}}"
+                            IsEnabled="{Binding IsDownloadingUpdate, Converter={StaticResource InverseBool}}"/>
                     <!-- Downloading progress -->
                     <StackPanel Orientation="Horizontal"
                                 Visibility="{Binding IsDownloadingUpdate, Converter={StaticResource BooleanToVisibility}}">

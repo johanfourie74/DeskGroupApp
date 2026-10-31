@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -34,7 +34,7 @@ public class DesktopIconService
         return shortcuts.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
     }
 
-    public List<string> GetUngroupedShortcuts(List<IconGroup> existingGroups)
+    public List<string> GetUngroupedShortcuts(List<IconGroup> existingGroups, List<EdgeDockConfig>? edgeDocks = null)
     {
         var allDesktop = GetAllDesktopShortcuts();
         var groupedPaths = existingGroups
@@ -42,6 +42,16 @@ public class DesktopIconService
             .Select(s => s.OriginalShortcutPath)
             .Where(p => !string.IsNullOrEmpty(p))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        if (edgeDocks != null)
+        {
+            foreach (var path in edgeDocks.SelectMany(d => d.Shortcuts).Select(s => s.OriginalShortcutPath))
+            {
+                if (!string.IsNullOrEmpty(path))
+                    groupedPaths.Add(path);
+            }
+        }
+
         return allDesktop.Where(path => !groupedPaths.Contains(path)).ToList();
     }
 
@@ -106,7 +116,13 @@ public class DesktopIconService
             RestoreDesktopIcon(state);
     }
 
-    public void CleanupOrphans(List<IconGroup> allGroups)
+    public void RestoreAllDockIcons(EdgeDockConfig dock)
+    {
+        foreach (var state in dock.OriginalIconStates)
+            RestoreDesktopIcon(state);
+    }
+
+    public void CleanupOrphans(List<IconGroup> allGroups, List<EdgeDockConfig>? edgeDocks = null)
     {
         try
         {
@@ -115,6 +131,15 @@ public class DesktopIconService
                 .Select(s => s.StoredFilePath)
                 .Where(p => !string.IsNullOrEmpty(p))
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            if (edgeDocks != null)
+            {
+                foreach (var path in edgeDocks.SelectMany(d => d.OriginalIconStates).Select(s => s.StoredFilePath))
+                {
+                    if (!string.IsNullOrEmpty(path))
+                        allStoredPaths.Add(path);
+                }
+            }
 
             foreach (var file in Directory.GetFiles(_storagePath))
             {

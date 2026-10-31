@@ -1,0 +1,280 @@
+<Window x:Class="DeskGroup.Views.EdgeDockPanelWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:controls="clr-namespace:DeskGroup.Controls"
+        xmlns:converters="clr-namespace:DeskGroup.Converters"
+        mc:Ignorable="d"
+        Title="{Binding Name}"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ShowInTaskbar="False"
+        ResizeMode="CanResizeWithGrip"
+        SizeToContent="Manual"
+        Topmost="True"
+        AllowDrop="True"
+        Width="96" Height="360">
+
+    <Window.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVis"/>
+    </Window.Resources>
+
+    <Border x:Name="PanelBorder"
+            CornerRadius="8"
+            Background="{Binding TransparentAccentBrush, FallbackValue=#FF0078D4}"
+            BorderBrush="{Binding TransparentBorderBrush, FallbackValue=#FF0078D4}"
+            BorderThickness="2"
+            Padding="6"
+            MouseEnter="PanelBorder_MouseEnter"
+            MouseLeave="PanelBorder_MouseLeave">
+        <Grid Background="#01000000">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header: Adapts cleanly when 1-icon wide (Row 1: Pin/Lock/Close, Row 2: Title) vs Multi-column -->
+            <Grid Grid.Row="0"
+                  Margin="0,0,0,6"
+                  Background="#01000000"
+                  Cursor="SizeAll"
+                  MouseLeftButtonDown="Header_MouseLeftButtonDown"
+                  MouseLeftButtonUp="Header_MouseLeftButtonUp"
+                  MouseMove="Header_MouseMove">
+
+                <!-- 1-Icon Wide Stacked Header (Row 1 = Pin, Lock, Close; Row 2 = Title) -->
+                <StackPanel Visibility="{Binding IsSingleColumn, Converter={StaticResource BoolToVis}}">
+                    <!-- 1st Row: Pin, Lock, Close buttons -->
+                    <StackPanel Orientation="Horizontal"
+                                HorizontalAlignment="Center"
+                                Margin="0,0,0,4">
+                        <Button Command="{Binding TogglePinCommand}"
+                                Width="22" Height="22"
+                                Margin="1,0"
+                                Background="#28000000"
+                                BorderBrush="#40FFFFFF"
+                                BorderThickness="1"
+                                Cursor="Hand"
+                                ToolTip="Pin/Unpin Dock to Current Screen Edge">
+                            <TextBlock Text="{Binding PinIconText}" FontSize="10" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Button>
+                        <Button Command="{Binding CycleLockStateCommand}"
+                                Width="22" Height="22"
+                                Margin="1,0"
+                                Background="#28000000"
+                                BorderBrush="#40FFFFFF"
+                                BorderThickness="1"
+                                Cursor="Hand"
+                                ToolTip="{Binding LockStateText, StringFormat='Lock Mode: {0} (Click to cycle)'}">
+                            <TextBlock Text="{Binding LockIconText}" FontSize="10" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Button>
+                        <Button Click="HideButton_Click"
+                                Width="22" Height="22"
+                                Margin="1,0"
+                                Background="#28000000"
+                                BorderBrush="#40FFFFFF"
+                                BorderThickness="1"
+                                Cursor="Hand"
+                                ToolTip="Hide Dock Panel">
+                            <TextBlock Text="✕" FontSize="10" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Button>
+                    </StackPanel>
+
+                    <!-- 2nd Row: Title -->
+                    <TextBlock Text="{Binding Name, FallbackValue='Edge Dock'}"
+                               Foreground="White"
+                               FontSize="12"
+                               FontWeight="Bold"
+                               HorizontalAlignment="Center"
+                               TextAlignment="Center"
+                               TextTrimming="CharacterEllipsis"
+                               ToolTip="{Binding Name}"/>
+                </StackPanel>
+
+                <!-- 2+ Icons Wide Single-Row Header -->
+                <Grid Visibility="{Binding IsMultiColumn, Converter={StaticResource BoolToVis}}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0"
+                                Orientation="Horizontal"
+                                VerticalAlignment="Center">
+                        <Image Source="{Binding DockIcon}"
+                               Width="18" Height="18"
+                               Margin="0,0,6,0"
+                               VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding Name, FallbackValue='Edge Dock'}"
+                                   Foreground="White"
+                                   FontSize="13"
+                                   FontWeight="Bold"
+                                   VerticalAlignment="Center"
+                                   TextTrimming="CharacterEllipsis"
+                                   ToolTip="{Binding Name}"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="4,0,0,0">
+                        <Button Command="{Binding TogglePinCommand}"
+                                Width="22" Height="22"
+                                Margin="1,0"
+                                Background="#28000000"
+                                BorderBrush="#40FFFFFF"
+                                BorderThickness="1"
+                                Cursor="Hand"
+                                ToolTip="Pin/Unpin Dock to Current Screen Edge">
+                            <TextBlock Text="{Binding PinIconText}" FontSize="10" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Button>
+                        <Button Command="{Binding CycleLockStateCommand}"
+                                Width="22" Height="22"
+                                Margin="1,0"
+                                Background="#28000000"
+                                BorderBrush="#40FFFFFF"
+                                BorderThickness="1"
+                                Cursor="Hand"
+                                ToolTip="{Binding LockStateText, StringFormat='Lock Mode: {0} (Click to cycle)'}">
+                            <TextBlock Text="{Binding LockIconText}" FontSize="10" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Button>
+                        <Button Click="HideButton_Click"
+                                Width="22" Height="22"
+                                Margin="1,0,0,0"
+                                Background="#28000000"
+                                BorderBrush="#40FFFFFF"
+                                BorderThickness="1"
+                                Cursor="Hand"
+                                ToolTip="Hide Dock Panel">
+                            <TextBlock Text="✕" FontSize="10" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </Grid>
+
+            <!-- Shortcuts Container: Hidden vertical scrollbar (scrolls only when exceeding height), Disabled horizontal scroll -->
+            <ScrollViewer Grid.Row="1"
+                          Background="#01000000"
+                          VerticalScrollBarVisibility="Hidden"
+                          HorizontalScrollBarVisibility="Disabled"
+                          AllowDrop="True"
+                          Padding="0">
+                <ItemsControl x:Name="ShortcutsItemsControl"
+                              Background="#01000000"
+                              VerticalAlignment="Stretch"
+                              HorizontalAlignment="Stretch"
+                              ItemsSource="{Binding AllShortcuts}"
+                              AllowDrop="True"
+                              Drop="OnIconDropInternal">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Horizontal" HorizontalAlignment="Center"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <controls:IconTile
+                                Icon="{Binding IconImage}"
+                                DisplayName="{Binding DisplayName}"
+                                IsSelected="{Binding IsSelected}"
+                                AllowDrop="True"
+                                IconSize="{Binding DataContext.EffectiveIconSize, RelativeSource={RelativeSource AncestorType=Window}}"
+                                Margin="4"
+                                SingleClickToLaunch="{Binding DataContext.Settings.SingleClickToLaunch, RelativeSource={RelativeSource AncestorType=Window}}"
+                                AccentColor="{Binding DataContext.AccentBrush, RelativeSource={RelativeSource AncestorType=Window}}"
+                                LaunchCommand="{Binding LaunchCommand}"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+
+            <!-- Compact Status Footer -->
+            <Border Grid.Row="2"
+                    Background="#28000000"
+                    BorderBrush="#30FFFFFF"
+                    BorderThickness="0,1,0,0"
+                    CornerRadius="4"
+                    Padding="4,2"
+                    Margin="0,4,0,0">
+                <TextBlock Foreground="#CCFFFFFF"
+                           FontSize="9.5"
+                           HorizontalAlignment="Center"
+                           TextTrimming="CharacterEllipsis">
+                    <Run Text="{Binding Edge}" FontWeight="SemiBold"/>
+                    <Run Text=" • "/>
+                    <Run Text="{Binding AllShortcuts.Count, FallbackValue=0, Mode=OneWay}"/>
+                </TextBlock>
+            </Border>
+        </Grid>
+    </Border>
+
+    <Window.ContextMenu>
+        <ContextMenu>
+            <MenuItem Header="➕ Add shortcut..." Click="MenuAddShortcut_Click"/>
+            <Separator/>
+            <MenuItem Header="📌 Pin Dock to Edge"
+                      IsCheckable="True"
+                      IsChecked="{Binding IsPinned, Mode=OneWay}"
+                      Command="{Binding TogglePinCommand}"/>
+            <MenuItem Header="Dock Edge">
+                <MenuItem Header="⬅️ Left Edge" Click="MenuEdgeLeft_Click"/>
+                <MenuItem Header="⬆️ Top Edge" Click="MenuEdgeTop_Click"/>
+                <MenuItem Header="➡️ Right Edge" Click="MenuEdgeRight_Click"/>
+                <MenuItem Header="⬇️ Bottom Edge" Click="MenuEdgeBottom_Click"/>
+            </MenuItem>
+            <MenuItem Header="Columns / Width (Snap)">
+                <MenuItem Header="1 Icon Wide (Default)" Click="MenuCols1_Click"/>
+                <MenuItem Header="2 Icons Wide" Click="MenuCols2_Click"/>
+                <MenuItem Header="3 Icons Wide" Click="MenuCols3_Click"/>
+                <MenuItem Header="4 Icons Wide" Click="MenuCols4_Click"/>
+                <MenuItem Header="5 Icons Wide" Click="MenuCols5_Click"/>
+                <MenuItem Header="6 Icons Wide" Click="MenuCols6_Click"/>
+            </MenuItem>
+            <MenuItem Header="📏 Icon Size">
+                <MenuItem Header="🎛️ Icon Size &amp; Opacity Slider..." Click="MenuDockAppearance_Click"/>
+                <Separator/>
+                <MenuItem Header="16 px (Extra Small)" Click="MenuIconSize16_Click"/>
+                <MenuItem Header="24 px (Small)" Click="MenuIconSize24_Click"/>
+                <MenuItem Header="32 px (Compact)" Click="MenuIconSize32_Click"/>
+                <MenuItem Header="40 px (Medium-Small)" Click="MenuIconSize40_Click"/>
+                <MenuItem Header="48 px (Default)" Click="MenuIconSize48_Click"/>
+                <MenuItem Header="64 px (Large)" Click="MenuIconSize64_Click"/>
+                <MenuItem Header="72 px (Extra Large)" Click="MenuIconSize72_Click"/>
+                <MenuItem Header="96 px (Jumbo)" Click="MenuIconSize96_Click"/>
+                <Separator/>
+                <MenuItem Header="↩️ Follow Global Icon Size" Click="MenuIconSizeGlobal_Click"/>
+            </MenuItem>
+            <MenuItem Header="Lock Mode">
+                <MenuItem Header="🔓 Auto-Hide (Default)" Click="MenuLockAuto_Click"/>
+                <MenuItem Header="🔒 Lock Dock Open" Click="MenuLockOpen_Click"/>
+                <MenuItem Header="⛔ Lock Dock Closed" Click="MenuLockClosed_Click"/>
+            </MenuItem>
+            <Separator/>
+            <MenuItem Header="Appearance">
+                <MenuItem Header="🎨 Change color..." Click="MenuChangeColor_Click"/>
+                <MenuItem Header="🖼️ Change icon..." Click="MenuChangeIcon_Click"/>
+                <MenuItem Header="✏️ Rename dock..." Click="MenuRename_Click"/>
+                <Separator/>
+                <MenuItem Header="🎛️ Icon Size &amp; Opacity..." Click="MenuDockAppearance_Click"/>
+                <MenuItem Header="↩️ Reset Appearance" Click="MenuResetDockAppearance_Click"/>
+            </MenuItem>
+            <MenuItem Header="Bubble Button">
+                <MenuItem Header="Show Always-on-Top Bubble"
+                          IsCheckable="True"
+                          IsChecked="{Binding ShowBubbleButton, Mode=TwoWay}"/>
+                <MenuItem Header="Show on Screen Edge Hover"
+                          IsCheckable="True"
+                          IsChecked="{Binding ShowOnEdgeHover, Mode=TwoWay}"/>
+                <MenuItem Header="↩️ Reset Bubble to Dock Position" Click="MenuResetBubblePos_Click"/>
+                <Separator/>
+                <MenuItem Header="Bubble Size: 12 × 12 px" Click="MenuSize12_Click"/>
+                <MenuItem Header="Bubble Size: 16 × 16 px (Default)" Click="MenuSize16_Click"/>
+                <MenuItem Header="Bubble Size: 20 × 20 px" Click="MenuSize20_Click"/>
+                <MenuItem Header="Bubble Size: 24 × 24 px" Click="MenuSize24_Click"/>
+                <MenuItem Header="Bubble Size: 32 × 32 px" Click="MenuSize32_Click"/>
+            </MenuItem>
+            <Separator/>
+            <MenuItem Header="⚙️ Settings" Click="MenuSettings_Click"/>
+        </ContextMenu>
+    </Window.ContextMenu>
+</Window>

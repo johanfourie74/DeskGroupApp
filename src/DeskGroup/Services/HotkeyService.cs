@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Windows;
@@ -27,8 +27,22 @@ public class HotkeyService : IDisposable
     [DllImport("user32.dll")]
     private static extern short GetKeyState(int nVirtKey);
 
+    [DllImport("user32.dll")]
+    private static extern short GetAsyncKeyState(int nVirtKey);
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+    private static extern IntPtr GetModuleHandle(string? lpModuleName);
+
+    /// <summary>
+    /// Set to true while a HotkeyBox is actively recording a shortcut so bound global
+    /// keyboard/mouse hotkeys don't trigger and steal focus mid-capture.
+    /// </summary>
+    public static bool SuppressGlobalHotkeys { get; set; }
+
     private const int WM_HOTKEY = 0x0312;
     private const int WH_MOUSE_LL = 14;
+    private const int WM_LBUTTONDOWN = 0x0201;
+    private const int WM_RBUTTONDOWN = 0x0204;
     private const int WM_MBUTTONDOWN = 0x0207;
     private const int WM_XBUTTONDOWN = 0x020B;
     private const int WM_MOUSEWHEEL = 0x020A;
@@ -37,7 +51,7 @@ public class HotkeyService : IDisposable
     private const int VK_SHIFT = 0x10;
 
     private static readonly HashSet<string> _mouseTokens = new(StringComparer.OrdinalIgnoreCase)
-        { "XButton1", "XButton2", "MiddleClick", "ScrollUp", "ScrollDown" };
+        { "XButton1", "XButton2", "MiddleClick", "ScrollUp", "ScrollDown", "RightClick", "LeftClick" };
 
     [Flags]
     private enum HotkeyModifiers : uint
@@ -85,6 +99,8 @@ public class HotkeyService : IDisposable
     public void Initialize(Window window)
     {
         var helper = new WindowInteropHelper(window);
+        if (_windowHandle == helper.Handle && _hwndSource != null) return;
+        _hwndSource?.RemoveHook(WndProc);
         _windowHandle = helper.Handle;
         _hwndSource = HwndSource.FromHwnd(_windowHandle);
         _hwndSource?.AddHook(WndProc);
@@ -109,7 +125,7 @@ public class HotkeyService : IDisposable
         if (!success)
         {
             System.Diagnostics.Debug.WriteLine($"❌ RegisterHotKey FAILED for '{hotkeyString}' (ID: {id})");
-            int errorCode = System.Runtime.InteropServices.Marshal.GetLastWin32Error();
+            int errorCode = Marshal.GetLastWin32Error();
             System.Diagnostics.Debug.WriteLine($"   Win32 Error Code: {errorCode}");
             RegistrationFailed?.Invoke(this, $"Failed to register hotkey '{hotkeyString}'. It may be in use by another application.");
             return -1;
@@ -153,8 +169,7 @@ public class HotkeyService : IDisposable
     public static bool IsMouseHotkeyString(string hotkeyString)
     {
         if (string.IsNullOrWhiteSpace(hotkeyString)) return false;
-        var parts = hotkeyString.Split('+', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-        return parts.Length > 0 && _mouseTokens.Contains(parts[^1]);
+        return TryParseMouseHotkey(hotkeyString, out _, out _);
     }
 
     public static bool TryParseHotkey(string hotkeyString, out uint modifiers, out uint virtualKey)
@@ -180,6 +195,10 @@ public class HotkeyService : IDisposable
             }
             else
             {
+                if (part is "LEFTARROW" or "ARROWLEFT") part = "LEFT";
+                else if (part is "RIGHTARROW" or "ARROWRIGHT") part = "RIGHT";
+                else if (part is "UPARROW" or "ARROWUP") part = "UP";
+                else if (part is "DOWNARROW" or "ARROWDOWN") part = "DOWN";
                 if (Enum.TryParse<Key>(part, ignoreCase: true, out Key key))
                     virtualKey = (uint)KeyInterop.VirtualKeyFromKey(key);
                 else if (part.StartsWith("F") && int.TryParse(part[1..], out int fNum) && fNum >= 1 && fNum <= 24)
@@ -220,6 +239,8 @@ public class HotkeyService : IDisposable
         if (string.IsNullOrWhiteSpace(hotkeyString)) return false;
 
         var parts = hotkeyString.Split('+', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 0) return false;
+
         for (int i = 0; i < parts.Length - 1; i++)
         {
             switch (parts[i].ToUpperInvariant())
@@ -231,7 +252,16 @@ public class HotkeyService : IDisposable
             }
         }
         token = parts[^1];
-        return _mouseTokens.Contains(token);
+        if (!_mouseTokens.Contains(token)) return false;
+
+        // Bare LeftClick or RightClick without modifiers cannot be a global hotkey
+        if ((token.Equals("LeftClick", StringComparison.OrdinalIgnoreCase) ||
+             token.Equals("RightClick", StringComparison.OrdinalIgnoreCase)) && modifiers == 0)
+        {
+            return false;
+        }
+
+        return true;
     }
 
     // ── WH_MOUSE_LL hook ──────────────────────────────────────────────────────
@@ -239,7 +269,11 @@ public class HotkeyService : IDisposable
     private void StartMouseHook()
     {
         _mouseProcDelegate = MouseHookProc;
-        _mouseHookHandle = SetWindowsHookEx(WH_MOUSE_LL, _mouseProcDelegate, IntPtr.Zero, 0);
+        IntPtr hMod = GetModuleHandle(null);
+        _mouseHookHandle = SetWindowsHookEx(WH_MOUSE_LL, _mouseProcDelegate, hMod, 0);
+        if (_mouseHookHandle == IntPtr.Zero && hMod != IntPtr.Zero)
+            _mouseHookHandle = SetWindowsHookEx(WH_MOUSE_LL, _mouseProcDelegate, IntPtr.Zero, 0);
+
         if (_mouseHookHandle == IntPtr.Zero)
             System.Diagnostics.Debug.WriteLine($"❌ SetWindowsHookEx(WH_MOUSE_LL) FAILED: {Marshal.GetLastWin32Error()}");
         else
@@ -257,7 +291,7 @@ public class HotkeyService : IDisposable
 
     private IntPtr MouseHookProc(int nCode, IntPtr wParam, IntPtr lParam)
     {
-        if (nCode >= 0 && _mouseHotkeys.Count > 0)
+        if (nCode >= 0 && _mouseHotkeys.Count > 0 && !SuppressGlobalHotkeys)
         {
             int msg = wParam.ToInt32();
             var data = Marshal.PtrToStructure<MSLLHOOKSTRUCT>(lParam);
@@ -267,18 +301,25 @@ public class HotkeyService : IDisposable
                 WM_MBUTTONDOWN  => "MiddleClick",
                 WM_XBUTTONDOWN  => ((data.mouseData >> 16) & 0xFFFF) == 2 ? "XButton2" : "XButton1",
                 WM_MOUSEWHEEL   => (short)((data.mouseData >> 16) & 0xFFFF) > 0 ? "ScrollUp" : "ScrollDown",
+                WM_RBUTTONDOWN  => "RightClick",
+                WM_LBUTTONDOWN  => "LeftClick",
                 _               => null
             };
 
             if (token != null)
             {
                 uint mods = GetCurrentKeyModifiers();
+                // Require at least one modifier for LeftClick / RightClick
+                if ((msg == WM_LBUTTONDOWN || msg == WM_RBUTTONDOWN) && mods == 0)
+                    return CallNextHookEx(_mouseHookHandle, nCode, wParam, lParam);
+
                 foreach (var entry in _mouseHotkeys.Values)
                 {
                     if (string.Equals(entry.Token, token, StringComparison.OrdinalIgnoreCase) &&
                         entry.Modifiers == mods)
                     {
-                        Application.Current?.Dispatcher.BeginInvoke(entry.Callback);
+                        var cb = entry.Callback;
+                        Application.Current?.Dispatcher.BeginInvoke(cb);
                         break;
                     }
                 }
@@ -290,9 +331,9 @@ public class HotkeyService : IDisposable
     private static uint GetCurrentKeyModifiers()
     {
         uint m = 0;
-        if ((GetKeyState(VK_CONTROL) & 0x8000) != 0) m |= (uint)HotkeyModifiers.Ctrl;
-        if ((GetKeyState(VK_MENU) & 0x8000) != 0) m |= (uint)HotkeyModifiers.Alt;
-        if ((GetKeyState(VK_SHIFT) & 0x8000) != 0) m |= (uint)HotkeyModifiers.Shift;
+        if (((GetAsyncKeyState(VK_CONTROL) | GetKeyState(VK_CONTROL)) & 0x8000) != 0) m |= (uint)HotkeyModifiers.Ctrl;
+        if (((GetAsyncKeyState(VK_MENU)    | GetKeyState(VK_MENU))    & 0x8000) != 0) m |= (uint)HotkeyModifiers.Alt;
+        if (((GetAsyncKeyState(VK_SHIFT)   | GetKeyState(VK_SHIFT))   & 0x8000) != 0) m |= (uint)HotkeyModifiers.Shift;
         return m;
     }
 
@@ -300,7 +341,7 @@ public class HotkeyService : IDisposable
 
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
-        if (msg == WM_HOTKEY)
+        if (msg == WM_HOTKEY && !SuppressGlobalHotkeys)
         {
             int id = wParam.ToInt32();
             if (_hotkeyActions.TryGetValue(id, out var action))
