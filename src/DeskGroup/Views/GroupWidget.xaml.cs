@@ -119,6 +119,7 @@ public partial class GroupWidget : Window
 
         // Subscribe to routed events from child controls
         AddHandler(IconTile.RemoveShortcutEvent, new RoutedEventHandler(OnRemoveShortcutRequested));
+        AddHandler(IconTile.ShortcutLaunchedEvent, new RoutedEventHandler(OnShortcutLaunched));
         AddHandler(DragThumb.TogglePinRequestedEvent, new RoutedEventHandler(OnTogglePinRequested));
         AddHandler(DragThumb.ToggleSnapRequestedEvent, new RoutedEventHandler(OnToggleSnapRequested));
         AddHandler(DragThumb.SetStickyRequestedEvent, new RoutedEventHandler(OnSetStickyRequested));
@@ -1348,6 +1349,30 @@ public partial class GroupWidget : Window
     // SHORTCUT CLICK HANDLER
     // ============================================================================================
 
+    private void OnShortcutLaunched(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel == null) return;
+
+        // If in fullscreen, exit to previous view mode
+        if (_viewModel.ViewMode == GroupViewMode.Fullscreen)
+        {
+            _viewModel.ToggleFullscreenCommand.Execute(null);
+        }
+        // If in hover view, collapse back to minimized when an icon is clicked
+        else if (_viewModel.ViewMode == GroupViewMode.Hover)
+        {
+            _hoverLeaveTimer?.Stop();
+            _viewModel.ViewMode = GroupViewMode.Minimized;
+        }
+
+        // Restore temporarily floated groups ONLY when an icon is clicked (never on accidental clicks elsewhere in the group)
+        var mainVm = GetMainViewModel();
+        if (mainVm != null && mainVm.Groups.Any(g => g.SavedDockModeBeforeFloat.HasValue))
+        {
+            mainVm.RestoreAllTemporaryFloats();
+        }
+    }
+
     private void Shortcut_Click(object sender, RoutedEventArgs e)
     {
         try
@@ -1362,12 +1387,12 @@ public partial class GroupWidget : Window
                     _viewModel.ToggleFullscreenCommand.Execute(null);
                 }
 
-                // RESTORE STICKY MODE: If user temporarily floated this window via Show/Hide All,
-                // restore it back to Sticky when they click an icon
-                if (_viewModel != null && _viewModel.SavedDockModeBeforeFloat.HasValue)
+                // RESTORE STICKY MODE: If user temporarily floated via Show/Hide All,
+                // restore back to Sticky ONLY when they click an icon
+                var mainVm = GetMainViewModel();
+                if (mainVm != null && mainVm.Groups.Any(g => g.SavedDockModeBeforeFloat.HasValue))
                 {
-                    _viewModel.DockMode = _viewModel.SavedDockModeBeforeFloat.Value;
-                    _viewModel.SavedDockModeBeforeFloat = null;
+                    mainVm.RestoreAllTemporaryFloats();
                 }
 
                 shortcut.LaunchCommand.Execute(null);
@@ -1414,7 +1439,7 @@ public partial class GroupWidget : Window
     }
 
     // ============================================================================================
-    // GLOBAL MOUSE CLICK HANDLER (for sticky mode restoration)
+    // GLOBAL MOUSE CLICK HANDLER (focus activation only; never closes on accidental background clicks)
     // ============================================================================================
 
     private void OnAnyMouseClick(object sender, MouseButtonEventArgs e)
@@ -1423,6 +1448,8 @@ public partial class GroupWidget : Window
         {
             // ACTIVATE WINDOW: Give this window keyboard focus so F11 and ContextMenu work!
             // For Sticky mode, we temporarily remove WS_EX_NOACTIVATE (WndProc keeps it at HWND_BOTTOM).
+            // Note: Closing/restoring temporary float now happens ONLY when clicking an icon (OnShortcutLaunched),
+            // never when accidentally clicking headers, borders, or empty group space.
             if (_viewModel?.DockMode == GroupDockMode.Sticky && _windowHandle != IntPtr.Zero)
             {
                 int exStyle = Win32Interop.GetWindowLong(_windowHandle, Win32Interop.GWL_EXSTYLE);
@@ -1433,35 +1460,6 @@ public partial class GroupWidget : Window
             {
                 Activate();
                 Focus();
-            }
-
-            // RESTORE ALL GROUPS: Check if ANY group has SavedDockModeBeforeFloat set
-            if (_viewModel != null)
-            {
-                // CRITICAL: Prevent immediate restoration on the SAME click that triggered Show All!
-                var timeSinceLastTempFloat = DateTime.Now - _lastTempFloatTime;
-                if (timeSinceLastTempFloat.TotalMilliseconds < 500)
-                {
-                    return;
-                }
-
-                // Get the MainViewModel to check ALL groups
-                var app = Application.Current as App;
-                if (app != null)
-                {
-                    var proxy = app.Resources["AppDataProxy"] as DeskGroup.Helpers.BindingProxy;
-                    var mainVm = proxy?.Data as DeskGroup.ViewModels.MainViewModel;
-
-                    if (mainVm != null)
-                    {
-                        bool anyGroupTemporarilyFloated = mainVm.Groups.Any(g => g.SavedDockModeBeforeFloat.HasValue);
-
-                        if (anyGroupTemporarilyFloated)
-                        {
-                            mainVm.RestoreAllTemporaryFloats();
-                        }
-                    }
-                }
             }
         }
         catch (Exception ex)

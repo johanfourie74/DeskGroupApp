@@ -52,7 +52,7 @@
                                 HorizontalAlignment="Center"
                                 Margin="0,0,0,4">
                         <Button Command="{Binding TogglePinCommand}"
-                                Width="22" Height="22"
+                                Width="20" Height="20"
                                 Margin="1,0"
                                 Background="#28000000"
                                 BorderBrush="#40FFFFFF"
@@ -62,7 +62,7 @@
                             <TextBlock Text="{Binding PinIconText}" FontSize="10" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Button>
                         <Button Command="{Binding CycleLockStateCommand}"
-                                Width="22" Height="22"
+                                Width="20" Height="20"
                                 Margin="1,0"
                                 Background="#28000000"
                                 BorderBrush="#40FFFFFF"
@@ -72,7 +72,7 @@
                             <TextBlock Text="{Binding LockIconText}" FontSize="10" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Button>
                         <Button Click="HideButton_Click"
-                                Width="22" Height="22"
+                                Width="20" Height="20"
                                 Margin="1,0"
                                 Background="#28000000"
                                 BorderBrush="#40FFFFFF"
@@ -152,23 +152,35 @@
                 </Grid>
             </Grid>
 
-            <!-- Shortcuts Container: Hidden vertical scrollbar (scrolls only when exceeding height), Disabled horizontal scroll -->
+            <!-- Shortcuts Container: Centered icons (names in delayed hover tooltip), Hidden vertical scrollbar, Disabled horizontal scroll -->
             <ScrollViewer Grid.Row="1"
                           Background="#01000000"
                           VerticalScrollBarVisibility="Hidden"
                           HorizontalScrollBarVisibility="Disabled"
+                          HorizontalContentAlignment="Center"
                           AllowDrop="True"
                           Padding="0">
                 <ItemsControl x:Name="ShortcutsItemsControl"
                               Background="#01000000"
-                              VerticalAlignment="Stretch"
-                              HorizontalAlignment="Stretch"
+                              VerticalAlignment="Top"
+                              HorizontalAlignment="Center"
+                              HorizontalContentAlignment="Center"
                               ItemsSource="{Binding AllShortcuts}"
                               AllowDrop="True"
                               Drop="OnIconDropInternal">
+                    <ItemsControl.ItemContainerStyle>
+                        <Style TargetType="ContentPresenter">
+                            <Setter Property="HorizontalAlignment" Value="Center"/>
+                            <Setter Property="VerticalAlignment" Value="Center"/>
+                        </Style>
+                    </ItemsControl.ItemContainerStyle>
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
-                            <WrapPanel Orientation="Horizontal" HorizontalAlignment="Center"/>
+                            <WrapPanel Orientation="Horizontal"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Top"
+                                       ItemWidth="{Binding EffectiveItemSlotWidth}"
+                                       ItemHeight="{Binding EffectiveItemSlotHeight}"/>
                         </ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
@@ -177,9 +189,14 @@
                                 Icon="{Binding IconImage}"
                                 DisplayName="{Binding DisplayName}"
                                 IsSelected="{Binding IsSelected}"
+                                ShowLabel="False"
                                 AllowDrop="True"
+                                Width="{Binding DataContext.EffectiveTileSize, RelativeSource={RelativeSource AncestorType=Window}}"
+                                Height="{Binding DataContext.EffectiveTileSize, RelativeSource={RelativeSource AncestorType=Window}}"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
                                 IconSize="{Binding DataContext.EffectiveIconSize, RelativeSource={RelativeSource AncestorType=Window}}"
-                                Margin="4"
+                                Margin="0"
                                 SingleClickToLaunch="{Binding DataContext.Settings.SingleClickToLaunch, RelativeSource={RelativeSource AncestorType=Window}}"
                                 AccentColor="{Binding DataContext.AccentBrush, RelativeSource={RelativeSource AncestorType=Window}}"
                                 LaunchCommand="{Binding LaunchCommand}"/>

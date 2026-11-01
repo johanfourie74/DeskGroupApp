@@ -59,6 +59,7 @@ public partial class EdgeDockPanelWindow : Window
         SizeChanged += OnSizeChanged;
 
         AddHandler(IconTile.RemoveShortcutEvent, new RoutedEventHandler(OnRemoveShortcutRequested));
+        AddHandler(IconTile.ShortcutLaunchedEvent, new RoutedEventHandler(OnShortcutLaunched));
     }
 
     private double DpiScaleX => (PresentationSource.FromVisual(this)?.CompositionTarget?.TransformToDevice.M11) ?? 1.0;
@@ -615,6 +616,11 @@ public partial class EdgeDockPanelWindow : Window
     public void RemoveShortcutByViewModel(ShortcutItemViewModel vm)
     {
         _viewModel.RemoveShortcutCommand.Execute(vm);
+    }
+
+    private void OnShortcutLaunched(object sender, RoutedEventArgs e)
+    {
+        _viewModel.OnShortcutLaunched();
     }
 
     private MainViewModel? GetMainViewModel()

@@ -3,9 +3,12 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Windows.Threading;
+using DeskGroup.Models;
 using DeskGroup.ViewModels;
 using DeskGroup.Views;
 
@@ -13,9 +16,18 @@ namespace DeskGroup.Controls;
 
 public partial class IconTile : UserControl
 {
+    private ToolTip? _hoverToolTip;
+    private DispatcherTimer? _toolTipDelayTimer;
+    public const int ToolTipShowDelayMs = 450;
+
     public IconTile()
     {
         InitializeComponent();
+        Unloaded += (_, _) => HideHoverToolTip();
+        IsVisibleChanged += (_, _) =>
+        {
+            if (!IsVisible) HideHoverToolTip();
+        };
     }
 
     // Grid mouse event handlers (triggered by XAML)
@@ -25,6 +37,11 @@ public partial class IconTile : UserControl
         {
             var hoverInStoryboard = (Storyboard?)Resources["HoverIn"];
             hoverInStoryboard?.Begin(this);
+
+            if (!ShowLabel && !string.IsNullOrWhiteSpace(DisplayName) && !IsDraggingShortcut)
+            {
+                StartHoverToolTipTimer();
+            }
         }
         catch (Exception ex)
         {
@@ -36,12 +53,89 @@ public partial class IconTile : UserControl
     {
         try
         {
+            HideHoverToolTip();
             var hoverOutStoryboard = (Storyboard?)Resources["HoverOut"];
             hoverOutStoryboard?.Begin(this);
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"Grid_MouseLeave ERROR: {ex.Message}");
+        }
+    }
+
+    private void StartHoverToolTipTimer()
+    {
+        if (_toolTipDelayTimer == null)
+        {
+            _toolTipDelayTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(ToolTipShowDelayMs)
+            };
+            _toolTipDelayTimer.Tick += OnToolTipDelayTimerTick;
+        }
+        _toolTipDelayTimer.Stop();
+        _toolTipDelayTimer.Start();
+    }
+
+    private void OnToolTipDelayTimerTick(object? sender, EventArgs e)
+    {
+        _toolTipDelayTimer?.Stop();
+
+        if (!IsMouseOver || ShowLabel || IsDraggingShortcut || !IsVisible || string.IsNullOrWhiteSpace(DisplayName))
+            return;
+
+        _hoverToolTip ??= new ToolTip
+        {
+            IsHitTestVisible = false,
+            HasDropShadow = true
+        };
+
+        _hoverToolTip.Content = DisplayName;
+        _hoverToolTip.PlacementTarget = this;
+
+        var parentWin = Window.GetWindow(this);
+        if (parentWin is EdgeDockPanelWindow dockWin && dockWin.DataContext is EdgeDockViewModel dockVm)
+        {
+            switch (dockVm.Edge)
+            {
+                case DockEdge.Left:
+                    _hoverToolTip.Placement = PlacementMode.Right;
+                    _hoverToolTip.HorizontalOffset = 6;
+                    _hoverToolTip.VerticalOffset = 0;
+                    break;
+                case DockEdge.Right:
+                    _hoverToolTip.Placement = PlacementMode.Left;
+                    _hoverToolTip.HorizontalOffset = -6;
+                    _hoverToolTip.VerticalOffset = 0;
+                    break;
+                case DockEdge.Top:
+                    _hoverToolTip.Placement = PlacementMode.Bottom;
+                    _hoverToolTip.HorizontalOffset = 0;
+                    _hoverToolTip.VerticalOffset = 6;
+                    break;
+                case DockEdge.Bottom:
+                    _hoverToolTip.Placement = PlacementMode.Top;
+                    _hoverToolTip.HorizontalOffset = 0;
+                    _hoverToolTip.VerticalOffset = -6;
+                    break;
+            }
+        }
+        else
+        {
+            _hoverToolTip.Placement = PlacementMode.Top;
+            _hoverToolTip.HorizontalOffset = 0;
+            _hoverToolTip.VerticalOffset = -4;
+        }
+
+        _hoverToolTip.IsOpen = true;
+    }
+
+    public void HideHoverToolTip()
+    {
+        _toolTipDelayTimer?.Stop();
+        if (_hoverToolTip != null && _hoverToolTip.IsOpen)
+        {
+            _hoverToolTip.IsOpen = false;
         }
     }
 
@@ -59,6 +153,16 @@ public partial class IconTile : UserControl
     protected override void OnPreviewMouseLeftButtonDown(MouseButtonEventArgs e)
     {
         base.OnPreviewMouseLeftButtonDown(e);
+        HideHoverToolTip();
+
+        if (e.ClickCount == 2)
+        {
+            _hasMouseDown = false;
+            ExecuteLaunch();
+            e.Handled = true;
+            return;
+        }
+
         _mouseDownPos = e.GetPosition(this);
         _hasMouseDown = true;
     }
@@ -66,6 +170,7 @@ public partial class IconTile : UserControl
     protected override void OnMouseLeave(MouseEventArgs e)
     {
         base.OnMouseLeave(e);
+        HideHoverToolTip();
         if (e.LeftButton != MouseButtonState.Pressed)
             _hasMouseDown = false;
     }
@@ -85,6 +190,7 @@ public partial class IconTile : UserControl
             Math.Abs(pos.Y - _mouseDownPos.Y) > SystemParameters.MinimumVerticalDragDistance)
         {
             _hasMouseDown = false;
+            HideHoverToolTip();
             if (DataContext is ShortcutItemViewModel vm)
             {
                 DragDropEffects result = DragDropEffects.None;
@@ -201,16 +307,26 @@ public partial class IconTile : UserControl
         set => SetValue(LayoutOrientationProperty, value);
     }
 
-    // Show Label (for hiding text in icon-only views like Compact)
+    // Show Label (for hiding text in icon-only views like Compact & Edge Dock)
 
     public static readonly DependencyProperty ShowLabelProperty =
         DependencyProperty.Register(nameof(ShowLabel), typeof(bool), typeof(IconTile),
-            new PropertyMetadata(true)); // Default: show label
+            new PropertyMetadata(true, OnShowLabelChanged)); // Default: show label
 
     public bool ShowLabel
     {
         get => (bool)GetValue(ShowLabelProperty);
         set => SetValue(ShowLabelProperty, value);
+    }
+
+    private static void OnShowLabelChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is IconTile tile)
+        {
+            tile.UpdateTileSize();
+            if ((bool)e.NewValue)
+                tile.HideHoverToolTip();
+        }
     }
 
     // Launch Command (double-click)
@@ -261,11 +377,16 @@ public partial class IconTile : UserControl
 
     private void UpdateTileSize()
     {
-        TileWidth = IconSize + 24;
-        TileHeight = IconSize + 40;
-
-        ScaleTransform.CenterX = TileWidth / 2;
-        ScaleTransform.CenterY = TileHeight / 2;
+        if (ShowLabel)
+        {
+            TileWidth = IconSize + 24;
+            TileHeight = IconSize + 40;
+        }
+        else
+        {
+            TileWidth = IconSize + 8;
+            TileHeight = IconSize + 8;
+        }
     }
 
     private void UpdateSelectionVisual()
@@ -288,6 +409,7 @@ public partial class IconTile : UserControl
     protected override void OnMouseRightButtonUp(MouseButtonEventArgs e)
     {
         base.OnMouseRightButtonUp(e);
+        HideHoverToolTip();
 
         var contextMenu = new ContextMenu
         {
@@ -295,7 +417,7 @@ public partial class IconTile : UserControl
         };
 
         var launchItem = new MenuItem { Header = "Open" };
-        launchItem.Click += (s, args) => LaunchCommand?.Execute(null);
+        launchItem.Click += (s, args) => ExecuteLaunch();
         contextMenu.Items.Add(launchItem);
 
         if (DataContext is ShortcutItemViewModel shortcutVm)
@@ -420,7 +542,7 @@ public partial class IconTile : UserControl
         e.Handled = true;
     }
 
-    // Custom Routed Event: RemoveShortcut
+    // Custom Routed Events: RemoveShortcut & ShortcutLaunched
 
     public static readonly RoutedEvent RemoveShortcutEvent =
         EventManager.RegisterRoutedEvent("RemoveShortcut", RoutingStrategy.Bubble,
@@ -430,6 +552,32 @@ public partial class IconTile : UserControl
     {
         add => AddHandler(RemoveShortcutEvent, value);
         remove => RemoveHandler(RemoveShortcutEvent, value);
+    }
+
+    public static readonly RoutedEvent ShortcutLaunchedEvent =
+        EventManager.RegisterRoutedEvent("ShortcutLaunched", RoutingStrategy.Bubble,
+            typeof(RoutedEventHandler), typeof(IconTile));
+
+    public event RoutedEventHandler ShortcutLaunched
+    {
+        add => AddHandler(ShortcutLaunchedEvent, value);
+        remove => RemoveHandler(ShortcutLaunchedEvent, value);
+    }
+
+    private DateTime _lastLaunchTime = DateTime.MinValue;
+
+    private void ExecuteLaunch()
+    {
+        if ((DateTime.UtcNow - _lastLaunchTime).TotalMilliseconds < 400)
+            return;
+
+        HideHoverToolTip();
+        if (LaunchCommand?.CanExecute(null) == true)
+        {
+            _lastLaunchTime = DateTime.UtcNow;
+            LaunchCommand.Execute(null);
+            RaiseEvent(new RoutedEventArgs(ShortcutLaunchedEvent, this));
+        }
     }
 
     // Single-Click to Launch
@@ -447,17 +595,37 @@ public partial class IconTile : UserControl
     protected override void OnPreviewMouseLeftButtonUp(MouseButtonEventArgs e)
     {
         base.OnPreviewMouseLeftButtonUp(e);
+        bool hadMouseDown = _hasMouseDown;
         _hasMouseDown = false;
 
-        if (!SingleClickToLaunch) return;
+        if (!hadMouseDown) return;
 
         var pos = e.GetPosition(this);
         bool isDrag = Math.Abs(pos.X - _mouseDownPos.X) > SystemParameters.MinimumHorizontalDragDistance ||
                       Math.Abs(pos.Y - _mouseDownPos.Y) > SystemParameters.MinimumVerticalDragDistance;
 
-        if (!isDrag && LaunchCommand?.CanExecute(null) == true)
+        if (isDrag) return;
+
+        bool shouldSingleClickLaunch = SingleClickToLaunch;
+        if (!shouldSingleClickLaunch)
         {
-            LaunchCommand.Execute(null);
+            var parentWin = Window.GetWindow(this);
+            if (parentWin is EdgeDockPanelWindow)
+            {
+                // In Edge Dock panels, clicking an icon launches it and closes the dock
+                shouldSingleClickLaunch = true;
+            }
+            else if (parentWin is GroupWidget gw && gw.DataContext is GroupViewModel gvm)
+            {
+                // When groups are temporarily floated (Show All) or in Hover view, clicking an icon launches & closes
+                if (gvm.SavedDockModeBeforeFloat.HasValue || gvm.ViewMode == GroupViewMode.Hover)
+                    shouldSingleClickLaunch = true;
+            }
+        }
+
+        if (shouldSingleClickLaunch)
+        {
+            ExecuteLaunch();
             e.Handled = true;
         }
     }

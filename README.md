@@ -28,7 +28,7 @@ Clean up your cluttered desktop while keeping all your shortcuts instantly acces
 - **Snap-to-grid** with configurable grid size
 - **Pin position** to prevent accidental dragging
 - **Multi-monitor support** with per-monitor DPI awareness
-- **Optional Side Panel (Edge Dock)** — always-on-top edge dock panel (Left edge by default, hidden until hover/click) that shows/hides independently even when all desktop groups are hidden; supports pinning, docking to Left/Top/Right/Bottom edges, 3 multi-monitor modes (`MainMonitorOnly`, `SameForAllMonitors`, `PerMonitorCustom` with 1–4 edges per screen), Lock modes (`AutoHide`, `LockedOpen`, `LockedClosed`), and an always-on-top 16×16px (customizable 12–48px) Edge Bubble button
+- **Optional Side Panel (Edge Dock)** — always-on-top edge dock panel (Left edge by default, hidden until hover/click) that shows/hides independently even when all desktop groups are hidden; features center-aligned icons with space-saving delayed hover tooltips (delay to show, immediate hide on mouse-out), supports pinning, docking to Left/Top/Right/Bottom edges, 3 multi-monitor modes (`MainMonitorOnly`, `SameForAllMonitors`, `PerMonitorCustom` with 1–4 edges per screen), Lock modes (`AutoHide`, `LockedOpen`, `LockedClosed`), and an always-on-top 16×16px (customizable 12–48px) Edge Bubble button
 
 ### Customization
 - **Per-group accent colors** for easy visual identification

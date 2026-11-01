@@ -118,7 +118,10 @@ public class EdgeDockTests : IDisposable
         // Per-dock icon resize updates column width & snapped thickness automatically
         vm.DisplayIconSize = 64;
         vm.EffectiveIconSize.Should().Be(64);
+        vm.EffectiveTileSize.Should().Be(72);
+        vm.SingleIconRowHeight.Should().Be(76);
         vm.PanelThickness.Should().Be(vm.CalculateSnappedWidthForColumns(2));
+        DeskGroup.Controls.IconTile.ToolTipShowDelayMs.Should().Be(450);
     }
 
     [Fact]
@@ -209,15 +212,21 @@ public class EdgeDockTests : IDisposable
         vm.RequestCloseFromHoverLeave();
         vm.IsPanelOpen.Should().BeTrue();
 
+        // Clicking an icon closes the Edge Dock even when auto-close (AutoHide) is off
+        vm.OnShortcutLaunched();
+        vm.IsPanelOpen.Should().BeFalse();
+
         // Lock Closed -> immediately closes and does not open on hover
         vm.LockState = SideDockLockState.LockedClosed;
         vm.IsPanelOpen.Should().BeFalse();
         vm.RequestOpenFromHover();
         vm.IsPanelOpen.Should().BeFalse();
 
-        // Bubble click still allows toggling when needed
+        // Bubble click still allows toggling when needed, and clicking an icon closes it
         vm.TogglePanel();
         vm.IsPanelOpen.Should().BeTrue();
+        vm.OnShortcutLaunched();
+        vm.IsPanelOpen.Should().BeFalse();
     }
 
     [Fact]

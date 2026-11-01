@@ -159,6 +159,7 @@
                                 Height="32"
                                 LayoutOrientation="Horizontal"
                                 Margin="2,2,8,2"
+                                SingleClickToLaunch="{Binding DataContext.Settings.SingleClickToLaunch, RelativeSource={RelativeSource AncestorType=Window}}"
                                 AccentColor="{Binding DataContext.AccentBrush, RelativeSource={RelativeSource AncestorType=Window}}"
                                 LaunchCommand="{Binding LaunchCommand}"/>
                         </DataTemplate>
@@ -259,6 +260,7 @@
                                 Height="32"
                                 ShowLabel="False"
                                 Margin="1"
+                                SingleClickToLaunch="{Binding DataContext.Settings.SingleClickToLaunch, RelativeSource={RelativeSource AncestorType=Window}}"
                                 AccentColor="{Binding DataContext.AccentBrush, RelativeSource={RelativeSource AncestorType=Window}}"
                                 LaunchCommand="{Binding LaunchCommand}"/>
                         </DataTemplate>

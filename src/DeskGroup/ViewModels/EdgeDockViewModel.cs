@@ -89,9 +89,13 @@ public partial class EdgeDockViewModel : ObservableObject
         ? Math.Clamp(BubblePositionRatio, 0.02, 0.98)
         : Math.Clamp(EdgePositionRatio, 0.05, 0.95);
 
-    // Column width & snapped thickness calculations (1 icon wide default, no horizontal scrolling)
-    public double SingleIconColumnWidth => Math.Max(EffectiveIconSize + 24, 68) + 8; // TileWidth + 8px margin
-    public double SingleIconRowHeight => (EffectiveIconSize + 40) + 8; // TileHeight + 8px margin
+    // Column width & snapped thickness calculations (1 icon wide default, no horizontal scrolling;
+    // icon labels are displayed in delayed hover tooltips to save space, so tiles are compact centered squares)
+    public double EffectiveTileSize => EffectiveIconSize + 8;
+    public double SingleIconColumnWidth => Math.Max(EffectiveIconSize + 12, 64);
+    public double SingleIconRowHeight => EffectiveIconSize + 12;
+    public double EffectiveItemSlotWidth => IsVerticalEdge ? SingleIconColumnWidth : SingleIconRowHeight;
+    public double EffectiveItemSlotHeight => SingleIconRowHeight;
 
     public bool IsSingleColumn => IsVerticalEdge && IconColumns <= 1;
     public bool IsMultiColumn => !IsSingleColumn;
@@ -200,6 +204,8 @@ public partial class EdgeDockViewModel : ObservableObject
         OnPropertyChanged(nameof(EffectiveBubbleEdge));
         OnPropertyChanged(nameof(IsSingleColumn));
         OnPropertyChanged(nameof(IsMultiColumn));
+        OnPropertyChanged(nameof(EffectiveItemSlotWidth));
+        OnPropertyChanged(nameof(EffectiveItemSlotHeight));
         RecalculateSnappedThickness();
         if (!_suppressAutoSave) SyncToConfig();
         LayoutChanged?.Invoke(this, EventArgs.Empty);
@@ -342,11 +348,14 @@ public partial class EdgeDockViewModel : ObservableObject
     public void RefreshIconSize()
     {
         OnPropertyChanged(nameof(EffectiveIconSize));
+        OnPropertyChanged(nameof(EffectiveTileSize));
         OnPropertyChanged(nameof(EffectiveListIconSize));
         OnPropertyChanged(nameof(EffectiveListTileHeight));
         OnPropertyChanged(nameof(DisplayIconSize));
         OnPropertyChanged(nameof(SingleIconColumnWidth));
         OnPropertyChanged(nameof(SingleIconRowHeight));
+        OnPropertyChanged(nameof(EffectiveItemSlotWidth));
+        OnPropertyChanged(nameof(EffectiveItemSlotHeight));
         RecalculateSnappedThickness();
         LayoutChanged?.Invoke(this, EventArgs.Empty);
     }
@@ -525,6 +534,12 @@ public partial class EdgeDockViewModel : ObservableObject
         OnPropertyChanged(nameof(EffectiveBubbleRatio));
         OnPropertyChanged(nameof(IsSingleColumn));
         OnPropertyChanged(nameof(IsMultiColumn));
+        OnPropertyChanged(nameof(EffectiveIconSize));
+        OnPropertyChanged(nameof(EffectiveTileSize));
+        OnPropertyChanged(nameof(SingleIconColumnWidth));
+        OnPropertyChanged(nameof(SingleIconRowHeight));
+        OnPropertyChanged(nameof(EffectiveItemSlotWidth));
+        OnPropertyChanged(nameof(EffectiveItemSlotHeight));
         LayoutChanged?.Invoke(this, EventArgs.Empty);
     }
 
@@ -533,6 +548,14 @@ public partial class EdgeDockViewModel : ObservableObject
         if (LockState == SideDockLockState.LockedOpen) return;
         if (LockState == SideDockLockState.AutoHide)
             IsPanelOpen = false;
+    }
+
+    public void OnShortcutLaunched()
+    {
+        // Clicking/selecting an icon closes/hides the Edge Dock panel (including when Auto-Hide is off),
+        // while accidental clicks elsewhere in the panel never close it.
+        _lastHoverOpenTime = DateTime.MinValue;
+        IsPanelOpen = false;
     }
 
     [RelayCommand]

@@ -18,7 +18,7 @@ This applies to: new features, bug fixes, UI changes, behaviour changes, setting
 
 | Priority | ID | Est. | Description |
 |---|---|---|---|
-| 🔴 **#1 Tomorrow** | **Edge Dock Icons & Tooltip** | 30m | **Edge Dock icon alignment & tooltip labels**: Center-align icons inside the Edge Dock panel (not left or right), and move icon display names out of the tile into a hover tooltip (with show delay and immediate hide on mouse-out) to save vertical/horizontal space. |
+| ✅ Done | **Edge Dock Icons & Tooltip** | — | **Edge Dock icon alignment, tooltip labels & close-on-icon-click**: Icons inside the Edge Dock panel are now strictly center-aligned inside compact square tiles, icon display names are moved to a delayed hover tooltip (450ms delay to show, immediate hide on mouse-out), and both Edge Dock panels and temporarily floated groups close/hide ONLY when clicking an icon (even when auto-close is off) — never on accidental clicks elsewhere in the panel/group. |
 | ✅ Done | **Bug C** | — | Tray icon first-click — fixed: `ToggleAllGroupsVisibility()` rewritten with 4-state logic based on `SavedDockModeBeforeFloat`+`DockMode`, not stale `AllGroupsVisible` flag. |
 | ✅ Done | **Bug H** | — | Secondary dialogs behind parent — fixed: `OpenFileDialog.ShowDialog(this)` in `MenuAddShortcut_Click` and `MenuChangeIcon_Click`. |
 | ✅ Done | **Bug I** | — | Desktop icon not hiding on Win 11 — fixed: `HideGroupedIcons` guard added to `AddShortcut`; `SHCNE_ASSOCCHANGED` broadcast added after `SHCNE_UPDATEDIR`. |
