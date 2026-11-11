@@ -296,6 +296,7 @@ public partial class App : Application
 
         // Create Edge Dock Windows if enabled
         SyncEdgeDockWindows();
+        Microsoft.Win32.SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
 
         // Show first-run setup dialog
         if (_mainViewModel.WasFirstRun)
@@ -366,6 +367,8 @@ public partial class App : Application
 
     protected override async void OnExit(ExitEventArgs e)
     {
+        Microsoft.Win32.SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
+
         if (_mainViewModel != null)
         {
             try
@@ -996,6 +999,20 @@ public partial class App : Application
                 };
                 _edgeDockTopmostTimer.Tick += (s, e) =>
                 {
+                    if (_mainViewModel != null &&
+                        _mainViewModel.Settings.EnableEdgeDock &&
+                        _mainViewModel.Settings.EdgeDockMonitorMode == SideDockMonitorMode.MainMonitorOnly &&
+                        _edgeDockInstances.Count > 0)
+                    {
+                        var currentPrimary = new Services.MonitorService().GetPrimaryMonitor();
+                        if (currentPrimary != null &&
+                            !string.Equals(_edgeDockInstances[0].ViewModel.TargetMonitor.DeviceName, currentPrimary.DeviceName, StringComparison.OrdinalIgnoreCase))
+                        {
+                            _mainViewModel.RebuildEdgeDocks();
+                            return;
+                        }
+                    }
+
                     foreach (var inst in _edgeDockInstances)
                     {
                         inst.BubbleWindow.EnsureTopmost();
@@ -1005,6 +1022,14 @@ public partial class App : Application
             }
             _edgeDockTopmostTimer.Start();
         }
+    }
+
+    private void OnDisplaySettingsChanged(object? sender, EventArgs e)
+    {
+        Dispatcher.BeginInvoke(new Action(() =>
+        {
+            _mainViewModel?.RebuildEdgeDocks();
+        }), DispatcherPriority.Background);
     }
 
     private void DestroyAllEdgeDockWindows()

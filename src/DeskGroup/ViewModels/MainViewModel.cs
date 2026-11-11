@@ -292,6 +292,17 @@ public partial class MainViewModel : ObservableObject
 
             case SideDockMonitorMode.PerMonitorCustom:
             {
+                _settings.ConsolidateEdgeDocksForPrimaryMonitor(primaryMonitor.DeviceName);
+
+                // If any enabled dock is bound to a monitor device name not currently connected, fall back to primary monitor
+                foreach (var orphan in _settings.EdgeDocks.Where(c =>
+                    !string.IsNullOrEmpty(c.MonitorDeviceName) &&
+                    !allMonitors.Any(m => string.Equals(m.DeviceName, c.MonitorDeviceName, StringComparison.OrdinalIgnoreCase))))
+                {
+                    orphan.MonitorDeviceName = primaryMonitor.DeviceName;
+                }
+                _settings.ConsolidateEdgeDocksForPrimaryMonitor(primaryMonitor.DeviceName);
+
                 foreach (var mon in allMonitors)
                 {
                     var monConfigs = _settings.EdgeDocks
@@ -330,6 +341,11 @@ public partial class MainViewModel : ObservableObject
 
     private List<EdgeDockConfig> GetOrCreateMainMonitorConfigs(string primaryDeviceName)
     {
+        if (_settings.ConsolidateEdgeDocksForPrimaryMonitor(primaryDeviceName))
+        {
+            _ = _persistenceService.SaveSettingsImmediateAsync(_settings);
+        }
+
         var mainConfigs = _settings.EdgeDocks
             .Where(c => string.IsNullOrEmpty(c.MonitorDeviceName)
                      || string.Equals(c.MonitorDeviceName, primaryDeviceName, StringComparison.OrdinalIgnoreCase))
@@ -380,6 +396,17 @@ public partial class MainViewModel : ObservableObject
         EnsureDefaultEdgeDockConfig();
         var primary = _monitorService.GetPrimaryMonitor();
         bool isPrimary = primary != null && string.Equals(primary.DeviceName, monitorDeviceName, StringComparison.OrdinalIgnoreCase);
+
+        if (_settings.EdgeDockMonitorMode != SideDockMonitorMode.PerMonitorCustom)
+        {
+            _settings.ConsolidateEdgeDocksForPrimaryMonitor(primary?.DeviceName ?? monitorDeviceName);
+            var singleExisting = _settings.EdgeDocks.FirstOrDefault(c => c.Edge == edge);
+            if (singleExisting != null)
+            {
+                singleExisting.MonitorDeviceName = primary?.DeviceName ?? monitorDeviceName;
+                return singleExisting;
+            }
+        }
 
         var existing = _settings.EdgeDocks.FirstOrDefault(c =>
             c.Edge == edge &&

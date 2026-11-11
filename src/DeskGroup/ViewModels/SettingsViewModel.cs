@@ -623,10 +623,13 @@ public partial class SettingsViewModel : ObservableObject
             }
         }
 
+        var primaryDev = AvailableMonitors.FirstOrDefault(m => m.IsPrimary)?.DeviceName
+                         ?? AvailableMonitors.First().DeviceName;
+
+        _settings.ConsolidateEdgeDocksForPrimaryMonitor(primaryDev);
+
         if (_settings.EdgeDocks.Count == 0)
         {
-            var primaryDev = AvailableMonitors.FirstOrDefault(m => m.IsPrimary)?.DeviceName
-                             ?? AvailableMonitors.First().DeviceName;
             _settings.EdgeDocks.Add(new EdgeDockConfig
             {
                 MonitorDeviceName = primaryDev,
@@ -660,10 +663,17 @@ public partial class SettingsViewModel : ObservableObject
             var dev = SelectedMonitorOption.DeviceName;
             var isPrimary = SelectedMonitorOption.IsPrimary;
 
-            var monConfigs = _settings.EdgeDocks
-                .Where(c => string.Equals(c.MonitorDeviceName, dev, StringComparison.OrdinalIgnoreCase)
-                         || (isPrimary && string.IsNullOrEmpty(c.MonitorDeviceName)))
-                .ToList();
+            if (EdgeDockMonitorMode != SideDockMonitorMode.PerMonitorCustom && isPrimary)
+            {
+                _settings.ConsolidateEdgeDocksForPrimaryMonitor(dev);
+            }
+
+            var monConfigs = EdgeDockMonitorMode != SideDockMonitorMode.PerMonitorCustom
+                ? _settings.EdgeDocks.ToList()
+                : _settings.EdgeDocks
+                    .Where(c => string.Equals(c.MonitorDeviceName, dev, StringComparison.OrdinalIgnoreCase)
+                             || (isPrimary && string.IsNullOrEmpty(c.MonitorDeviceName)))
+                    .ToList();
 
             EdgeLeftEnabled = monConfigs.Any(c => c.Edge == DockEdge.Left && c.IsEnabled);
             EdgeTopEnabled = monConfigs.Any(c => c.Edge == DockEdge.Top && c.IsEnabled);
@@ -753,10 +763,17 @@ public partial class SettingsViewModel : ObservableObject
 
     private void SetMonitorEdgeState(string dev, bool isPrimary, DockEdge edge, bool enabled)
     {
-        var cfg = _settings.EdgeDocks.FirstOrDefault(c =>
-            c.Edge == edge &&
-            (string.Equals(c.MonitorDeviceName, dev, StringComparison.OrdinalIgnoreCase) ||
-             (isPrimary && string.IsNullOrEmpty(c.MonitorDeviceName))));
+        if (EdgeDockMonitorMode != SideDockMonitorMode.PerMonitorCustom && isPrimary)
+        {
+            _settings.ConsolidateEdgeDocksForPrimaryMonitor(dev);
+        }
+
+        var cfg = EdgeDockMonitorMode != SideDockMonitorMode.PerMonitorCustom
+            ? _settings.EdgeDocks.FirstOrDefault(c => c.Edge == edge)
+            : _settings.EdgeDocks.FirstOrDefault(c =>
+                c.Edge == edge &&
+                (string.Equals(c.MonitorDeviceName, dev, StringComparison.OrdinalIgnoreCase) ||
+                 (isPrimary && string.IsNullOrEmpty(c.MonitorDeviceName))));
 
         if (cfg == null)
         {
@@ -764,7 +781,8 @@ public partial class SettingsViewModel : ObservableObject
             var reusable = _settings.EdgeDocks.FirstOrDefault(c =>
                 !c.IsEnabled &&
                 c.Shortcuts.Count == 0 &&
-                (string.Equals(c.MonitorDeviceName, dev, StringComparison.OrdinalIgnoreCase) ||
+                (EdgeDockMonitorMode != SideDockMonitorMode.PerMonitorCustom ||
+                 string.Equals(c.MonitorDeviceName, dev, StringComparison.OrdinalIgnoreCase) ||
                  (isPrimary && string.IsNullOrEmpty(c.MonitorDeviceName))));
 
             if (reusable != null)
@@ -791,7 +809,7 @@ public partial class SettingsViewModel : ObservableObject
         }
         else
         {
-            if (string.IsNullOrEmpty(cfg.MonitorDeviceName))
+            if (EdgeDockMonitorMode != SideDockMonitorMode.PerMonitorCustom || string.IsNullOrEmpty(cfg.MonitorDeviceName))
                 cfg.MonitorDeviceName = dev;
             cfg.IsEnabled = enabled;
         }

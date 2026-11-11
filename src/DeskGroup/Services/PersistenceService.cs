@@ -139,7 +139,13 @@ public class PersistenceService
         }
         catch (Exception ex)
         {
-            ErrorOccurred?.Invoke(this, new PersistenceErrorEventArgs("Failed to load settings. Using defaults.", ex));
+            ErrorOccurred?.Invoke(this, new PersistenceErrorEventArgs("Failed to load settings. Attempting backup restore...", ex));
+            var restored = await TryRestoreFromBackupAsync<AppSettings>(_settingsFilePath);
+            if (restored != null)
+            {
+                MigrateSettings(restored);
+                return restored;
+            }
             return new AppSettings();
         }
     }
@@ -150,12 +156,16 @@ public class PersistenceService
         // v1.4.1 → v1.4.2: default hotkey changed from Ctrl+Alt+G to Ctrl+F2
         if (settings.ToggleAllHotkey == "Ctrl+Alt+G")
             settings.ToggleAllHotkey = "Ctrl+F2";
+
+        // Self-heal any duplicate EdgeDock configs created across monitor device name changes
+        settings.ConsolidateEdgeDocksForPrimaryMonitor(null);
     }
 
     public async Task SaveSettingsImmediateAsync(AppSettings settings)
     {
         try
         {
+            await CreateBackupAsync(_settingsFilePath);
             var json = JsonSerializer.Serialize(settings, JsonOptions);
             await WriteFileAtomicAsync(_settingsFilePath, json);
         }
@@ -249,7 +259,12 @@ public class PersistenceService
     private static async Task WriteFileAtomicAsync(string filePath, string content)
     {
         var tempPath = filePath + ".tmp";
-        await File.WriteAllTextAsync(tempPath, content);
+        var bytes = System.Text.Encoding.UTF8.GetBytes(content);
+        await using (var fs = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None, 4096, FileOptions.WriteThrough | FileOptions.Asynchronous))
+        {
+            await fs.WriteAsync(bytes);
+            await fs.FlushAsync();
+        }
         File.Move(tempPath, filePath, overwrite: true);
     }
 

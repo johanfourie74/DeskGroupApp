@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace DeskGroup.Models;
 
@@ -68,6 +69,156 @@ public class AppSettings
     public double SettingsWindowTop { get; set; } = double.NaN;
     public double SettingsWindowWidth { get; set; } = 520;
     public double SettingsWindowHeight { get; set; } = 600;
+
+    /// <summary>
+    /// Consolidates and self-heals EdgeDock configs so that Windows monitor re-enumeration
+    /// (e.g., \\.\DISPLAY1 swapping with \\.\DISPLAY2 after a power failure or monitor wake)
+    /// never strands populated panels on an old device name or leaves empty duplicate panels.
+    /// </summary>
+    public bool ConsolidateEdgeDocksForPrimaryMonitor(string? primaryDeviceName)
+    {
+        EdgeDocks ??= new List<EdgeDockConfig>();
+        if (EdgeDocks.Count == 0)
+            return false;
+
+        bool changed = false;
+
+        if (EdgeDockMonitorMode != SideDockMonitorMode.PerMonitorCustom)
+        {
+            var consolidated = new List<EdgeDockConfig>();
+            foreach (var edgeGroup in EdgeDocks.GroupBy(c => c.Edge))
+            {
+                var ordered = edgeGroup
+                    .OrderByDescending(c => c.Shortcuts?.Count ?? 0)
+                    .ThenByDescending(c => c.IsEnabled)
+                    .ThenByDescending(c => !string.IsNullOrEmpty(primaryDeviceName) &&
+                                           string.Equals(c.MonitorDeviceName, primaryDeviceName, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+
+                var winner = ordered[0];
+                winner.Shortcuts ??= new List<ShortcutItem>();
+                winner.OriginalIconStates ??= new List<OriginalIconState>();
+
+                for (int i = 1; i < ordered.Count; i++)
+                {
+                    var dup = ordered[i];
+                    changed = true;
+                    if (dup.IsEnabled && !winner.IsEnabled)
+                        winner.IsEnabled = true;
+
+                    if (dup.Shortcuts != null)
+                    {
+                        foreach (var sc in dup.Shortcuts)
+                        {
+                            bool exists = winner.Shortcuts.Any(w =>
+                                w.Id == sc.Id ||
+                                (string.Equals(w.TargetPath, sc.TargetPath, StringComparison.OrdinalIgnoreCase) &&
+                                 string.Equals(w.Arguments, sc.Arguments, StringComparison.OrdinalIgnoreCase) &&
+                                 string.Equals(w.DisplayName, sc.DisplayName, StringComparison.OrdinalIgnoreCase)));
+                            if (!exists)
+                            {
+                                sc.SortOrder = winner.Shortcuts.Count;
+                                winner.Shortcuts.Add(sc);
+                            }
+                        }
+                    }
+
+                    if (dup.OriginalIconStates != null)
+                    {
+                        foreach (var st in dup.OriginalIconStates)
+                        {
+                            if (winner.OriginalIconStates.All(w => w.ShortcutItemId != st.ShortcutItemId))
+                                winner.OriginalIconStates.Add(st);
+                        }
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(primaryDeviceName) &&
+                    !string.Equals(winner.MonitorDeviceName, primaryDeviceName, StringComparison.OrdinalIgnoreCase))
+                {
+                    winner.MonitorDeviceName = primaryDeviceName;
+                    changed = true;
+                }
+
+                consolidated.Add(winner);
+            }
+
+            if (changed || consolidated.Count != EdgeDocks.Count)
+            {
+                EdgeDocks.Clear();
+                EdgeDocks.AddRange(consolidated);
+                return true;
+            }
+
+            return false;
+        }
+        else
+        {
+            // PerMonitorCustom: deduplicate any identical (MonitorDeviceName, Edge) entries
+            var consolidated = new List<EdgeDockConfig>();
+            foreach (var group in EdgeDocks.GroupBy(c => (
+                Device: (string.IsNullOrEmpty(c.MonitorDeviceName) && !string.IsNullOrEmpty(primaryDeviceName)
+                    ? primaryDeviceName
+                    : c.MonitorDeviceName ?? string.Empty).ToUpperInvariant(),
+                c.Edge)))
+            {
+                var ordered = group
+                    .OrderByDescending(c => c.Shortcuts?.Count ?? 0)
+                    .ThenByDescending(c => c.IsEnabled)
+                    .ToList();
+
+                var winner = ordered[0];
+                winner.Shortcuts ??= new List<ShortcutItem>();
+                winner.OriginalIconStates ??= new List<OriginalIconState>();
+
+                if (string.IsNullOrEmpty(winner.MonitorDeviceName) && !string.IsNullOrEmpty(primaryDeviceName))
+                {
+                    winner.MonitorDeviceName = primaryDeviceName;
+                    changed = true;
+                }
+
+                for (int i = 1; i < ordered.Count; i++)
+                {
+                    var dup = ordered[i];
+                    changed = true;
+                    if (dup.IsEnabled && !winner.IsEnabled)
+                        winner.IsEnabled = true;
+
+                    if (dup.Shortcuts != null)
+                    {
+                        foreach (var sc in dup.Shortcuts)
+                        {
+                            if (winner.Shortcuts.All(w => w.Id != sc.Id))
+                            {
+                                sc.SortOrder = winner.Shortcuts.Count;
+                                winner.Shortcuts.Add(sc);
+                            }
+                        }
+                    }
+
+                    if (dup.OriginalIconStates != null)
+                    {
+                        foreach (var st in dup.OriginalIconStates)
+                        {
+                            if (winner.OriginalIconStates.All(w => w.ShortcutItemId != st.ShortcutItemId))
+                                winner.OriginalIconStates.Add(st);
+                        }
+                    }
+                }
+
+                consolidated.Add(winner);
+            }
+
+            if (changed || consolidated.Count != EdgeDocks.Count)
+            {
+                EdgeDocks.Clear();
+                EdgeDocks.AddRange(consolidated);
+                return true;
+            }
+
+            return false;
+        }
+    }
 }
 
 public enum ThemeMode

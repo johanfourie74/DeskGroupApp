@@ -265,4 +265,65 @@ public class EdgeDockTests : IDisposable
         normalized.Should().Be(expectedNormalized);
         version.Should().Be(Version.Parse(expectedNormalized));
     }
+
+    [Fact]
+    public void ConsolidateEdgeDocksForPrimaryMonitor_HealsMonitorSwapAndEmptyDuplicates_AfterPowerFailure()
+    {
+        var settings = new AppSettings
+        {
+            EnableEdgeDock = true,
+            EdgeDockMonitorMode = SideDockMonitorMode.MainMonitorOnly,
+            EdgeDocks =
+            {
+                new EdgeDockConfig
+                {
+                    Edge = DockEdge.Left,
+                    MonitorDeviceName = @"\\.\DISPLAY1",
+                    IsEnabled = true,
+                    Shortcuts = { new ShortcutItem { DisplayName = "JORG (Master)", TargetPath = "jorg.exe" } }
+                },
+                new EdgeDockConfig
+                {
+                    Edge = DockEdge.Right,
+                    MonitorDeviceName = @"\\.\DISPLAY1",
+                    IsEnabled = true,
+                    Shortcuts = { new ShortcutItem { DisplayName = "GitHub", TargetPath = "github.exe" } }
+                },
+                new EdgeDockConfig
+                {
+                    Edge = DockEdge.Top,
+                    MonitorDeviceName = @"\\.\DISPLAY1",
+                    IsEnabled = true,
+                    Shortcuts = { new ShortcutItem { DisplayName = "Antigravity IDE", TargetPath = "agy.exe" } }
+                },
+                // Empty duplicate created on DISPLAY2 after monitor re-enumeration
+                new EdgeDockConfig
+                {
+                    Edge = DockEdge.Left,
+                    MonitorDeviceName = @"\\.\DISPLAY2",
+                    IsEnabled = true
+                },
+                new EdgeDockConfig
+                {
+                    Edge = DockEdge.Right,
+                    MonitorDeviceName = @"\\.\DISPLAY2",
+                    IsEnabled = true
+                },
+                new EdgeDockConfig
+                {
+                    Edge = DockEdge.Top,
+                    MonitorDeviceName = @"\\.\DISPLAY2",
+                    IsEnabled = true
+                }
+            }
+        };
+
+        bool changed = settings.ConsolidateEdgeDocksForPrimaryMonitor(@"\\.\DISPLAY2");
+        changed.Should().BeTrue();
+        settings.EdgeDocks.Should().HaveCount(3);
+        settings.EdgeDocks.Should().OnlyContain(d => d.MonitorDeviceName == @"\\.\DISPLAY2" && d.IsEnabled);
+        settings.EdgeDocks.Single(d => d.Edge == DockEdge.Left).Shortcuts.Should().ContainSingle(s => s.DisplayName == "JORG (Master)");
+        settings.EdgeDocks.Single(d => d.Edge == DockEdge.Right).Shortcuts.Should().ContainSingle(s => s.DisplayName == "GitHub");
+        settings.EdgeDocks.Single(d => d.Edge == DockEdge.Top).Shortcuts.Should().ContainSingle(s => s.DisplayName == "Antigravity IDE");
+    }
 }
