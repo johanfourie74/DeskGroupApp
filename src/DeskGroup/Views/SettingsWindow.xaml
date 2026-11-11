@@ -966,7 +966,7 @@
                     <LineBreak/>
                     <Run Text="• Hover over any icon to see a glow highlight — click once to launch" Foreground="{DynamicResource ForegroundSecondary}"/>
                     <LineBreak/>
-                    <Run Text="• Edge Dock icons are center-aligned, display their shortcut names in a delayed hover tooltip (hides immediately on mouse-out) to save screen space, and close the dock on icon click even when Auto-Hide is off" Foreground="{DynamicResource ForegroundSecondary}"/>
+                    <Run Text="• Edge Dock icons are center-aligned, display their shortcut names in a delayed hover tooltip (hides immediately on mouse-out) to save screen space, close the dock on icon click even when Auto-Hide is off, and automatically stay consolidated on your primary screen across power outages or monitor wake order changes" Foreground="{DynamicResource ForegroundSecondary}"/>
                     <LineBreak/>
                     <Run Text="• Enable Snap to Grid for perfectly aligned group layouts" Foreground="{DynamicResource ForegroundSecondary}"/>
                     <LineBreak/>

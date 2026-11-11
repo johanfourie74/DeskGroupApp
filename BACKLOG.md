@@ -1,6 +1,6 @@
 # DeskGroup - Development Backlog
 
-**Last Updated:** 2026-11-01 (session 13 — Edge Dock Side Panel + Windows 11 Silent Failure Fixes + Startup Optimization — v1.4.6)
+**Last Updated:** 2026-11-11 (session 14 — Edge Dock Centered Icons, Delayed Tooltips, Close-on-Click & Power-Failure Monitor-Swap Self-Healing — v1.4.6)
 **Current release:** v1.4.5 (live)
 **Pending release:** v1.4.6 (local, not yet pushed)
 
@@ -18,6 +18,7 @@ This applies to: new features, bug fixes, UI changes, behaviour changes, setting
 
 | Priority | ID | Est. | Description |
 |---|---|---|---|
+| ✅ Done | **Power-Failure Resilience** | — | **Self-healing Edge Dock consolidation & multi-monitor wake resilience**: Fixed single-item `EdgeDocks.First()` migration bug when monitors wake in staggered order (`\\.\DISPLAY1` vs `\\.\DISPLAY2`) after an AC power outage; added `ConsolidateEdgeDocksForPrimaryMonitor`, `SystemEvents.DisplaySettingsChanged` + 2s primary-monitor wake tracking, and rolling `settings.json` backups with `FileOptions.WriteThrough` atomic disk flush. |
 | ✅ Done | **Edge Dock Icons & Tooltip** | — | **Edge Dock icon alignment, tooltip labels & close-on-icon-click**: Icons inside the Edge Dock panel are now strictly center-aligned inside compact square tiles, icon display names are moved to a delayed hover tooltip (450ms delay to show, immediate hide on mouse-out), and both Edge Dock panels and temporarily floated groups close/hide ONLY when clicking an icon (even when auto-close is off) — never on accidental clicks elsewhere in the panel/group. |
 | ✅ Done | **Bug C** | — | Tray icon first-click — fixed: `ToggleAllGroupsVisibility()` rewritten with 4-state logic based on `SavedDockModeBeforeFloat`+`DockMode`, not stale `AllGroupsVisible` flag. |
 | ✅ Done | **Bug H** | — | Secondary dialogs behind parent — fixed: `OpenFileDialog.ShowDialog(this)` in `MenuAddShortcut_Click` and `MenuChangeIcon_Click`. |
