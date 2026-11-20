@@ -121,6 +121,13 @@ public partial class EdgeDockViewModel : ObservableObject
         return Math.Clamp(cols, 1, 12);
     }
 
+    public int SnapHeightToRows(double rawHeight)
+    {
+        double rowH = SingleIconRowHeight;
+        int rows = (int)Math.Round((rawHeight - 80) / Math.Max(1, rowH));
+        return Math.Clamp(rows, 1, 12);
+    }
+
     public string LockStateText => LockState switch
     {
         SideDockLockState.AutoHide => "Auto-Hide",
@@ -170,7 +177,7 @@ public partial class EdgeDockViewModel : ObservableObject
         PanelThickness = IsVerticalEdge
             ? CalculateSnappedWidthForColumns(IconColumns)
             : CalculateSnappedHeightForRows(IconColumns);
-        PanelLength = Math.Clamp(config.PanelLength, 140, 1400);
+        PanelLength = Math.Clamp(config.PanelLength, 140, 3840);
         IsEnabled = config.IsEnabled;
         AccentColorHex = string.IsNullOrWhiteSpace(config.AccentColor) ? "#0078D4" : config.AccentColor;
 
@@ -523,7 +530,7 @@ public partial class EdgeDockViewModel : ObservableObject
         PanelThickness = IsVerticalEdge
             ? CalculateSnappedWidthForColumns(IconColumns)
             : CalculateSnappedHeightForRows(IconColumns);
-        PanelLength = Math.Clamp(_config.PanelLength, 140, 1400);
+        PanelLength = Math.Clamp(_config.PanelLength, 140, 3840);
         AccentColorHex = string.IsNullOrWhiteSpace(_config.AccentColor) ? "#0078D4" : _config.AccentColor;
         ApplyAccentColor(AccentColorHex);
         LoadShortcuts();

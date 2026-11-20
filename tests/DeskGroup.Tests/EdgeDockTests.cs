@@ -122,6 +122,19 @@ public class EdgeDockTests : IDisposable
         vm.SingleIconRowHeight.Should().Be(76);
         vm.PanelThickness.Should().Be(vm.CalculateSnappedWidthForColumns(2));
         DeskGroup.Controls.IconTile.ToolTipShowDelayMs.Should().Be(450);
+
+        // Top / Horizontal edge row snapping & PanelLength persistence
+        vm.SetEdge(DockEdge.Top);
+        vm.IsHorizontalEdge.Should().BeTrue();
+        double twoRowHeight = vm.CalculateSnappedHeightForRows(2);
+        vm.SnapHeightToRows(twoRowHeight - 10).Should().Be(2);
+        vm.IconColumns = 2;
+        vm.PanelLength = 508;
+        vm.RecalculateSnappedThickness();
+        vm.SyncToConfig();
+        cfg.IconColumns.Should().Be(2);
+        cfg.PanelThickness.Should().Be(twoRowHeight);
+        cfg.PanelLength.Should().Be(508);
     }
 
     [Fact]

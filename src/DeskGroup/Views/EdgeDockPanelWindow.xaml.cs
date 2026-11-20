@@ -23,12 +23,29 @@ public partial class EdgeDockPanelWindow : Window
     private bool _isDragging;
     private bool _dragStarted;
     private bool _isUserResizing;
+    private bool _hasSizingRect;
+    private RECT _lastSizingRect;
     private Point _dragStartScreen;
     private const double DragThreshold = 5.0;
 
+    private const int WM_NCHITTEST = 0x0084;
     private const int WM_ENTERSIZEMOVE = 0x0231;
     private const int WM_EXITSIZEMOVE = 0x0232;
     private const int WM_SIZING = 0x0214;
+
+    private const int HTLEFT = 10;
+    private const int HTRIGHT = 11;
+    private const int HTTOP = 12;
+    private const int HTTOPLEFT = 13;
+    private const int HTTOPRIGHT = 14;
+    private const int HTBOTTOM = 15;
+    private const int HTBOTTOMLEFT = 16;
+    private const int HTBOTTOMRIGHT = 17;
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool GetWindowRect(IntPtr hwnd, out RECT lpRect);
+
+    public bool IsUserResizing => _isUserResizing;
 
     [StructLayout(LayoutKind.Sequential)]
     private struct RECT
@@ -73,45 +90,145 @@ public partial class EdgeDockPanelWindow : Window
 
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
-        if (msg == WM_ENTERSIZEMOVE)
+        if (msg == WM_NCHITTEST && !_isDragging && !_dragStarted)
+        {
+            if (GetWindowRect(hwnd, out RECT winRect))
+            {
+                long lp = lParam.ToInt64();
+                int screenX = unchecked((short)(lp & 0xFFFF));
+                int screenY = unchecked((short)((lp >> 16) & 0xFFFF));
+
+                int borderPx = (int)Math.Round(6 * DpiScaleX);
+                int cornerPx = (int)Math.Round(12 * DpiScaleX);
+
+                bool onLeft = screenX >= winRect.Left && screenX < winRect.Left + borderPx;
+                bool onRight = screenX <= winRect.Right && screenX > winRect.Right - borderPx;
+                bool onTop = screenY >= winRect.Top && screenY < winRect.Top + borderPx;
+                bool onBottom = screenY <= winRect.Bottom && screenY > winRect.Bottom - borderPx;
+
+                bool inLeftCorner = screenX >= winRect.Left && screenX < winRect.Left + cornerPx;
+                bool inRightCorner = screenX <= winRect.Right && screenX > winRect.Right - cornerPx;
+                bool inTopCorner = screenY >= winRect.Top && screenY < winRect.Top + cornerPx;
+                bool inBottomCorner = screenY <= winRect.Bottom && screenY > winRect.Bottom - cornerPx;
+
+                if ((onBottom && inRightCorner) || (onRight && inBottomCorner))
+                {
+                    handled = true;
+                    return new IntPtr(HTBOTTOMRIGHT);
+                }
+                if ((onBottom && inLeftCorner) || (onLeft && inBottomCorner))
+                {
+                    handled = true;
+                    return new IntPtr(HTBOTTOMLEFT);
+                }
+                if ((onTop && inRightCorner) || (onRight && inTopCorner))
+                {
+                    handled = true;
+                    return new IntPtr(HTTOPRIGHT);
+                }
+                if ((onTop && inLeftCorner) || (onLeft && inTopCorner))
+                {
+                    handled = true;
+                    return new IntPtr(HTTOPLEFT);
+                }
+                if (onLeft)
+                {
+                    handled = true;
+                    return new IntPtr(HTLEFT);
+                }
+                if (onRight)
+                {
+                    handled = true;
+                    return new IntPtr(HTRIGHT);
+                }
+                if (onTop)
+                {
+                    handled = true;
+                    return new IntPtr(HTTOP);
+                }
+                if (onBottom)
+                {
+                    handled = true;
+                    return new IntPtr(HTBOTTOM);
+                }
+            }
+        }
+        else if (msg == WM_ENTERSIZEMOVE)
         {
             _isUserResizing = true;
+            _hasSizingRect = false;
             _viewModel.SetSuppressAutoSave(true);
         }
-        else if (msg == WM_SIZING && _viewModel.IsVerticalEdge)
+        else if (msg == WM_SIZING)
         {
-            // Snap width live in physical pixels during Win32 resize drag so width snaps to exact 1, 2, 3... icon columns!
             var rect = Marshal.PtrToStructure<RECT>(lParam);
-            double scaleX = DpiScaleX;
-            double currentDipWidth = (rect.Right - rect.Left) / scaleX;
-            int snappedCols = _viewModel.SnapWidthToColumns(currentDipWidth);
-            double snappedDipWidth = _viewModel.CalculateSnappedWidthForColumns(snappedCols);
-            int snappedPhysWidth = (int)Math.Round(snappedDipWidth * scaleX);
-
-            // wParam indicates which edge is being dragged (1=Left, 2=Right, 4=TopLeft, 5=TopRight, 7=BottomLeft, 8=BottomRight)
             int edge = wParam.ToInt32();
-            if (edge == 1 || edge == 4 || edge == 7)
-                rect.Left = rect.Right - snappedPhysWidth;
-            else if (edge == 2 || edge == 5 || edge == 8)
-                rect.Right = rect.Left + snappedPhysWidth;
 
+            if (_viewModel.IsVerticalEdge)
+            {
+                // Snap width live in physical pixels during Win32 resize drag so width snaps to exact 1, 2, 3... icon columns
+                double scaleX = DpiScaleX;
+                double currentDipWidth = (rect.Right - rect.Left) / scaleX;
+                int snappedCols = _viewModel.SnapWidthToColumns(currentDipWidth);
+                double snappedDipWidth = _viewModel.CalculateSnappedWidthForColumns(snappedCols);
+                int snappedPhysWidth = (int)Math.Round(snappedDipWidth * scaleX);
+
+                // wParam: 1=Left, 2=Right, 4=TopLeft, 5=TopRight, 7=BottomLeft, 8=BottomRight
+                if (edge == 1 || edge == 4 || edge == 7)
+                    rect.Left = rect.Right - snappedPhysWidth;
+                else if (edge == 2 || edge == 5 || edge == 8)
+                    rect.Right = rect.Left + snappedPhysWidth;
+            }
+            else
+            {
+                // Horizontal edge (Top / Bottom): snap height live to exact 1, 2, 3... icon rows while allowing free width
+                double scaleY = DpiScaleY;
+                double currentDipHeight = (rect.Bottom - rect.Top) / scaleY;
+                int snappedRows = _viewModel.SnapHeightToRows(currentDipHeight);
+                double snappedDipHeight = _viewModel.CalculateSnappedHeightForRows(snappedRows);
+                int snappedPhysHeight = (int)Math.Round(snappedDipHeight * scaleY);
+
+                // wParam: 3=Top, 4=TopLeft, 5=TopRight, 6=Bottom, 7=BottomLeft, 8=BottomRight
+                if (edge == 3 || edge == 4 || edge == 5)
+                    rect.Top = rect.Bottom - snappedPhysHeight;
+                else if (edge == 6 || edge == 7 || edge == 8)
+                    rect.Bottom = rect.Top + snappedPhysHeight;
+            }
+
+            _lastSizingRect = rect;
+            _hasSizingRect = true;
             Marshal.StructureToPtr(rect, lParam, true);
         }
         else if (msg == WM_EXITSIZEMOVE)
         {
             _isUserResizing = false;
-            _viewModel.SetSuppressAutoSave(false);
+
+            if (!_hasSizingRect && (_windowHandle == IntPtr.Zero || !GetWindowRect(_windowHandle, out _lastSizingRect)))
+            {
+                _viewModel.SetSuppressAutoSave(false);
+                return IntPtr.Zero;
+            }
+            _hasSizingRect = false;
+
+            double finalDipWidth = (_lastSizingRect.Right - _lastSizingRect.Left) / DpiScaleX;
+            double finalDipHeight = (_lastSizingRect.Bottom - _lastSizingRect.Top) / DpiScaleY;
 
             if (_viewModel.IsVerticalEdge)
             {
-                int cols = _viewModel.SnapWidthToColumns(ActualWidth);
+                int cols = _viewModel.SnapWidthToColumns(finalDipWidth);
                 _viewModel.IconColumns = cols;
-                _viewModel.PanelLength = Math.Round(ActualHeight);
+                _viewModel.PanelLength = Math.Clamp(Math.Round(finalDipHeight), 140, 3840);
+                _viewModel.RecalculateSnappedThickness();
             }
             else
             {
-                _viewModel.PanelLength = Math.Round(ActualWidth);
+                int rows = _viewModel.SnapHeightToRows(finalDipHeight);
+                _viewModel.IconColumns = rows;
+                _viewModel.PanelLength = Math.Clamp(Math.Round(finalDipWidth), 140, 3840);
+                _viewModel.RecalculateSnappedThickness();
             }
+
+            _viewModel.SetSuppressAutoSave(false);
             _viewModel.SyncToConfig();
             UpdatePanelGeometry();
         }
@@ -161,12 +278,6 @@ public partial class EdgeDockPanelWindow : Window
 
     public void UpdatePanelGeometry()
     {
-        if (!_viewModel.IsEnabled || !_viewModel.IsPanelOpen)
-        {
-            Visibility = Visibility.Hidden;
-            return;
-        }
-
         var mon = _viewModel.TargetMonitor;
         double scaleX = DpiScaleX > 0 ? DpiScaleX : mon.ScaleFactor;
         double scaleY = DpiScaleY > 0 ? DpiScaleY : mon.ScaleFactor;
@@ -181,10 +292,7 @@ public partial class EdgeDockPanelWindow : Window
             : _viewModel.CalculateSnappedHeightForRows(_viewModel.IconColumns);
 
         double minSingleColW = _viewModel.CalculateSnappedWidthForColumns(1);
-        MinWidth = _viewModel.IsVerticalEdge ? minSingleColW : 140;
-        MinHeight = _viewModel.IsVerticalEdge ? 140 : _viewModel.CalculateSnappedHeightForRows(1);
-
-        double length = Math.Clamp(_viewModel.PanelLength, 140, 1400);
+        double length = Math.Clamp(_viewModel.PanelLength, 140, 3840);
 
         double w = _viewModel.IsVerticalEdge ? snappedThickness : Math.Min(length, monWidth);
         double h = _viewModel.IsVerticalEdge ? Math.Min(length, monHeight) : snappedThickness;
@@ -217,19 +325,36 @@ public partial class EdgeDockPanelWindow : Window
                 break;
         }
 
+        bool prevInit = _isInitializing;
         _isInitializing = true;
-        if (_windowHandle != IntPtr.Zero)
+        try
         {
-            Win32Interop.SetWindowPos(_windowHandle, Win32Interop.HWND_TOPMOST,
-                (int)Math.Round(x * scaleX), (int)Math.Round(y * scaleY),
-                (int)Math.Round(w * scaleX), (int)Math.Round(h * scaleY),
-                Win32Interop.SWP_NOACTIVATE | Win32Interop.SWP_SHOWWINDOW);
+            MinWidth = _viewModel.IsVerticalEdge ? minSingleColW : 140;
+            MinHeight = _viewModel.IsVerticalEdge ? 140 : _viewModel.CalculateSnappedHeightForRows(1);
+
+            Width = w;
+            Height = h;
+            Left = Math.Round(x);
+            Top = Math.Round(y);
+
+            if (!_viewModel.IsEnabled || !_viewModel.IsPanelOpen)
+            {
+                Visibility = Visibility.Hidden;
+                return;
+            }
+
+            if (_windowHandle != IntPtr.Zero)
+            {
+                Win32Interop.SetWindowPos(_windowHandle, Win32Interop.HWND_TOPMOST,
+                    (int)Math.Round(x * scaleX), (int)Math.Round(y * scaleY),
+                    (int)Math.Round(w * scaleX), (int)Math.Round(h * scaleY),
+                    Win32Interop.SWP_NOACTIVATE | Win32Interop.SWP_SHOWWINDOW);
+            }
         }
-        Width = w;
-        Height = h;
-        Left = Math.Round(x);
-        Top = Math.Round(y);
-        _isInitializing = false;
+        finally
+        {
+            _isInitializing = prevInit;
+        }
 
         Visibility = Visibility.Visible;
         Topmost = true;
@@ -245,21 +370,8 @@ public partial class EdgeDockPanelWindow : Window
 
     private void OnSizeChanged(object sender, SizeChangedEventArgs e)
     {
-        if (_isInitializing || !_viewModel.IsPanelOpen || _isUserResizing) return;
-
-        if (_viewModel.IsVerticalEdge)
-        {
-            int cols = _viewModel.SnapWidthToColumns(e.NewSize.Width);
-            if (cols != _viewModel.IconColumns)
-                _viewModel.IconColumns = cols;
-            if (Math.Abs(e.NewSize.Height - _viewModel.PanelLength) > 2)
-                _viewModel.PanelLength = Math.Round(e.NewSize.Height);
-        }
-        else
-        {
-            if (Math.Abs(e.NewSize.Width - _viewModel.PanelLength) > 2)
-                _viewModel.PanelLength = Math.Round(e.NewSize.Width);
-        }
+        // Programmatic/layout SizeChanged events (!IsUserResizing) must never overwrite the user's saved PanelLength or IconColumns.
+        // User resize commits are handled deterministically in WM_EXITSIZEMOVE using the Win32 window rectangle.
     }
 
     private void PanelBorder_MouseEnter(object sender, MouseEventArgs e)

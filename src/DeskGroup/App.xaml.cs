@@ -175,21 +175,18 @@ public partial class App : Application
         });
         _pipeServer.Start();
 
-        // Create Helper Window for Hotkeys
+        // Create Helper Window for Hotkeys (EnsureHandle creates the Win32 HWND without making a visible window at -10000,-10000)
         _helperWindow = new Window
         {
-            Width = 1,
-            Height = 1,
+            Width = 0,
+            Height = 0,
             WindowStyle = WindowStyle.None,
             ShowInTaskbar = false,
             ShowActivated = false,
-            Opacity = 0,
-            Left = -10000,
-            Top = -10000,
-            AllowsTransparency = true,
-            Background = System.Windows.Media.Brushes.Transparent
+            AllowsTransparency = false,
+            Visibility = Visibility.Hidden
         };
-        _helperWindow.Show();
+        new System.Windows.Interop.WindowInteropHelper(_helperWindow).EnsureHandle();
 
         // Register Hotkeys
         _mainViewModel.RegisterHotkeys(_helperWindow);
@@ -817,11 +814,11 @@ public partial class App : Application
                             {
                                 win.Left = groupVm.PositionX;
                                 win.Top = groupVm.PositionY;
+                                if (!win.IsVisible) win.Show();
                             }
                             else
                             {
-                                win.Left = -10000;
-                                win.Top = -10000;
+                                if (win.IsVisible) win.Hide();
                             }
                         }
                         catch (Exception ex)
@@ -837,8 +834,8 @@ public partial class App : Application
         window.SizeToContent = SizeToContent.Manual;
         window.Opacity = 0;
 
-        window.Left = groupVm.IsVisible ? Math.Round(groupVm.PositionX) : -10000;
-        window.Top = groupVm.IsVisible ? Math.Round(groupVm.PositionY) : -10000;
+        window.Left = Math.Round(groupVm.PositionX);
+        window.Top = Math.Round(groupVm.PositionY);
 
         switch (groupVm.ViewMode)
         {
@@ -871,7 +868,8 @@ public partial class App : Application
                 break;
         }
 
-        window.Show();
+        if (groupVm.IsVisible)
+            window.Show();
         _groupWindows[groupVm.Id] = window;
     }
 
@@ -934,7 +932,7 @@ public partial class App : Application
                 autoHideTimer.Tick += (s, e) =>
                 {
                     autoHideTimer.Stop();
-                    if (bubbleWin.IsMouseOver || panelWin.IsMouseOver || Controls.IconTile.IsDraggingShortcut) return;
+                    if (bubbleWin.IsMouseOver || panelWin.IsMouseOver || panelWin.IsUserResizing || Controls.IconTile.IsDraggingShortcut) return;
                     if (bubbleWin.ContextMenu?.IsOpen == true || panelWin.ContextMenu?.IsOpen == true) return;
                     if (panelWin.OwnedWindows.Count > 0) return;
                     dockVm.RequestCloseFromHoverLeave();
